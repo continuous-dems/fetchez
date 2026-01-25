@@ -102,18 +102,18 @@ GeoFetch is designed to be easily integrated into Python workflows.
 ```python
 import geofetch
 
-# 1. Define a region (West, East, South, North)
+# Define a region (West, East, South, North)
 bbox = (-105.5, -104.5, 39.5, 40.5)
 
-# 2. Initialize a specific fetcher module
+# Initialize a specific fetcher module
 # Use the registry to load modules dynamically
 SRTM = geofetch.registry.GeoFetchRegistry.load_module('srtm_plus')
 
-# 3. Configure and Run
+# Configure and Run
 fetcher = SRTM(src_region=bbox, verbose=True)
 fetcher.run()
 
-# 4. Access Results (Metadata)
+# Access Results (Metadata)
 for result in fetcher.results:
     print(f"Downloaded: {result['dst_fn']}")
     print(f"Source URL: {result['url']}")
