@@ -10,7 +10,7 @@ title: The Generic Geospatial Data Acquisition Engine
     /    .-""-\   .'_  '\
    |   /'  _   \ / / \   \    [ G E O F E T C H ]
    |  |   (_)   |  |  \  |
-   \   \     /  \   \ /  /    Data Acquisition Engine
+   \   \     /  \   \ /  /    Data Acquisition and Registry Engine
     \   '.__.'   '.__.' /
      '.       _..._   .'
        '-----'     '-'
@@ -18,7 +18,7 @@ title: The Generic Geospatial Data Acquisition Engine
 
 # GeoFetch
 
-**The Generic Geospatial Data Acquisition Engine**
+**The Generic Geospatial Data Acquisition and Registry Engine**
 
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/ciresdem/geofetch)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ciresdem/geofetch/blob/main/LICENSE)
