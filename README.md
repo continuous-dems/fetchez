@@ -92,6 +92,8 @@ geofetch --modules
 
 --info: Display metadata (Agency, License, Resolution) for a module.
 
+--search: Search metadata (Agency, License, Resolution) for a module.
+
 
 ## 🐍 Python API
 
@@ -134,7 +136,12 @@ print(f"Found modules: {matches}")
 meta = GeoFetchRegistry.get_info('copernicus')
 print(f"Resolution: {meta.get('resolution')}")
 print(f"License: {meta.get('license')}")
-Using FRED (Local Index)For modules that rely on file lists (like Copernicus or NCEI), you can interact directly with the local index.Pythonfrom geofetch import fred
+
+# Using FRED (Local Index)
+# For modules that rely on file lists (like Copernicus or NCEI), you can interact directly with the local index.
+```python
+from geofetch import fred
+```
 
 # Load the local index
 index = fred.FRED(name='copernicus')
