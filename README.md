@@ -61,7 +61,7 @@ Examples
 
 4. List Available ModulesBashgeofetch --modules
 
-Common Flags
+### Common Flags
 
 -R, --region: Set the area of interest (Bounding Box, Place Name, or File).
 -l, --list: Print the URLs found but do not download them.
@@ -72,7 +72,7 @@ Common Flags
 
 GeoFetch is designed to be easily integrated into Python workflows.
 
-Simple Fetching
+### Simple Fetching
 
 ```python
 import geofetch
@@ -94,7 +94,7 @@ for result in fetcher.results:
     print(f"Source URL: {result['url']}")
 ```
 
-Data Discovery
+### Data Discovery
 
 Query the registry to find datasets that match your criteria programmatically.
 
