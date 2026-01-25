@@ -1,5 +1,5 @@
 ---
-title: The Generic Geospatial Data Acquisition Engine
+title: The Generic Geospatial Data Acquisition and Registry Engine
 ---
 
 <link rel="stylesheet" href="style.css" />
