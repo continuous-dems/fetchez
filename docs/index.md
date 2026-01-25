@@ -96,7 +96,8 @@ We support a growing federation of data sources:
 | Topography | srtm_plus, copernicus, nasadem, tnm (USGS), arcticdem |
 | Bathymetry | gmrt, emodnet, gebco, multibeam, nos_hydro |
 | Oceanography |tides, buoys, mur_sst |
-| Reference | osm (OpenStreetMap), vdatumGenerichttp (Direct URL), earthdata (NASA) |
+| Reference | osm (OpenStreetMap), vdatum |
+| Generic | http (Direct URL), earthdata (NASA) |
 
 ## 🤝 Contribute new GeoFetch Modules!
 

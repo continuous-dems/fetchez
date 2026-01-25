@@ -164,7 +164,8 @@ GeoFetch supports over 40 modules categorized by data type. Run ```geofetch --mo
 | Topography | srtm_plus, copernicus, nasadem, tnm (USGS), arcticdem |
 | Bathymetry | gmrt, emodnet, gebco, multibeam, nos_hydro |
 | Oceanography |tides, buoys, mur_sst |
-| Reference | osm (OpenStreetMap), vdatumGenerichttp (Direct URL), earthdata (NASA) |
+| Reference | osm (OpenStreetMap), vdatum |
+| Generic | http (Direct URL), earthdata (NASA) |
 
 ## 🛠️ Contributing
 
