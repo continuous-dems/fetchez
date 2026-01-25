@@ -28,8 +28,8 @@ GeoFetch is a lightweight, open-source command-line tool and Python library desi
 
 It unifies over **40 different data sources**—from NASA, USGS, NOAA, and ESA—into a single, standard interface.
 
-[View on GitHub](https://github.com/ciresdem/geofetch){: .btn .btn-primary }
-[View Modules](https://github.com/ciresdem/geofetch/tree/main/src/geofetch/modules){: .btn }
+[View on GitHub](https://github.com/ciresdem/geofetch)
+[View Modules](https://github.com/ciresdem/geofetch/tree/main/src/geofetch/modules)
 
 ---
 
@@ -115,7 +115,7 @@ Adding a module is easy:
 
 We have a comprehensive guide to help you get started:
 
-Read the Contribution Guide{: .btn .btn-outline }
+Read the [Contribution Guide](https://github.com/ciresdem/geofetch/blob/main/CONTRIBUTING.md)
 
 ### License
 
