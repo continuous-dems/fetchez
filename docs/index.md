@@ -56,7 +56,7 @@ pip install .
 ## 💻 Usage
 
 The core philosophy is simple: Define a Region, Pick a Module.
-1. The Basics
+### The Basics
 
 Fetch SRTM+ topography for a specific bounding box (West, East, South, North):
 
@@ -64,7 +64,7 @@ Fetch SRTM+ topography for a specific bounding box (West, East, South, North):
 geofetch -R -105.5/-104.5/39.5/40.5 srtm_plus
 ```
 
-2. Search by Place Name
+### Search by Place Name
 
 Don't know the coordinates? Use a place name:
 
@@ -72,7 +72,7 @@ Don't know the coordinates? Use a place name:
 geofetch -R loc:"Boulder, CO" copernicus --datatype=1
 ```
 
-3. Discover Data
+### Discover Data
 
 Not sure what dataset you need? Browse the registry:
 ```bash
