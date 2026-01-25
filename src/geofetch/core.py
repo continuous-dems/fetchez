@@ -1,0 +1,826 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+geofetch.core
+~~~~~~~~~~~~~
+
+This module contains the core logic for the GeoFetch library. 
+It handles the initialization of fetchers, connection pooling, 
+and the base FetchModule classes.
+
+:copyright: (c) 2010-2026 Regents of the University of Colorado
+:license: MIT, see LICENSE for more details.
+"""
+
+import os
+import time
+import base64
+import threading
+import queue
+import netrc
+import logging
+from tqdm import tqdm
+import urllib.request
+import urllib.parse
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, build_opener, HTTPCookieProcessor
+from typing import List, Dict, Optional, Union, Any, Tuple
+import concurrent.futures
+
+import requests
+import lxml.etree
+import lxml.html as lh
+
+try:
+    from shapely.geometry import Polygon, mapping
+    HAS_SHAPELY = True
+except:
+    HAS_SHAPELY = False
+    
+from . import utils
+from . import spatial
+from . import __version__
+
+CUDEM_USER_AGENT = f'Fetches/{__version__}'
+DEFAULT_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0'
+R_HEADERS = {'User-Agent': DEFAULT_USER_AGENT}
+
+NAMESPACES = {
+    'gmd': 'http://www.isotc211.org/2005/gmd', 
+    'gmi': 'http://www.isotc211.org/2005/gmi', 
+    'gco': 'http://www.isotc211.org/2005/gco',
+    'gml': 'http://www.isotc211.org/2005/gml',
+    'th': 'http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0',
+    'wms': 'http://www.opengis.net/wms',
+}
+
+logger = logging.getLogger(__name__)
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+def fetches_callback(r: List[Any]):
+    """Default callback for fetches processes.
+    r: [url, local-fn, data-type, fetch-status-or-error-code]
+    """
+    
+    pass
+
+
+def urlencode_(opts: Dict) -> str:
+    """Encode `opts` for use in a URL."""
+    
+    return urllib.parse.urlencode(opts)
+
+
+def urlencode(opts: Dict, doseq: bool = True) -> str:
+    """Encode `opts` for use in a URL.
+    
+    Args:
+        opts: Dictionary of query parameters.
+        doseq: If True, lists in values are encoded as separate parameters 
+               (e.g., {'a': [1, 2]} -> 'a=1&a=2').
+    """
+    return urllib.parse.urlencode(opts, doseq=doseq)
+
+
+def xml2py(node) -> Optional[Dict]:
+    """Parse an xml file into a python dictionary."""
+    
+    texts = {}
+    if node is None:
+        return None
+
+    for child in list(node):
+        child_key = lxml.etree.QName(child).localname
+        if 'name' in child.attrib:
+            child_key = child.attrib['name']
+        
+        href = child.attrib.get('{http://www.w3.org/1999/xlink}href')
+        
+        if child.text is None or child.text.strip() == '':
+            if href is not None:
+                if child_key in texts:
+                    texts[child_key].append(href)
+                else:
+                    texts[child_key] = [href]
+            else:
+                if child_key in texts:
+                    ck = xml2py(child)
+                    if ck:
+                        first_key = list(ck.keys())[0]
+                        texts[child_key][first_key].update(ck[first_key])
+                else:
+                    texts[child_key] = xml2py(child)
+        else:
+            if child_key in texts:
+                texts[child_key].append(child.text)
+            else:
+                texts[child_key] = [child.text]
+                
+    return texts
+
+
+def get_userpass(authenticator_url: str) -> Tuple[Optional[str], Optional[str]]:
+    """Retrieve username and password from netrc for a given URL."""
+    
+    try:
+        info = netrc.netrc()
+        username, _, password = info.authenticators(urllib.parse.urlparse(authenticator_url).hostname)
+    except Exception as e:
+        if 'No such file' not in str(e):
+            logger.error(f'Failed to parse netrc: {e}')
+        username = None
+        password = None
+
+    return username, password
+
+
+def get_credentials(url: str, authenticator_url: str = 'https://urs.earthdata.nasa.gov') -> Optional[str]:
+    """Get user credentials from .netrc or prompt for input. 
+    Used for EarthData.
+    """
+    
+    credentials = None
+    errprefix = ''
+    
+    username, password = get_userpass(authenticator_url)
+
+    while not credentials:
+        if not username:
+            username = utils.get_username()
+            password = utils.get_password()
+            
+        cred_str = f'{username}:{password}'
+        credentials = base64.b64encode(cred_str.encode('ascii')).decode('ascii')
+
+        if url:
+            try:
+                req = Request(url)
+                req.add_header('Authorization', f'Basic {credentials}')
+                opener = build_opener(HTTPCookieProcessor())
+                opener.open(req)
+            except HTTPError:
+                print(f'{errprefix}Incorrect username or password')
+                errprefix = ''
+                credentials = None
+                username = None
+                password = None
+
+    return credentials
+
+
+# =============================================================================
+# XML / ISO Metadata Helper
+# =============================================================================
+class iso_xml:
+    """
+    Helper class for parsing ISO 19115 XML Metadata.
+    """
+    
+    def __init__(self, url=None, xml=None, timeout=20, read_timeout=60):
+        self.url = url
+        self.xml_doc = None
+        self.namespaces = {
+            'gmd': 'http://www.isotc211.org/2005/gmd',
+            'gco': 'http://www.isotc211.org/2005/gco',
+            'gml': 'http://www.opengis.net/gml',
+            'gml32': 'http://www.opengis.net/gml/3.2',
+            'xlink': 'http://www.w3.org/1999/xlink',
+            'gmi': 'http://www.isotc211.org/2005/gmi'
+        }
+        
+        if self.url is not None:
+            req = Fetch(self.url).fetch_req(timeout=timeout, read_timeout=read_timeout)
+            if req and req.status_code == 200:
+                self._parse(req.content)
+        elif xml is not None:
+            self._parse(xml)
+
+            
+    def _parse(self, content):
+        try:
+            # Use recover=True to handle slight XML errors
+            parser = lxml.etree.XMLParser(recover=True)
+            self.xml_doc = lxml.etree.fromstring(content, parser=parser)
+        except Exception as e:
+            logger.error(f"XML Parsing failed: {e}")
+            self.xml_doc = None
+
+            
+    def _xpath_get(self, xpath_str):
+        """Helper to safely get first text result of xpath."""
+        
+        if self.xml_doc is None: return None
+        try:
+            res = self.xml_doc.xpath(xpath_str, namespaces=self.namespaces)
+            if res:
+                if isinstance(res[0], str): return str(res[0]).strip()
+                if hasattr(res[0], 'text'): return str(res[0].text).strip()
+            return None
+        except Exception:
+            return None
+
+        
+    def title(self):
+        """Extract Title."""
+        
+        return self._xpath_get('.//gmd:identificationInfo//gmd:citation//gmd:title/gco:CharacterString')
+
+    
+    def abstract(self):
+        """Extract Abstract."""
+        
+        return self._xpath_get('.//gmd:identificationInfo//gmd:abstract/gco:CharacterString')
+
+    
+    def date(self):
+        """Extract Date."""
+        
+        d = self._xpath_get('.//gmd:date/gco:Date')
+        if not d:
+            d = self._xpath_get('.//gmd:date/gco:DateTime')
+        return d
+
+    
+    def linkages(self):
+        """Extract first valid download URL (specifically looking for Zips/Data)."""
+        
+        if self.xml_doc is None: return None
+        
+        # NOAA typically puts the data link in distributionInfo
+        # We look for ANY URL in the distribution block.
+        try:
+            urls = self.xml_doc.xpath(
+                './/gmd:distributionInfo//gmd:URL/text() | .//gmd:distributionInfo//gmd:linkage/gco:CharacterString/text()', 
+                namespaces=self.namespaces
+            )
+            for u in urls:
+                u = u.strip()
+                # Prioritize zip files (actual data) over metadata links
+                if '.zip' in u.lower(): 
+                    return u
+            
+            # Fallback: return first URL if no zip found
+            if urls: return urls[0].strip()
+            
+        except Exception:
+            pass
+        return None
+
+    
+    def polygon(self, geom=True):
+        """Extract Bounding Box and return GeoJSON Polygon."""
+        
+        if self.xml_doc is None: return None
+
+        out_poly = []
+        try:
+            # Find Bounding Box
+            #bbox = self.xml_doc.xpath('.//gmd:EX_GeographicBoundingBox', namespaces=self.namespaces)
+            bbox = self.xml_doc.find('.//{*}Polygon', namespaces=self.namespaces)
+            if not bbox: return None
+
+            nodes = bbox.findall('.//{*}pos', namespaces=self.namespaces)
+            for node in nodes:
+                out_poly.append([float(x) for x in node.text.split()])
+
+            ## Close polygon if open
+            if out_poly and (out_poly[0][0] != out_poly[-1][0] or out_poly[0][1] != out_poly[-1][1]):
+                out_poly.append(out_poly[0])
+
+            out_poly = [[lon, lat] for lat, lon in out_poly]
+            if geom:
+                if HAS_SHAPELY:
+                    poly = Polygon(out_poly)
+                    wkt_string = poly.wkt
+                    geojson_dict = mapping(poly)
+                else:
+                    geojson_dict = {
+                        "type": "Polygon",
+                        "coordinates": [
+                            out_poly 
+                        ]
+                    }
+                    
+                return geojson_dict
+
+            else:
+                return out_poly
+
+        except (IndexError, ValueError):
+            logger.error('Could not parse polygon from xml')
+            return None
+
+        
+# =============================================================================    
+# Fetch 
+# =============================================================================
+class Fetch:
+    """Fetch class to fetch ftp/http data files"""
+    
+    def __init__(
+            self,
+            url: str = None,
+            callback = fetches_callback,
+            headers: Dict = R_HEADERS,
+            verify: bool = True,
+            allow_redirects: bool = True
+    ):
+        self.url = url
+        self.callback = callback
+        self.headers = headers
+        self.verify = verify
+        self.allow_redirects = allow_redirects
+        self.silent = logger.getEffectiveLevel() > logging.INFO
+        
+        
+    def fetch_req(self, params=None, json=None, tries=5, timeout=None, read_timeout=None) -> Optional[requests.Response]:
+        """Fetch src_url and return the requests object (iterative retry)."""
+        
+        req = None
+        current_timeout = timeout
+        current_read_timeout = read_timeout
+
+        for attempt in range(tries):
+            try:
+                ## Calculate timeouts for this attempt
+                to_tuple = (
+                    current_timeout if current_timeout else None,
+                    current_read_timeout if current_read_timeout else None
+                )
+
+                req = requests.get(
+                    self.url,
+                    stream=True,
+                    params=params,
+                    json=json,
+                    timeout=to_tuple,
+                    verify=self.verify,
+                    allow_redirects=self.allow_redirects,
+                    headers=self.headers
+                )
+                
+                ## Check status codes
+                if req.status_code == 504: # Gateway Timeout
+                    time.sleep(2)
+                    ## Increase timeouts next loop
+                    if current_timeout: current_timeout += 1
+                    if current_read_timeout: current_read_timeout += 10
+                    continue
+
+                elif req.status_code == 416: # Range Not Satisfiable
+                    ## If range fails, try fetching whole file
+                    if 'Range' in self.headers:
+                        del self.headers['Range']
+                        continue
+                
+                elif 200 <= req.status_code <= 299:
+                    return req
+                
+                else:
+                    logger.error(f'Request from {req.url} returned {req.status_code}')
+                    return req
+
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1}/{tries} failed: {e}")
+                if current_timeout: current_timeout *= 2
+                if current_read_timeout: current_read_timeout *= 2
+                time.sleep(1)
+
+        logger.error(f'Connection failed after {tries} attempts: {self.url}')
+        raise ConnectionError('Maximum attempts at connecting have failed.')
+
+    
+    def fetch_html(self, timeout=2):
+        """Fetch src_url and return it as an HTML object."""
+        
+        req = self.fetch_req(timeout=timeout)
+        if req:
+            return lh.document_fromstring(req.text)
+        return None
+
+    
+    def fetch_xml(self, timeout=2, read_timeout=10):
+        """Fetch src_url and return it as an XML object."""
+        
+        try:
+            req = self.fetch_req(timeout=timeout, read_timeout=read_timeout)
+            results = lxml.etree.fromstring(req.text.encode('utf-8'))
+        except Exception as e:
+            ## Fallback empty XML
+            results = lxml.etree.fromstring(
+                '<?xml version="1.0"?><!DOCTYPE _[<!ELEMENT _ EMPTY>]><_/>'.encode('utf-8')
+            )
+        return results
+
+    
+    def fetch_file(
+            self,
+            dst_fn: str,
+            params=None,
+            datatype=None,
+            overwrite=False,
+            timeout=30,
+            read_timeout=None,
+            tries=5,
+            check_size=True
+    ) -> int:
+        """Fetch src_url and save to dst_fn with robust resume support."""
+        
+        dst_dir = os.path.abspath(os.path.dirname(dst_fn))
+        if not os.path.exists(dst_dir):
+            try:
+                os.makedirs(dst_dir)
+            except OSError:
+                pass # Handle race condition in parallel processing
+
+        part_fn = f"{dst_fn}.part"
+        
+        if not overwrite and os.path.exists(dst_fn):
+            if not check_size:
+                return 0 # Exists, assume good.
+            
+            if os.path.getsize(dst_fn) > 0:
+                return 0
+
+        for attempt in range(tries):
+            resume_byte_pos = 0
+            mode = 'wb'
+            
+            # Setup Resume if partial file exists
+            if os.path.exists(part_fn):
+                resume_byte_pos = os.path.getsize(part_fn)
+                if resume_byte_pos > 0:
+                    self.headers['Range'] = f'bytes={resume_byte_pos}-'
+                    mode = 'ab'
+
+            try:
+                with requests.get(
+                        self.url, stream=True, params=params, headers=self.headers,
+                        timeout=(timeout, read_timeout), verify=self.verify
+                ) as req:
+                    
+                    # Handle Finished/Cached by Server (304) or Pre-check
+                    if req.status_code == 304:
+                        # Not modified (if we sent ETag/Last-Modified)
+                        return 0
+
+                    # Get Expected Size
+                    remote_size = int(req.headers.get('content-length', 0))
+                    total_size = remote_size
+                    
+                    # Adjust expectation if this is a partial response
+                    if req.status_code == 206:
+                        ## Content-Range: bytes 1000-4999/5000
+                        content_range = req.headers.get('Content-Range', '')
+                        if '/' in content_range:
+                            total_size = int(content_range.split('/')[-1])
+                    
+                    # Check if already done (Edge case where .part matched full size)
+                    if check_size and total_size > 0 and resume_byte_pos == total_size:
+                        ## We have the whole file in .part, just move it.
+                        os.rename(part_fn, dst_fn)
+                        return 0
+
+                    # Handle Errors
+                    if req.status_code == 416: 
+                        # Range No Good: Local file is likely corrupt or larger than remote.
+                        # Delete .part and retry from scratch (next loop iteration)
+                        logger.warning(f"Invalid Range for {os.path.basename(dst_fn)}. Restarting...")
+                        if os.path.exists(part_fn):
+                            os.remove(part_fn)
+                        if 'Range' in self.headers:
+                            del self.headers['Range']
+                        continue 
+                    
+                    elif req.status_code == 401:
+                         # Authentication Error
+                         raise UnboundLocalError("Authentication Failed")
+                    
+                    elif req.status_code not in [200, 206]:
+                        # Fatal error for this attempt
+                        if attempt < tries - 1:
+                            time.sleep(2)
+                            continue
+                        raise ConnectionError(f"Status {req.status_code}")
+
+                    with open(part_fn, mode) as f:
+                        desc = utils.str_truncate_middle(self.url, n=60)
+                        with tqdm(
+                                desc=desc,
+                                total=total_size,
+                                initial=resume_byte_pos, 
+                                disable=self.silent,
+                                unit='B',
+                                unit_scale=True,
+                                unit_divisor=1024,
+                                leave=False
+                        ) as pbar:
+                            for chunk in req.iter_content(chunk_size=8192):
+                                if chunk:
+                                    f.write(chunk)
+                                    pbar.update(len(chunk))
+                    
+                    # If we got here without exception, check size
+                    if check_size and total_size > 0:
+                        final_size = os.path.getsize(part_fn)
+                        if final_size != total_size:
+                            raise IOError(f"Incomplete download: {final_size}/{total_size} bytes")
+                    
+                    os.rename(part_fn, dst_fn)
+                    return 0
+
+            except (requests.exceptions.RequestException, IOError, UnboundLocalError) as e:
+                if attempt < tries - 1:
+                    wait_time = (attempt + 1) * 2
+                    logger.warning(f"Download failed: {e}. Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Failed to download {self.url}: {e}")
+                    return -1
+        
+        return -1    
+
+    
+    def fetch_ftp_file(self, dst_fn, params=None, datatype=None, overwrite=False):
+        """Fetch an ftp file via urllib."""
+        
+        status = 0
+        
+        logger.info(f'Fetching remote ftp file: {self.url[:20]}...')
+            
+        if not os.path.exists(os.path.dirname(dst_fn)):
+            try:
+                os.makedirs(os.path.dirname(dst_fn))
+            except:
+                pass
+            
+        try:
+            with urllib.request.urlopen(self.url) as f:
+                with open(dst_fn, 'wb') as local_file:
+                     local_file.write(f.read())
+            
+            logger.info(f'Fetched remote ftp file: {os.path.basename(self.url)}.')
+        except Exception as e:
+            logger.error(e)
+            status = -1
+
+        return status
+
+
+# =============================================================================
+# Threading & Queues
+# =============================================================================
+def fetch_queue(q: queue.Queue, stop_event: threading.Event, c: bool = True):
+    """Worker for the fetch queue.
+    q items: [remote_data_url, local_data_path, data-type, fetches-module, attempts, results-list]    
+    """
+    
+    # Modules that bypass SSL verification
+    no_verify = ['mar_grav', 'srtm_plus']
+
+    while not stop_event.is_set():
+        url, local_path, data_type, module, retries, results_list = q.get()
+        # fetch_args = q.get()
+        # url = fetch_args[0]
+        # local_path = fetch_args[1]
+        # data_type = fetch_args[2]
+        # module = fetch_args[3]
+        # retries = fetch_args[4]
+        # results_list = fetch_args[5]
+
+        if stop_event.is_set():
+            q.task_done()
+            continue
+        
+        ## Ensure dir exists
+        if not os.path.exists(os.path.dirname(local_path)):
+            try: os.makedirs(os.path.dirname(local_path))
+            except: pass
+
+        #fname = os.path.basename(local_path)
+        #logger.debug(f"Queueing {fname}...")
+            
+        parsed_url = urllib.parse.urlparse(url)
+        
+        try:
+            verify_ssl = False if module.name in no_verify else True
+            
+            if parsed_url.scheme == 'ftp':
+                status = Fetch(
+                    url=url,
+                    callback=module.callback,
+                    headers=module.headers
+                ).fetch_ftp_file(local_path)
+            else:
+                status = Fetch(
+                    url=url,
+                    headers=module.headers,
+                    callback=module.callback,
+                    verify=verify_ssl
+                ).fetch_file(local_path, check_size=c)
+
+            if status == 0:
+                logger.info(f"File {local_path} was fetched succesfully.")
+                
+            ## Record result
+            fetch_results_entry = [url, local_path, data_type, status]
+            results_list.append(fetch_results_entry)
+
+            if callable(module.callback):
+                module.callback(fetch_results_entry)
+        
+        except Exception as e:
+            if retries > 0:
+                q.put([url, local_path, data_type, module, retries - 1, results_list])
+            else:
+                logger.error(f"Failed to fetch {os.path.basename(local_path)}: {e}")
+                results_list.append([url, local_path, data_type, str(e)])
+                
+                if callable(module.callback):
+                    module.callback(fetch_results_entry)
+
+        q.task_done()
+
+        
+class fetch_results(threading.Thread):
+    """Threaded fetch runner."""
+    
+    def __init__(self, mod, check_size=True, n_threads=3, attempts=5):
+        threading.Thread.__init__(self)
+        self.fetch_q = queue.Queue()
+        self.stop_event = threading.Event()
+        self.mod = mod
+        self.check_size = check_size
+        self.n_threads = n_threads
+        self.attempts = attempts
+        self.results = []
+        
+        if len(self.mod.results) == 0:
+            self.mod.run()
+
+            
+    def run(self):
+        logger.info(f"Queuing {len(self.mod.results)} downloads...")
+        
+        for _ in range(self.n_threads):
+            t = threading.Thread(
+                target=fetch_queue,
+                args=(self.fetch_q, self.stop_event, self.check_size)
+            )
+            t.daemon = True
+            t.start()
+
+        ## Queue item: [url, path, type, module, retries, results_ptr]
+        for row in self.mod.results:
+            if row['dst_fn']:
+                self.fetch_q.put([
+                    row['url'],
+                    os.path.join(self.mod._outdir, row['dst_fn']),
+                    row['data_type'],
+                    self.mod,
+                    self.attempts,
+                    self.results
+                ])
+
+        while not self.fetch_q.empty() and not self.stop_event.is_set():
+             time.sleep(0.1)
+        
+        if not self.stop_event.is_set():
+            self.fetch_q.join()
+            
+
+    def stop(self):
+        """Stop all threads"""
+        
+        self.stop_event.set()
+
+
+## TESTING
+def run_fetches(modules, threads=3):    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        # Submit all download tasks
+        futures = {executor.submit(mod.fetch_file, entry): entry for mod in modules for entry in mod.results}
+        
+        for future in concurrent.futures.as_completed(futures):
+            entry = futures[future]
+            try:
+                status = future.result()
+                # handle success/callback
+            except Exception as e:
+                logger.error('fetch failed')            
+
+        
+# =============================================================================
+# Fetch Module (Base & Default/Test Implementations)
+# =============================================================================
+class FetchModule:
+    """Base class for all fetch modules."""
+    
+    def __init__(
+            self,
+            src_region=None,
+            callback=fetches_callback,
+            outdir=None,
+            name='fetches',
+            min_year=None,
+            max_year=None,
+            params={}
+    ):
+        self.region = src_region
+        self.callback = callback
+        self.outdir = outdir
+        self.params = params
+        self.status = 0
+        self.results = []
+        self.name = name
+        self.min_year = utils.int_or(min_year)
+        self.max_year = utils.int_or(max_year)
+        self.headers = R_HEADERS.copy()
+
+        if self.outdir is None:
+            self._outdir = os.path.join(os.getcwd(), self.name)
+        else:
+            self._outdir = os.path.join(self.outdir, self.name)
+
+        ## For dlim support, we can check these variables for
+        ## to do the proper processing. Set these to their correct
+        ## values in the sub-class
+        self.data_format = None
+        self.src_srs = None
+        self.title = None
+        self.source = None
+        self.date = None
+        self.data_type = None
+        self.resolution = None
+        self.hdatum = None
+        self.vdatum = None
+        self.url = None
+            
+        ## Default to whole world if region is invalid/missing
+        ## Set a generic region of the entire world in WGS84 if no region
+        ## was specified or if its an invalid region...this will result in quite
+        ## a lot of downloading on global datasets, so be careful with this.
+        if self.region is None or not spatial.region_valid_p(self.region):
+            self.region = (-180, 180, -90, 90)
+
+        self.silent = logger.getEffectiveLevel() > logging.INFO            
+            
+    def run(self):
+        raise NotImplementedError
+
+    
+    def fetch_entry(self, entry, check_size=True, retries=5):
+        try:
+            status = Fetch(
+                url=entry['url'],
+                headers=self.headers,
+            ).fetch_file(
+                os.path.join(self._outdir, entry['dst_fn']),
+                check_size=check_size,
+                tries=retries
+            )
+        except:
+            status = -1
+        return status
+
+    
+    def fetch_results(self):
+        """fetch the gathered `results` from the sub-class"""
+        
+        for entry in self.results:
+            status = self.fetch(entry)
+
+            
+    def fill_results(self, entry):
+        """fill self.results with the fetch module entry"""
+        
+        self.results.append(
+            {'url': entry[0], 'dst_fn': entry[1], 'data_type': entry[2]}
+        )
+
+        
+    def add_entry_to_results(self, url, dst_fn, data_type, **kwargs):
+        entry = {'url': url, 'dst_fn': dst_fn, 'data_type': data_type}
+        entry.update(kwargs)
+        self.results.append(entry)             
+
+        
+class HttpDataset(FetchModule):
+    """Fetch an http file directly."""
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        
+    def run(self):
+        if 'mod' in self.params:
+            self.add_entry_to_results(
+                self.params['mod'],
+                os.path.basename(self.params['mod']),
+                'https'
+            )
+
+
