@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Love
+    given-names: Matthew
+  - family-names: Amante
+    given-names: Christopher
+  - family-names: Carignan
+    given-names: Kelly
+  - family-names: MacFerrin
+    given-names: Michael
+  - family-names: Lim
+    given-names: Elliot
+  
+    website: https://ciresdem.github.io/geofetch/
+title: "GeoFetch"
+version: 2.0.0
+date-released: 2026-01-24
+url: "https://github.com/ciresdem/geofetch"
