@@ -60,7 +60,7 @@ The most common contribution is adding support for a new data source.
 3. **Register the Module:**
 Open src/geofetch/registry.py and add your module to the _modules dictionary. Please fill out all metadata fields to aid in data discovery.
 
-Python
+```python
 
 'mydata': {
     'mod': 'geofetch.modules.mydata', 
@@ -77,6 +77,7 @@ Python
         'docs': '[https://provider.gov/docs](https://provider.gov/docs)'
     }
 },
+```
 
 4.  **Test It:**
     Run `geofetch mydata --help` to ensure it loads correctly.
