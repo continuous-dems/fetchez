@@ -28,8 +28,8 @@ GeoFetch is a lightweight, open-source command-line tool and Python library desi
 
 It unifies over **40 different data sources**—from NASA, USGS, NOAA, and ESA—into a single, standard interface.
 
-* [View on GitHub](https://github.com/ciresdem/geofetch)
-* [View Modules](https://github.com/ciresdem/geofetch/tree/main/src/geofetch/modules)
+* [View on GitHub](https://github.com/ciresdem/geofetch) - View the github repository.
+* [View Modules](https://github.com/ciresdem/geofetch/tree/main/src/geofetch/modules) - View the existing GeoFetch Modules.
 * [Join Zulip Channel](https://cudem.zulipchat.com/) - Join our Zulip Channel to connect and engage with us.
 
 ---
