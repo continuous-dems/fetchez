@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - etopo module
 - geofetch.spatial 'region_to_geojson_geom'
 - chs module
+- bluetopo module
 	
 ### Changed
 - In geofetch.core, allow for transparent gzip (local size is larger than remote size)

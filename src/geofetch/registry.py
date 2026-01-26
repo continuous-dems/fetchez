@@ -251,6 +251,20 @@ class GeoFetchRegistry:
             'inherits': 'nos_hydro'
         },
 
+        # Coast Survey's BlueTopo
+        'bluetopo': {
+            'mod': 'geofetch.modules.bluetopo', 
+            'cls': 'BlueTopo', 
+            'category': 'Bathymetry',
+            'desc': 'NOAA BlueTopo (National Bathymetric Source)',
+            'agency': 'NOAA OCS',
+            'tags': ['bathymetry', 'noaa', 'bluetopo', 'nbs', 'ocean', 'elevation'],
+            'region': 'USA',
+            'resolution': 'Variable',
+            'license': 'Public Domain',
+            'urls': {'home': 'https://nauticalcharts.noaa.gov/data/bluetopo.html'}
+        },
+        
         # Nautical Charts (NOAA)
         'charts': {
             'mod': 'geofetch.modules.charts', 
