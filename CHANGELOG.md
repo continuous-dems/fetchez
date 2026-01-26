@@ -15,10 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - gmrt module
 - geofetch.spatial 'region_to_bbox' method
 - waterservices module
-
+- etopo module
+- geofetch.spatial 'region_to_geojson_geom'
+	
 ### Changed
 - In geofetch.core, allow for transparent gzip (local size is larger than remote size)
-	
+
 ## [2.0.0] - 2026-01-24
 ### Added
 - Initial standalone release of GeoFetch.

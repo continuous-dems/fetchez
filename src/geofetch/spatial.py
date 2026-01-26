@@ -296,3 +296,24 @@ def region_to_bbox(region: Tuple[float, float, float, float]):
 
     w, e, s, n = region
     return (w, s, e, n)
+
+def region_to_geojson_geom(region: Tuple[float, float, float, float]):
+    w, e, s, n = region
+    # geom = {
+    #     "type": "Polygon",
+    #     "coordinates": [[
+    #         [w, s], [e, s], [e, n], [w, n], [w, s]
+    #     ]]
+    # }
+
+    return {
+        "type": "Polygon",
+        "coordinates": [[
+            [w, s],
+            [w, n],
+            [e, n],
+            [e, s],
+            [w, s]
+        ]]
+    }
+

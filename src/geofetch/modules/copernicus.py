@@ -224,13 +224,11 @@ class CopernicusDEM(core.FetchModule):
     def run(self):
         """Run the COPERNICUS DEM fetching module."""
         
-        # Build Filter
         search_where = self.where.copy()
         if self.datatype is not None:
             search_where.append(f"DataType = '{self.datatype}'")
 
         # Search FRED
-        # We pass self.region (tuple) directly to FRED.search
         results = self.FRED.search(
             region=self.region, 
             where=search_where, 
