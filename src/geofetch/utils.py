@@ -38,6 +38,11 @@ REVERSE   = "\033[7m"
 
 # =============================================================================
 # Terminal Printing Helpers
+#
+# Some of these are holdouts from cudem.utils that were used extensively by
+# fetches modules. We're keeping them (or them-like) around for a while
+# for backward compatability. It is now prefered to use logging instead of
+# these `echo` functions.
 # =============================================================================
 def colorize(text: str, color: str) -> str:
     """Wrap text in ANSI color codes."""
@@ -166,6 +171,8 @@ def str2bool(v):
 
 
 def str_truncate_middle(s, n=50):
+    """Truncate the middle of the input string, replace with `...`"""
+    
     if len(s) <= n:
         return s
 
@@ -175,6 +182,7 @@ def str_truncate_middle(s, n=50):
 
 def remove_glob(pathname: str):
     """Safely remove files matching a glob pattern."""
+    
     import glob
     
     for p in glob.glob(pathname):
