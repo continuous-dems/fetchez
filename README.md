@@ -1,6 +1,6 @@
 # GeoFetch
 
-<pre>
+<pre style="background-color: #FFFFFF;">
        _..._
      .'     '.      ___
     /    .-""-\   .'_  '\
