@@ -5,9 +5,9 @@
 geofetch.core
 ~~~~~~~~~~~~~
 
-This module contains the core logic for the GeoFetch library. 
+This module is the core of the GeoFetch library. 
 It handles the initialization of fetchers, connection pooling, 
-and the base FetchModule classes.
+and the base FetchModule class.
 
 :copyright: (c) 2010-2026 Regents of the University of Colorado
 :license: MIT, see LICENSE for more details.
@@ -82,6 +82,7 @@ def urlencode(opts: Dict, doseq: bool = True) -> str:
         doseq: If True, lists in values are encoded as separate parameters 
                (e.g., {'a': [1, 2]} -> 'a=1&a=2').
     """
+    
     return urllib.parse.urlencode(opts, doseq=doseq)
 
 
@@ -139,7 +140,7 @@ def get_userpass(authenticator_url: str) -> Tuple[Optional[str], Optional[str]]:
 
 def get_credentials(url: str, authenticator_url: str = 'https://urs.earthdata.nasa.gov') -> Optional[str]:
     """Get user credentials from .netrc or prompt for input. 
-    Used for EarthData.
+    Used for EarthData, etc.
     """
     
     credentials = None
@@ -286,7 +287,7 @@ class iso_xml:
             for node in nodes:
                 out_poly.append([float(x) for x in node.text.split()])
 
-            ## Close polygon if open
+            ## Close polygon
             if out_poly and (out_poly[0][0] != out_poly[-1][0] or out_poly[0][1] != out_poly[-1][1]):
                 out_poly.append(out_poly[0])
 
@@ -354,7 +355,7 @@ class Fetch:
 
         for attempt in range(tries):
             try:
-                ## Calculate timeouts for this attempt
+                # Calculate timeouts for this attempt
                 tupled_timeout = (
                     current_timeout if current_timeout else None,
                     current_read_timeout if current_read_timeout else None
@@ -374,7 +375,7 @@ class Fetch:
                     stream=True  # Always stream to support large files
                 )
                 
-                ## Check status codes
+                # Check status codes
                 if req.status_code == 504: # Gateway Timeout
                     time.sleep(2)
                     ## Increase timeouts next loop
@@ -383,7 +384,7 @@ class Fetch:
                     continue
 
                 elif req.status_code == 416: # Range Not Satisfiable
-                    ## If range fails, try fetching whole file
+                    # If range fails, try fetching whole file
                     if 'Range' in self.headers:
                         del self.headers['Range']
                         continue
@@ -446,22 +447,22 @@ class Fetch:
             try:
                 os.makedirs(dst_dir)
             except OSError:
-                pass # Handle race condition in parallel processing
+                pass 
 
         part_fn = f"{dst_fn}.part"
         
         if not overwrite and os.path.exists(dst_fn):
             if not check_size:
-                return 0 # Exists, assume good.
+                return 0 # Exists
             
             if os.path.getsize(dst_fn) > 0:
-                return 0
+                return 0 # Exists
 
         for attempt in range(tries):
             resume_byte_pos = 0
             mode = 'wb'
             
-            # Setup Resume if partial file exists
+            # Resume if partial file exists
             if os.path.exists(part_fn):
                 resume_byte_pos = os.path.getsize(part_fn)
                 if resume_byte_pos > 0:
@@ -474,9 +475,8 @@ class Fetch:
                         timeout=(timeout, read_timeout), verify=self.verify
                 ) as req:
                     
-                    # Handle Finished/Cached by Server (304) or Pre-check
+                    # Finished/Cached by Server (304) or Pre-check
                     if req.status_code == 304:
-                        # Not modified (if we sent ETag/Last-Modified)
                         return 0
 
                     # Get Expected Size
@@ -485,20 +485,19 @@ class Fetch:
                     
                     # Adjust expectation if this is a partial response
                     if req.status_code == 206:
-                        ## Content-Range: bytes 1000-4999/5000
                         content_range = req.headers.get('Content-Range', '')
                         if '/' in content_range:
                             total_size = int(content_range.split('/')[-1])
                     
-                    # Check if already done (Edge case where .part matched full size)
+                    # Check if already done (.part matches full size)
                     if check_size and total_size > 0 and resume_byte_pos == total_size:
                         ## We have the whole file in .part, just move it.
                         os.rename(part_fn, dst_fn)
                         return 0
 
-                    # Handle Errors
+                    # Error Codes
                     if req.status_code == 416: 
-                        # Range No Good: Local file is likely corrupt or larger than remote.
+                        # Range No Good: Local file is likely corrupt.
                         # Delete .part and retry from scratch (next loop iteration)
                         logger.warning(f"Invalid Range for {os.path.basename(dst_fn)}. Restarting...")
                         if os.path.exists(part_fn):
@@ -570,8 +569,7 @@ class Fetch:
     def fetch_ftp_file(self, dst_fn, params=None, datatype=None, overwrite=False):
         """Fetch an ftp file via urllib."""
         
-        status = 0
-        
+        status = 0        
         logger.info(f'Fetching remote ftp file: {self.url[:20]}...')
             
         if not os.path.exists(os.path.dirname(dst_fn)):
@@ -731,7 +729,6 @@ def run_fetches(modules, threads=3):
             entry = futures[future]
             try:
                 status = future.result()
-                # handle success/callback
             except Exception as e:
                 logger.error('fetch failed')            
 
@@ -768,9 +765,11 @@ class FetchModule:
         else:
             self._outdir = os.path.join(self.outdir, self.name)
 
-        ## For dlim support, we can check these variables for
-        ## to do the proper processing. Set these to their correct
-        ## values in the sub-class
+        # For dlim support, we can check these variables for
+        # to do the proper processing. Set these to their correct
+        # values in the sub-class.
+        # Maybe with geofetch now, we can set these in `results`
+        # instead...
         self.data_format = None
         self.src_srs = None
         self.title = None
@@ -782,16 +781,19 @@ class FetchModule:
         self.vdatum = None
         self.url = None
             
-        ## Default to whole world if region is invalid/missing
-        ## Set a generic region of the entire world in WGS84 if no region
-        ## was specified or if its an invalid region...this will result in quite
-        ## a lot of downloading on global datasets, so be careful with this.
+        # Default to whole world if region is invalid/missing
+        # Set a generic region of the entire world in WGS84 if no region
+        # was specified or if its an invalid region...this will result in quite
+        # a lot of downloading on global datasets, so be careful with this.
         if self.region is None or not spatial.region_valid_p(self.region):
             self.region = (-180, 180, -90, 90)
 
         self.silent = logger.getEffectiveLevel() > logging.INFO            
-            
+
+        
     def run(self):
+        """set `run` in a sub-module to populate `results` with urls"""
+        
         raise NotImplementedError
 
     
@@ -826,10 +828,16 @@ class FetchModule:
 
         
     def add_entry_to_results(self, url, dst_fn, data_type, **kwargs):
+        """Add fetch entries to `results`. any keyword/args can be
+        added to `results`, but we need `url`, `dst_fn` and `data_type`.
+        """
+        
         entry = {'url': url, 'dst_fn': dst_fn, 'data_type': data_type}
         entry.update(kwargs)
         self.results.append(entry)             
 
+# Simple Fetch Module to fetch a url.
+# It will just add that url to `results`.
         
 class HttpDataset(FetchModule):
     """Fetch an http file directly."""
@@ -845,5 +853,3 @@ class HttpDataset(FetchModule):
                 os.path.basename(self.params['mod']),
                 'https'
             )
-
-
