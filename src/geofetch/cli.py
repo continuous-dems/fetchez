@@ -25,6 +25,13 @@ from . import spatial
 from . import core
 from . import __version__
 
+# Experimental wizard (not pushed to git, so probably not available)
+try:
+    from . import wizard
+    HAS_WIZARD = True
+except:
+    HAS_WIZARD = False
+
 logger = logging.getLogger(__name__)
 
 # =============================================================================
@@ -242,11 +249,69 @@ def geofetch_cli():
     parser.add_argument('-m', '--modules', nargs=0, action=PrintModulesAction, help="Display the available modules")
     parser.add_argument('-s', '--search', metavar='TERM', help="Search modules by tag, agency, license, etc.")
     parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {__version__}')
+
+    # Wizard/Ask modes are experimental and not distributed...this is temporary.
+    if HAS_WIZARD:
+        parser.add_argument('-w', '--wizard', action='store_true', help="Launch the interactive wizard")
+        parser.add_argument('--ask', metavar='QUERY', help="Generate a command from a natural language query")
     
     # Pre-process Arguments to fix argparses handling of -R
     fixed_argv = fix_argparse_region(sys.argv[1:])
     global_args, remaining_argv = parser.parse_known_args(fixed_argv)
 
+    
+    # --- Wizard Mode ---
+    #
+    # This is experimental and not available in distribution.
+    # Until complete, let's check for 'wizard' and with
+    # `if 'wizard' in global_args` first so others don't crash.
+    if 'wizard' in global_args:
+        if global_args.wizard:
+            wiz = wizard.Wizard()
+            new_args = wiz.start()
+            if new_args:
+                # Re-parse arguments based on wizard output
+                # We must re-process region flags similar to main execution
+                fixed_argv = fix_argparse_region(new_args)
+                global_args, remaining_argv = parser.parse_known_args(fixed_argv)
+                # Fall through to main execution logic below...
+            else:
+                sys.exit(0)
+
+    # --- "Ask" / Keyword Matcher ---
+    #
+    # This is experimental and not available in distribution.
+    # Until complete, let's check for 'ask' and with
+    # `if 'ask' in global_args` first so others don't crash.
+    if 'ask' in global_args:
+        if global_args.ask:
+            router = wizard.IntentRouter()
+            result = router.parse(global_args.ask)
+
+            print(f"\n{utils.BOLD}Interpreting Query:{utils.RESET} '{global_args.ask}'")
+
+            if result['region_str']:
+                 print(f"  > Region Detected : {result['region_str']}")
+            else:
+                 print(f"  > Region Detected : {utils.YELLOW}None (Global?){utils.RESET}")
+
+            print(f"  > Top Matches     :")
+            top_mods = []
+            for key, score, reasons in result['modules'][:3]:
+                print(f"      - {utils.CYAN}{key}{utils.RESET} (Score: {score}) -> {', '.join(reasons)}")
+                top_mods.append(key)
+
+            if top_mods:
+                # Suggest Command
+                r_str = f'-R "{result["region_str"]}"' if result['region_str'] else ""
+                m_str = " ".join(top_mods)
+                print(f"\n{utils.BOLD}Suggested Command:{utils.RESET}")
+                print(f"  geofetch {r_str} -m {m_str}\n")
+            else:
+                print(f"\n{utils.YELLOW}No confident matches found.{utils.RESET}\n")
+
+            sys.exit(0)
+    
     check_size = not global_args.no_check_size
     
     level = logging.WARNING if global_args.quiet else logging.INFO
