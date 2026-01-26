@@ -41,7 +41,7 @@ class FRED:
     of remote files. It allows spatial queries to determine which files to download.
     """
     
-    # Standard schema for metadata
+    # Standard metadata schema
     SCHEMA = [
         'Name', 'ID', 'Date', 'Agency', 'MetadataLink', 'MetadataDate', 
         'DataLink', 'IndexLink', 'Link', 'DataType', 'DataSource', 
@@ -54,12 +54,15 @@ class FRED:
         self.filename = f'{name}.geojson'
         
         # Determine file path
+        # If the expected file doesn't exist (in `FETCH_DATA_DIR`) we check
+        # if it exists in the cwd; if not, the fetch module should create one
+        # (if needed).
+        # Default to local directory if not found in data dir
         if local:
             self.path = self.filename
         elif os.path.exists(os.path.join(FETCH_DATA_DIR, self.filename)):
             self.path = os.path.join(FETCH_DATA_DIR, self.filename)
         else:
-            # Default to local directory if not found in data dir
             self.path = self.filename
             
         self.features = []
@@ -123,7 +126,6 @@ class FRED:
         props = kwargs.copy()
         props['LastUpdate'] = utils.this_date()
         
-        # Normalize fields (ensure all schema keys exist, default to None)
         # for field in self.SCHEMA:
         #     if field not in props:
         #         props[field] = None
@@ -178,7 +180,7 @@ class FRED:
             for clause in where:
                 if '=' in clause:
                     k, v = [x.strip().strip("'").strip('"') for x in clause.split('=')]
-                    # Basic type conversion for numbers
+                    
                     val = props.get(k)
                     if str(val) != v:
                         match = False
@@ -195,11 +197,10 @@ class FRED:
                     except Exception:
                         continue
                 else:
-                    # Basic Bounding Box check (if Shapely missing)
+                    # TODO: Basic bounding box check (if Shapely missing)
                     pass 
 
             # If we passed all filters, add to results
-            # Return a flattened dict (attributes)
             results.append(props)
 
         logger.info(f"FRED Search found {len(results)} items.")
@@ -208,6 +209,7 @@ class FRED:
     
     def _get_unique_values(self, field: str) -> List[Any]:
         """Helper to see unique values for a field (e.g. Agency)."""
+        
         values = set()
         for f in self.features:
             val = f.get('properties', {}).get(field)
