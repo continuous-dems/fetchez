@@ -1,15 +1,8 @@
 # Fetchez
 
-<pre style="background-color: #FFFFFF; font-family: monospace;">
-        (___)
-        (o o)____/   
-         @@      \   
-          \ ____, /  [ : F E T C H E Z : ] 
-          //    //  
-         ^^    ^^   
-  "Fetchez la donnée!"
+<pre>
+[ F E T C H E Z ]
 </pre>
-
 **The Generic Geospatial Data Acquisition and Registry Engine**
 
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/ciresdem/fetchez)
