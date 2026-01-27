@@ -168,7 +168,7 @@ Fetchez supports over 40 modules categorized by data type. Run ```fetchez --modu
 
 Need to fetch data from a specialized local server, a private S3 bucket, or a niche API? You don't need to fork the repo!
 
-**Fetchez** supports user-defined plugins. Simply drop a Fetchez compatible Python script into your configuration folder, and it will be automatically registered as a command.
+**Fetchez** supports user-defined plugins. Drop a Fetchez compatible Python script into your configuration folder, and it will be automatically registered as a command.
 
 **Quick Start:**
 1.  Create the folder: `mkdir -p ~/.fetchez/plugins`
