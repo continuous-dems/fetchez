@@ -29,10 +29,12 @@ Originally part of the [CUDEM](https://github.com/ciresdem/cudem) project, Fetch
 
 ## 📦 Installation
 
-**From PyPI:**
+## From Pip
+Download and install git (If you have not already): [git installation](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
 ```bash
-pip install fetchez
+pip install git+[https://github.com/ciresdem/fetchez.git#egg=fetchez](https://github.com/ciresdem/fetchez.git#egg=fetchez)
+
 ```
 
 **From Source:**
