@@ -335,6 +335,19 @@ class FetchezRegistry:
             'license': 'Open Government Licence - Canada',
             'urls': {'home': 'https://open.canada.ca/data/en/dataset/d3881c4c-650d-4070-bf9b-1e00aabf0a1d'}
         },
+
+        'emodnet': {
+            'mod': 'fetchez.modules.emodnet', 
+            'cls': 'EMODNet', 
+            'category': 'Bathymetry',
+            'desc': 'EMODnet Bathymetry (Europe)',
+            'agency': 'EU / EMODnet',
+            'tags': ['bathymetry', 'europe', 'emodnet', 'wcs', 'erddap'],
+            'region': 'Europe',
+            'resolution': '~115m (1/16 arc-min)',
+            'license': 'Open Data',
+            'urls': {'home': 'https://portal.emodnet-bathymetry.eu/'}
+        },
         
         # The following modules don't need a `region`,
         # they populate `FetchModule.results` in some other way.
