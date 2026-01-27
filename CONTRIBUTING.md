@@ -96,7 +96,7 @@ Once you save the file, simply run:
 fetchez --modules | grep university_data
 
 # Run it
-fetchez -m university_data --semester s2024
+fetchez university_data --semester s2024
 ```
 
 #### Promoting a Plugin
