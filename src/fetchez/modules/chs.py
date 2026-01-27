@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.chs
+fetchez.modules.chs
 ~~~~~~~~~~~~~~~~~~~~
 
 Fetch Canadian Hydrographic Service (CHS) NONNA data via WCS.
@@ -17,8 +17,8 @@ The NONNA (Non-Navigational) bathymetry data is available at
 import logging
 from urllib.parse import urlencode
 
-from geofetch import core
-from geofetch import cli
+from fetchez import core
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

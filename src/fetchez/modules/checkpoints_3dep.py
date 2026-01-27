@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.checkpoints_3dep
+fetchez.modules.checkpoints_3dep
 ~~~~~~~~~~~~~
 
 3DEP elevation checkpoints
@@ -14,8 +14,8 @@ geofetch.modules.checkpoints_3dep
 import logging
 from typing import Optional, List, Any
 
-from geofetch import core
-from geofetch import cli
+from fetchez import core
+from fetchez import cli
 
 CHECKPOINTS_3DEP_URL = 'https://www.sciencebase.gov/catalog/file/get/67075e6bd34e969edc59c3e7?f=__disk__80%2F12%2F9e%2F80129e86d18461ed921b288f13e08c62e8590ffb'
 REFERER = 'https://www.sciencebase.gov/vocab/category/item/identifier'

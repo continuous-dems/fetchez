@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.charts
+fetchez.modules.charts
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Fetch NOAA Nautical Charts (ENC) using official XML Catalogs.
@@ -16,10 +16,10 @@ import logging
 import copy
 from typing import List, Dict, Optional
 
-from geofetch import core
-from geofetch import utils
-from geofetch import fred
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import fred
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
