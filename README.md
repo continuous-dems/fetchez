@@ -173,7 +173,7 @@ Need to fetch data from a specialized local server, a private S3 bucket, or a ni
 **Quick Start:**
 1.  Create the folder: `mkdir -p ~/.fetchez/plugins`
 2.  Drop a python script there (e.g., `my_data.py`).
-3.  Run it: `fetchez -m my_data`
+3.  Run it: `fetchez my_data`
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for a full code example.
 

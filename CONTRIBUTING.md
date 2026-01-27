@@ -55,7 +55,7 @@ class UniversityData(core.FetchModule):
     """
     My Custom Fetcher.
     
-    fetchez -m university_data --semester f2023 --instrument sensor_b
+    fetchez university_data --semester f2023 --instrument sensor_b
     """
     
     def __init__(self, semester='f2023', instrument='sensor_a', **kwargs):
