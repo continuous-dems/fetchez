@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.spatial
+fetchez.spatial
 ~~~~~~~~~~~~~~~~
 
 Lightweight spatial utilities for parsing region strings and files into 
@@ -271,9 +271,9 @@ def region_center(region: Tuple[float, float, float, float]):
 
 
 def region_to_shapely(region: Tuple[float, float, float, float]):
-    """Convert a geofetch region (xmin, xmax, ymin, ymax) to a shapely box.
+    """Convert a fetchez region (xmin, xmax, ymin, ymax) to a shapely box.
     
-    geofetch regions are like GMT: (west, east, south, north) while
+    fetchez regions are like GMT: (west, east, south, north) while
     shapely regions are not: (minx, miny, maxx, maxy)
     """
     
@@ -285,14 +285,14 @@ def region_to_shapely(region: Tuple[float, float, float, float]):
 
 
 def region_to_wkt(region: Tuple[float, float, float, float]):
-    """Convert a geofetch region (xmin, xmax, ymin, ymax) to WKT (via shapely)"""
+    """Convert a fetchez region (xmin, xmax, ymin, ymax) to WKT (via shapely)"""
 
     polygon = region_to_shapely(region)
     return polygon.wkt
 
 
 def region_to_bbox(region: Tuple[float, float, float, float]):
-    """Convert a geofetch region to a `bbox`"""
+    """Convert a fetchez region to a `bbox`"""
 
     w, e, s, n = region
     return (w, s, e, n)

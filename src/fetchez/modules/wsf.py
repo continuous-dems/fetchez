@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.wsf
+fetchez.modules.wsf
 ~~~~~~~~~~~~~~~~~~~~
 
 Fetch World Settlement Footprint (WSF) 2019 data from the 
@@ -18,10 +18,10 @@ import os
 import logging
 from typing import Optional, List, Dict
 
-from geofetch import core
-from geofetch import utils
-from geofetch import fred
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import fred
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

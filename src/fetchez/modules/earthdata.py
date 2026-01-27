@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.earthdata
+fetchez.modules.earthdata
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Fetch data from NASA's EarthData CMR (Common Metadata Repository) 
@@ -20,10 +20,10 @@ import datetime
 import logging
 from typing import List, Dict, Optional, Any, Union
 
-from geofetch import core
-from geofetch import utils
-from geofetch import spatial
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import spatial
+from fetchez import cli
 
 try:
     from shapely.geometry import Polygon, box

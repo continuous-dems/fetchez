@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.tnm
+fetchez.modules.tnm
 ~~~~~~~~~~~~~~~~~~~~
 
 Fetch elevation data from The National Map (TNM) API.
@@ -14,10 +14,10 @@ Fetch elevation data from The National Map (TNM) API.
 import datetime
 from typing import Optional, List, Any
 
-from geofetch import core
-from geofetch import utils
-from geofetch import spatial
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import spatial
+from fetchez import cli
 
 TNM_API_PRODUCTS_URL = 'https://tnmaccess.nationalmap.gov/api/v1/products?'
 

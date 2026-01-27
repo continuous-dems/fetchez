@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.bluetopo
+fetchez.modules.bluetopo
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Fetch NOAA BlueTopo bathymetric data.
@@ -31,9 +31,9 @@ try:
 except ImportError:
     ogr = None
 
-from geofetch import core
-from geofetch import utils
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.core
+fetchez.core
 ~~~~~~~~~~~~~
 
-This module is the core of the GeoFetch library. 
+This module is the core of the Fetchez library. 
 It handles the initialization of fetchers, connection pooling, 
 and the base FetchModule class.
 
@@ -766,7 +766,7 @@ class FetchModule:
         # For dlim support, we can check these variables for
         # to do the proper processing. Set these to their correct
         # values in the sub-class.
-        # Maybe with geofetch now, we can set these in `results`
+        # Maybe with fetchez now, we can set these in `results`
         # instead...
         self.data_format = None
         self.src_srs = None

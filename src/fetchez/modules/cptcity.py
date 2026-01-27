@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.cptcity
+fetchez.modules.cptcity
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Fetch Color Palette Tables (CPT) from CPT City.
@@ -20,9 +20,9 @@ from io import BytesIO
 from typing import Optional
 import lxml.etree
 
-from geofetch import core
-from geofetch import utils
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

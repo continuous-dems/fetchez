@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.multibeam
+fetchez.modules.multibeam
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Fetch Multibeam bathymetry from NOAA NCEI, MBDB (ArcGIS), and R2R.
@@ -17,10 +17,10 @@ import logging
 from io import StringIO
 from typing import Optional, List, Dict, Any, Tuple
 
-from geofetch import core
-from geofetch import utils
-from geofetch import spatial
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import spatial
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

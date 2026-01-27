@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.nominatim
+fetchez.modules.nominatim
 ~~~~~~~~~~~~~
 
 This module queries nominatim for coordinates of places.
@@ -12,9 +12,9 @@ This module queries nominatim for coordinates of places.
 """
 
 import logging
-from geofetch import core
-from geofetch import utils
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

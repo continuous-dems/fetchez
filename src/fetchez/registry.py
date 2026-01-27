@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.registry
+fetchez.registry
 ~~~~~~~~~~~~~
 
-This module contains the Module Registry for the GeoFetch library. 
+This module contains the Module Registry for the Fetchez library. 
 
 :copyright: (c) 2010-2026 Regents of the University of Colorado
 :license: MIT, see LICENSE for more details.
@@ -18,33 +18,33 @@ import copy
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# GeoFetch Registry
+# Fetchez Registry
 #
 # Each module in the registry should have *AT LEAST* `mod` and `cls` defined
-# correctly for the specific module so geofetch can call it correctly.
+# correctly for the specific module so fetchez can call it correctly.
 #
-# It is highly encouraged to fill out all the metadata for every geofetch module.
+# It is highly encouraged to fill out all the metadata for every fetchez module.
 # In addition to the *MANDATORY* fields mentioned above, we would also like:
 #   `category`, `desc`, `agency`, `tags, `region`, `resolution`, `license` and `urls`
 #
 # This will ensure the registry is robust and useful for everyone.
 #
 # You can also set the optional `aliases` field, to give the module aliases.
-# If a geofetch module has the same metadata as one that already exists, you
+# If a fetchez module has the same metadata as one that already exists, you
 # can set the `inherits` key to that other module to avoid duplicating
 # metadata. (`mod` and `cls` still need to set correctly.
 # =============================================================================
-class GeoFetchRegistry:
-    """GeoFetch Module Registry with rich metadata for discovery."""
+class FetchezRegistry:
+    """Fetchez Module Registry with rich metadata for discovery."""
             
     _modules = {
         
         # Generic https module to send an argument to FetchModule.results
-        'https': {'mod': 'geofetch.core', 'cls': 'HttpDataset', 'category': 'Generic'},
+        'https': {'mod': 'fetchez.core', 'cls': 'HttpDataset', 'category': 'Generic'},
         
         # GMRT
         'gmrt': {
-            'mod': 'geofetch.modules.gmrt', 
+            'mod': 'fetchez.modules.gmrt', 
             'cls': 'GMRT', 
             'category': 'Bathymetry',
             'desc': 'Global Multi-Resolution Topography Synthesis',
@@ -61,7 +61,7 @@ class GeoFetchRegistry:
 
         # Copernicus DEMs
         'copernicus': {
-            'mod': 'geofetch.modules.copernicus', 
+            'mod': 'fetchez.modules.copernicus', 
             'cls': 'CopernicusDEM', 
             'category': 'Topography',
             'desc': 'Copernicus Global/European Digital Elevation Models (COP-30/10)',
@@ -78,7 +78,7 @@ class GeoFetchRegistry:
 
         # NOAA ETOPO-2022
         'etopo': {
-            'mod': 'geofetch.modules.etopo', 
+            'mod': 'fetchez.modules.etopo', 
             'cls': 'ETOPO', 
             'category': 'Topography',
             'desc': 'ETOPO 2022 Global Relief Model (15s, 30s, 60s)',
@@ -92,7 +92,7 @@ class GeoFetchRegistry:
         
         # The National Map (TNM) / USGS and Shortcuts (ned/3dep/etc)
         'tnm': {
-            'mod': 'geofetch.modules.tnm', 
+            'mod': 'fetchez.modules.tnm', 
             'cls': 'TheNationalMap', 
             'category': 'Topography',
             'desc': 'USGS 3DEP Products (NED, Lidar, Hydro) via The National Map',
@@ -108,7 +108,7 @@ class GeoFetchRegistry:
         },
         'ned': {
             'inherits': 'tnm',
-            'mod': 'geofetch.modules.tnm', 
+            'mod': 'fetchez.modules.tnm', 
             'cls': 'NED', 
             'category': 'Topography', 
             'desc': 'USGS Seamless DEMs (1m, 1/3", 1")',
@@ -116,7 +116,7 @@ class GeoFetchRegistry:
         },
         '3dep': {
             'inherits': 'tnm',
-            'mod': 'geofetch.modules.tnm', 
+            'mod': 'fetchez.modules.tnm', 
             'cls': 'TNM_LAZ', 
             'category': 'Topography', 
             'desc': 'USGS 3DEP Lidar Point Clouds (LAZ)',
@@ -125,7 +125,7 @@ class GeoFetchRegistry:
 
         # USGS Checkpoints
         '3dep_cp': {
-            'mod': 'geofetch.modules.checkpoints_3dep', 
+            'mod': 'fetchez.modules.checkpoints_3dep', 
             'cls': 'CheckPoints3DEP', 
             'category': 'Reference',
             'desc': 'USGS 3DEP Elevation Validation Checkpoints',
@@ -142,7 +142,7 @@ class GeoFetchRegistry:
 
         # USGS Waterservices
         'waterservices': {
-            'mod': 'geofetch.modules.waterservices', 
+            'mod': 'fetchez.modules.waterservices', 
             'cls': 'WaterServices', 
             'category': 'Hydrography',
             'desc': 'USGS Water Services (Streamflow/River Data)',
@@ -156,7 +156,7 @@ class GeoFetchRegistry:
         
         # NASA EarthData
         'earthdata': {
-            'mod': 'geofetch.modules.earthdata', 
+            'mod': 'fetchez.modules.earthdata', 
             'cls': 'EarthData', 
             'category': 'Generic',
             'desc': 'NASA Earth Science Data via CMR & Harmony',
@@ -197,7 +197,7 @@ class GeoFetchRegistry:
 
         # Multibeam (NOAA)
         'multibeam': {
-            'mod': 'geofetch.modules.multibeam', 
+            'mod': 'fetchez.modules.multibeam', 
             'cls': 'Multibeam', 
             'category': 'Bathymetry',
             'desc': 'NOAA NCEI Multibeam Bathymetry (Global)',
@@ -209,7 +209,7 @@ class GeoFetchRegistry:
             'urls': {'home': 'https://www.ngdc.noaa.gov/mgg/bathymetry/multibeam.html'}
         },        
         'mbdb': {
-            'mod': 'geofetch.modules.multibeam', 
+            'mod': 'fetchez.modules.multibeam', 
             'cls': 'MBDB', 
             'category': 'Bathymetry',
             'desc': 'NOAA Multibeam via ArcGIS Feature Server',
@@ -218,7 +218,7 @@ class GeoFetchRegistry:
             'inherits': 'multibeam'
         },
         'r2r': {
-            'mod': 'geofetch.modules.multibeam', 
+            'mod': 'fetchez.modules.multibeam', 
             'cls': 'R2R', 
             'category': 'Bathymetry',
             'desc': 'Rolling Deck to Repository (R2R) Multibeam',
@@ -232,7 +232,7 @@ class GeoFetchRegistry:
 
         # HydroNOS
         'nos_hydro': {
-            'mod': 'geofetch.modules.hydronos', 
+            'mod': 'fetchez.modules.hydronos', 
             'cls': 'HydroNOS', 
             'category': 'Bathymetry',
             'desc': 'NOAA NOS Hydrographic Surveys (BAG & XYZ)',
@@ -245,7 +245,7 @@ class GeoFetchRegistry:
         },        
         # Shortcut for just BAGs
         'bag': {
-            'mod': 'geofetch.modules.hydronos', 
+            'mod': 'fetchez.modules.hydronos', 
             'cls': 'HydroNOS', 
             'category': 'Bathymetry',
             'desc': 'NOAA NOS Bathymetric Attributed Grids (BAG)',
@@ -254,7 +254,7 @@ class GeoFetchRegistry:
 
         # Coast Survey's BlueTopo
         'bluetopo': {
-            'mod': 'geofetch.modules.bluetopo', 
+            'mod': 'fetchez.modules.bluetopo', 
             'cls': 'BlueTopo', 
             'category': 'Bathymetry',
             'desc': 'NOAA BlueTopo (National Bathymetric Source)',
@@ -268,7 +268,7 @@ class GeoFetchRegistry:
         
         # Nautical Charts (NOAA)
         'charts': {
-            'mod': 'geofetch.modules.charts', 
+            'mod': 'fetchez.modules.charts', 
             'cls': 'NOAACharts', 
             'category': 'Reference',
             'desc': 'NOAA Nautical Charts (ENC)',
@@ -282,7 +282,7 @@ class GeoFetchRegistry:
 
         # World Settlement Footprint
         'wsf': {
-            'mod': 'geofetch.modules.wsf', 
+            'mod': 'fetchez.modules.wsf', 
             'cls': 'WSF', 
             'category': 'Land Cover',
             'desc': 'World Settlement Footprint 2019 (10m)',
@@ -296,7 +296,7 @@ class GeoFetchRegistry:
 
         ## Crowd-Sourced Bathymetry
         'csb': {
-            'mod': 'geofetch.modules.csb', 
+            'mod': 'fetchez.modules.csb', 
             'cls': 'CSB', 
             'category': 'Bathymetry',
             'desc': 'NOAA Crowd Sourced Bathymetry (CSB)',
@@ -310,7 +310,7 @@ class GeoFetchRegistry:
 
         # NOAA Buoys
         'buoys': {
-            'mod': 'geofetch.modules.buoys', 
+            'mod': 'fetchez.modules.buoys', 
             'cls': 'Buoys', 
             'category': 'Oceanography',
             'desc': 'NOAA NDBC Buoy Data (Realtime & Historical)',
@@ -324,7 +324,7 @@ class GeoFetchRegistry:
 
         # CHS NONNA from Canada
         'chs': {
-            'mod': 'geofetch.modules.chs', 
+            'mod': 'fetchez.modules.chs', 
             'cls': 'CHS', 
             'category': 'Bathymetry',
             'desc': 'Canadian Hydrographic Service NONNA (10m & 100m)',
@@ -341,7 +341,7 @@ class GeoFetchRegistry:
         
         # Cpt-City
         'cpt_city': {
-            'mod': 'geofetch.modules.cptcity', 
+            'mod': 'fetchez.modules.cptcity', 
             'cls': 'CPTCity', 
             'category': 'Visualization',
             'desc': 'Color Palette Tables (CPT) from CPT City',
@@ -355,7 +355,7 @@ class GeoFetchRegistry:
         
         # Nominatum
         'nominatim': {
-            'mod': 'geofetch.modules.nominatim', 
+            'mod': 'fetchez.modules.nominatim', 
             'cls': 'Nominatim', 
             'category': 'Reference',
             'desc': 'Geocoding service using OpenStreetMap data',
@@ -436,7 +436,7 @@ class GeoFetchRegistry:
         
     @classmethod
     def load_user_plugins(cls):
-        """Scan ~/.geofetch/plugins/ for external modules and register them."""
+        """Scan ~/.fetchez/plugins/ for external modules and register them."""
 
         import os, sys
         import inspect
@@ -444,7 +444,7 @@ class GeoFetchRegistry:
         from . import core
         
         home_dir = os.path.expanduser("~")
-        plugin_dir = os.path.join(home_dir, ".geofetch", "plugins")
+        plugin_dir = os.path.join(home_dir, ".fetchez", "plugins")
         
         if not os.path.exists(plugin_dir):
             return
@@ -517,4 +517,4 @@ class GeoFetchRegistry:
         return sorted(matches)
 
 
-GeoFetchRegistry.load_user_plugins()
+FetchezRegistry.load_user_plugins()

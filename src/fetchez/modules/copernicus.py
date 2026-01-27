@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.copernicus
+fetchez.modules.copernicus
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Fetch data from the Copernicus Digital Elevation Model (DEM).
@@ -15,11 +15,11 @@ import logging
 from typing import List, Dict, Optional
 from tqdm import tqdm
 
-from geofetch import core
-from geofetch import spatial
-from geofetch import fred
-from geofetch import utils
-from geofetch import cli
+from fetchez import core
+from fetchez import spatial
+from fetchez import fred
+from fetchez import utils
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

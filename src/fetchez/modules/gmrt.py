@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.gmrt
+fetchez.modules.gmrt
 ~~~~~~~~~~~~~
 
 Fetch data from the Global Multi-Resolution Topography (GMRT) synthesis.
@@ -13,10 +13,10 @@ Fetch data from the Global Multi-Resolution Topography (GMRT) synthesis.
 
 import logging
 from typing import Optional, Dict, Any, List
-from geofetch import core
-from geofetch import utils
-from geofetch import spatial
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import spatial
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

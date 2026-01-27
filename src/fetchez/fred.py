@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.fred
+fethcez.fred
 ~~~~~~~~~~~~~
 
 Fetches Remote Elevation Datalist (FRED)

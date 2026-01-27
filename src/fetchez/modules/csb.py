@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.csb
+fetchez.modules.csb
 ~~~~~~~~~~~~~~~~~~~~
 
 Fetch Crowd Sourced Bathymetry (CSB) from NOAA.
@@ -19,10 +19,10 @@ import logging
 from typing import Optional, Dict, List
 from urllib.parse import urlparse
 
-from geofetch import core
-from geofetch import spatial
-from geofetch import utils
-from geofetch import cli
+from fetchez import core
+from fetchez import spatial
+from fetchez import utils
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

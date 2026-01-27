@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.hydronos
+fetchez.modules.hydronos
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Fetch NOS Hydrographic Surveys (BAGs and XYZ soundings) from NOAA.
@@ -16,10 +16,10 @@ import json
 import logging
 from typing import Optional, Dict, Any, List
 
-from geofetch import core
-from geofetch import utils
-from geofetch import spatial
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import spatial
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

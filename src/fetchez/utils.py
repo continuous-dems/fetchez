@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.utils
+fetchez.utils
 ~~~~~~~~~~~~~~~~
 
 Utility functions for colorized output, string manipulation, 

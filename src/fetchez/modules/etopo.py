@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.modules.etopo
+fetchez.modules.etopo
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Fetch ETOPO 2022 Global Relief Model data from NOAA NCEI.
@@ -24,10 +24,10 @@ is requested but not found for a specific tile.
 import logging
 from typing import Optional, Dict
 
-from geofetch import core
-from geofetch import utils
-from geofetch import fred
-from geofetch import cli
+from fetchez import core
+from fetchez import utils
+from fetchez import fred
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

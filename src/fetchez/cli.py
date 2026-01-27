@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-geofetch.cli
+fetchez.cli
 ~~~~~~~~~~~~~
 
-This module contains the CLI for the GeoFetch library. 
+This module contains the CLI for the Fetchez library. 
 
 :copyright: (c) 2010-2026 Regents of the University of Colorado
 :license: MIT, see LICENSE for more details.
@@ -189,9 +189,9 @@ class PrintModulesAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         print_welcome_banner()
         print(f"""
-        Supported geofetch modules (see {os.path.basename(sys.argv[0])} <module-name> --help for more info): 
+        Supported fetchez modules (see {os.path.basename(sys.argv[0])} <module-name> --help for more info): 
 
-        {get_module_cli_desc(registry.GeoFetchRegistry._modules)}
+        {get_module_cli_desc(registry.FetchezRegistry._modules)}
         """)
         sys.exit(0)
         
@@ -199,9 +199,9 @@ class PrintModulesAction(argparse.Action):
 def print_module_info(mod_key):
     """Pretty-print module metadata."""
     
-    from .registry import GeoFetchRegistry
+    from .registry import FetchezRegistry
     
-    meta = GeoFetchRegistry.get_info(mod_key)
+    meta = FetchezRegistry.get_info(mod_key)
     if not meta:
         logger.error(f"Module {mod_key} not found.")
         return
@@ -226,12 +226,12 @@ def print_module_info(mod_key):
 # =============================================================================
 # Command-line Interface (CLI)
 # =============================================================================
-def geofetch_cli():
-    """Run geofetch from command-line using argparse."""
+def fetchez_cli():
+    """Run fetchez from command-line using argparse."""
 
     _usage = f"%(prog)s [-R REGION] [-H THREADS] [-A ATTEMPTS] [-l] [-z] [-q] [-v] [-m] MODULE [MODULE-OPTS]..." 
 
-    #registry.GeoFetchRegistry.load_user_plugins()
+    #registry.FetchezRegistry.load_user_plugins()
     
     parser = argparse.ArgumentParser(
         description=f"{utils.CYAN}%(prog)s{utils.RESET} ({__version__}) :: Fetch and process remote elevation data",
@@ -308,7 +308,7 @@ def geofetch_cli():
                 r_str = f'-R "{result["region_str"]}"' if result['region_str'] else ""
                 m_str = " ".join(top_mods)
                 print(f"\n{utils.BOLD}Suggested Command:{utils.RESET}")
-                print(f"  geofetch {r_str} -m {m_str}\n")
+                print(f"  fetchez {r_str} -m {m_str}\n")
             else:
                 print(f"\n{utils.YELLOW}No confident matches found.{utils.RESET}\n")
 
@@ -324,7 +324,7 @@ def geofetch_cli():
         sys.exit(0)
 
     if global_args.search:
-        results = registry.GeoFetchRegistry.search_modules(global_args.search)
+        results = registry.FetchezRegistry.search_modules(global_args.search)
         
         if not results:
             utils.echo_warning_msg(f"No modules found matching '{global_args.search}'")
@@ -334,7 +334,7 @@ def geofetch_cli():
         print("-" * 60)
         
         for mod_key in results:
-            info = registry.GeoFetchRegistry.get_info(mod_key)
+            info = registry.FetchezRegistry.get_info(mod_key)
             desc = info.get('desc', 'No description')
             agency = info.get('agency', '')
             
@@ -347,7 +347,7 @@ def geofetch_cli():
         sys.exit(0)
         
     module_keys = {}
-    for key, val in registry.GeoFetchRegistry._modules.items():
+    for key, val in registry.FetchezRegistry._modules.items():
         module_keys[key] = key
         for alias in val.get('aliases', []):
             module_keys[alias] = key
@@ -392,14 +392,14 @@ def geofetch_cli():
     for mod_key, mod_argv in commands:
         
         # LOAD MODULE HERE
-        mod_cls = registry.GeoFetchRegistry.load_module(mod_key)
+        mod_cls = registry.FetchezRegistry.load_module(mod_key)
         
         if mod_cls is None:
             logger.error(f"Could not load module: {mod_key}")
             continue
 
         mod_parser = argparse.ArgumentParser(
-            prog=f"geofetch [OPTIONS] {mod_key}",
+            prog=f"fetchez [OPTIONS] {mod_key}",
             description=mod_cls.__doc__,
             add_help=True,
             formatter_class=argparse.RawTextHelpFormatter
@@ -422,7 +422,7 @@ def geofetch_cli():
                 if x_f is None: continue
 
                 r_str = f"{this_region[0]:.4f}/{this_region[1]:.4f}/{this_region[2]:.4f}/{this_region[3]:.4f}"
-                logger.info(f'Running geofetch module {x_f.name} on region {r_str}...')
+                logger.info(f'Running fetchez module {x_f.name} on region {r_str}...')
 
                 x_f.run()
 
@@ -446,7 +446,7 @@ def geofetch_cli():
                         fr.start()
                         fr.join()         
                     except (KeyboardInterrupt, SystemExit):
-                        logger.error('User breakage... please wait while geofetch exits.')
+                        logger.error('User breakage... please wait while fetchez exits.')
                         x_f.status = -1
                         while not fr.fetch_q.empty():
                             try:
@@ -463,4 +463,4 @@ def geofetch_cli():
 
                 
 if __name__ == "__main__":
-    geofetch_cli()
+    fetchez_cli()
