@@ -182,7 +182,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for a full code example.
 We welcome contributions! Please see [CONTRIBUTING.md](/CONTRIBUTING.md) for details on how to register new modules with our metadata schema.
 
 ## ⚠️ Disclaimer on Data Persistence
-"The map is not the territory... and the server is definitely not permanent."
+"The map is not the territory... and the server is not permanent."
 
 Fetchez is a conduit, not a reservoir. We provide the tools to locate and download data from authoritative public repositories, but we do not host the data ourselves. The internet is a shifting landscape.
 
