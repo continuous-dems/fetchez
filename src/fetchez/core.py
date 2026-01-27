@@ -438,7 +438,8 @@ class Fetch:
             timeout=30,
             read_timeout=None,
             tries=5,
-            check_size=True
+            check_size=True,
+            verbose=True
     ) -> int:
         """Fetch src_url and save to dst_fn with robust resume support."""
         
@@ -519,11 +520,12 @@ class Fetch:
 
                     with open(part_fn, mode) as f:
                         desc = utils.str_truncate_middle(self.url, n=60)
+                        show_bar = verbose and not self.silent
                         with tqdm(
                                 desc=desc,
                                 total=total_size,
                                 initial=resume_byte_pos, 
-                                disable=self.silent,
+                                disable=not show_bar,
                                 unit='B',
                                 unit_scale=True,
                                 unit_divisor=1024,
@@ -712,6 +714,56 @@ class fetch_results(threading.Thread):
 
 
 # --- TESTING ---
+def _fetch_worker(module, entry, verbose=True):
+    """Helper wrapper to call fetch_entry on a module."""
+    
+    try:
+        return module.fetch_entry(entry, check_size=True, verbose=verbose)
+    except Exception as e:
+        logger.error(f"Worker failed for {entry.get('url', 'unknown')}: {e}")
+        return -1
+
+    
+def run_fetchez(modules: List['FetchModule'], threads: int = 3):
+    """Execute fetches in parallel using a ThreadPoolExecutor.
+    Displays a single aggregate progress bar to prevent 'tearing'.
+    
+    Args:
+        modules: List of FetchModule instances (pre-populated with .results)
+        threads: Number of parallel threads
+    """
+    
+    all_entries = []
+    for mod in modules:
+        for entry in mod.results:
+            all_entries.append((mod, entry))
+            
+    total_files = len(all_entries)
+    if total_files == 0:
+        logger.info("No files to fetch.")
+        return
+
+    logger.info(f"Starting parallel fetch: {total_files} files with {threads} threads.")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = {
+            executor.submit(_fetch_worker, mod, entry, verbose=True): entry 
+            for mod, entry in all_entries
+        }
+        
+        with tqdm(total=total_files, unit='file', desc='Fetching', position=0, leave=True) as pbar:
+            for future in concurrent.futures.as_completed(futures):
+                entry = futures[future]
+                try:
+                    status = future.result()
+                    if status != 0:
+                        logger.error(f"Failed to download: {os.path.basename(entry['dst_fn'])}")
+                except Exception as e:
+                    logger.error(f"Error fetching {entry['url']}: {e}")
+                
+                pbar.update(1)
+
+                
 def run_fetches(modules, threads=3):    
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         # Submit all download tasks
@@ -795,7 +847,7 @@ class FetchModule:
         raise NotImplementedError
 
     
-    def fetch_entry(self, entry, check_size=True, retries=5):
+    def fetch_entry(self, entry, check_size=True, retries=5, verbose=True):
         try:
             status = Fetch(
                 url=entry['url'],
@@ -803,7 +855,8 @@ class FetchModule:
             ).fetch_file(
                 os.path.join(self._outdir, entry['dst_fn']),
                 check_size=check_size,
-                tries=retries
+                tries=retries,
+                verbose=verbose
             )
         except:
             status = -1

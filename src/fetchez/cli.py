@@ -446,24 +446,33 @@ def fetchez_cli():
                         print(result['url'])
                 else:
                     try:
-                        fr = core.fetch_results(
-                            x_f,
-                            n_threads=global_args.threads,
-                            check_size=check_size,
-                            attempts=global_args.attempts
-                        )
-                        fr.daemon = True                
-                        fr.start()
-                        fr.join()         
+                        # run_fetchez expects a list of modules, so we wrap x_f in brackets [x_f].
+                        # It handles the progress bar and threading internally.
+                        core.run_fetchez([x_f], threads=global_args.threads)
+
                     except (KeyboardInterrupt, SystemExit):
                         logger.error('User breakage... please wait while fetchez exits.')
-                        x_f.status = -1
-                        while not fr.fetch_q.empty():
-                            try:
-                                fr.fetch_q.get(False)
-                                fr.fetch_q.task_done()
-                            except queue.Empty:
-                                break
+                        # No need to manually drain queues anymore; Python's executor handles cleanup.
+                        sys.exit(0)
+                    # try:
+                    #     fr = core.fetch_results(
+                    #         x_f,
+                    #         n_threads=global_args.threads,
+                    #         check_size=check_size,
+                    #         attempts=global_args.attempts
+                    #     )
+                    #     fr.daemon = True                
+                    #     fr.start()
+                    #     fr.join()         
+                    # except (KeyboardInterrupt, SystemExit):
+                    #     logger.error('User breakage... please wait while fetchez exits.')
+                    #     x_f.status = -1
+                    #     while not fr.fetch_q.empty():
+                    #         try:
+                    #             fr.fetch_q.get(False)
+                    #             fr.fetch_q.task_done()
+                    #         except queue.Empty:
+                    #             break
 
             except (KeyboardInterrupt, SystemExit):
                 logger.error('User interruption.')

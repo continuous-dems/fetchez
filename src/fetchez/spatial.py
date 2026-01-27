@@ -106,7 +106,7 @@ def region_from_geojson(fn: str) -> Optional[Tuple[float, float, float, float]]:
     return None
 
 
-def region_from_place(query: str) -> Optional[Tuple[float, float, float, float]]:
+def region_from_place(query: str, centered: bool=True) -> Optional[Tuple[float, float, float, float]]:
     """Resolve 'loc:PlaceName' to a bounding box."""
     
     from .modules.nominatim import Nominatim
@@ -120,14 +120,24 @@ def region_from_place(query: str) -> Optional[Tuple[float, float, float, float]]
         res = nom.results[0]
         x = res.get('x')
         y = res.get('y')
-        
-        if x is not None and y is not None:
-            # Snap to 0.25 degree grid
-            x_min = math.floor(x * 4) / 4
-            x_max = math.ceil(x * 4) / 4
-            y_min = math.floor(y * 4) / 4
-            y_max = math.ceil(y * 4) / 4
-            return (x_min, x_max, y_min, y_max)
+
+        if centered:
+            if x is not None and y is not None:
+                # region is centered on place
+                x_min = x - .125
+                x_max = x + .125
+                y_min = y - .125
+                y_max = y + .125
+                return (x_min, x_max, y_min, y_max)
+
+        else:
+            if x is not None and y is not None:
+                # Snap to 0.25 degree grid
+                x_min = math.floor(x * 4) / 4
+                x_max = math.ceil(x * 4) / 4
+                y_min = math.floor(y * 4) / 4
+                y_max = math.ceil(y * 4) / 4
+                return (x_min, x_max, y_min, y_max)
             
     return None
 
