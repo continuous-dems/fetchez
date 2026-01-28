@@ -740,6 +740,19 @@ class FetchezRegistry:
             'urls': {'home': 'https://vdatum.noaa.gov/'},
             'aliases': ['tidal_grids']
         },
+
+        'osm': {
+            'mod': 'fetchez.modules.osm', 
+            'cls': 'OSM', 
+            'category': 'Vector',
+            'desc': 'OpenStreetMap (Coastlines, Water, Buildings)',
+            'agency': 'OpenStreetMap Foundation',
+            'tags': ['osm', 'vector', 'coastline', 'buildings', 'roads', 'overpass'],
+            'region': 'Global',
+            'resolution': 'Vector',
+            'license': 'ODbL (Open Data Commons Open Database License)',
+            'urls': {'home': 'https://www.openstreetmap.org/'}
+        },
         
         # The following modules don't need a `region`,
         # they populate `FetchModule.results` in some other way.
