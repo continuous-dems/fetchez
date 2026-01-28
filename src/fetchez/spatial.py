@@ -307,6 +307,7 @@ def region_to_bbox(region: Tuple[float, float, float, float]):
     w, e, s, n = region
     return (w, s, e, n)
 
+
 def region_to_geojson_geom(region: Tuple[float, float, float, float]):
     w, e, s, n = region
     # geom = {
@@ -327,3 +328,40 @@ def region_to_geojson_geom(region: Tuple[float, float, float, float]):
         ]]
     }
 
+
+
+def chunk_region(region: Tuple[float, float, float, float], chunk_size: float = 1.0) -> List[Tuple[float, float, float, float]]:
+    """Split a region into smaller sub-regions of a specified size.
+    
+    Args:
+        region: Tuple (west, east, south, north)
+        chunk_size: Size of the square chunks in degrees (or region units).
+        
+    Returns:
+        List of (w, e, s, n) tuples.
+    """
+    
+    w, e, s, n = region
+    
+    chunks = []
+    
+    cur_w = w
+    while cur_w < e:
+        next_w = cur_w + chunk_size
+        if next_w > e:
+            next_w = e
+            
+        cur_s = s
+        while cur_s < n:
+            next_s = cur_s + chunk_size
+            if next_s > n:
+                next_s = n
+                
+            if (next_w - cur_w > 1e-9) and (next_s - cur_s > 1e-9):
+                chunks.append((cur_w, next_w, cur_s, next_s))
+                
+            cur_s = next_s
+            
+        cur_w = next_w
+        
+    return chunks
