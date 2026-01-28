@@ -177,6 +177,7 @@ class MyS3Fetcher(core.FetchModule):
             return
         
         # Proceed with fetching...
+```
 
 ## 📝 Pull Request Guidelines
 
