@@ -555,6 +555,19 @@ class FetchezRegistry:
             'urls': {'home': 'https://open.canada.ca/data/en/dataset/d3881c4c-650d-4070-bf9b-1e00aabf0a1d'}
         },
 
+        'hrdem': {
+            'mod': 'fetchez.modules.hrdem', 
+            'cls': 'HRDEM', 
+            'category': 'Topography',
+            'desc': 'Canada HRDEM (Mosaic STAC & Legacy)',
+            'agency': 'NRCAN',
+            'tags': ['canada', 'hrdem', 'nrcan', 'lidar', 'mosaic', 'stac'],
+            'region': 'Canada',
+            'resolution': '1m / 2m',
+            'license': 'Open Government Licence - Canada',
+            'urls': {'home': 'https://open.canada.ca/data/en/dataset/957782bf-847c-4644-a757-e383c0057995'}
+        },
+    
         'wadnr': {
             'mod': 'fetchez.modules.wadnr', 
             'cls': 'WADNR', 
@@ -649,7 +662,7 @@ class FetchezRegistry:
         'ngs': {
             'mod': 'fetchez.modules.ngs', 
             'cls': 'NGS', 
-            'category': 'Reference',
+            'category': 'Geodesy',
             'desc': 'National Geodetic Survey (NGS) Monuments',
             'agency': 'NOAA',
             'tags': ['ngs', 'monuments', 'survey', 'benchmarks', 'geodesy', 'control'],
