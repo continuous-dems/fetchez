@@ -38,7 +38,7 @@ jobs:
       - name: Generate Module Table
         # Optional: Auto-generate the catalog page before building
         run: |
-          python extras/generate_module_tables.py --html >> docs/source/modules/index.md
+          python extras/generate_module_tables.py --html >> docs/source/modules/module_tables.html
 
       - name: Build Sphinx
         run: |
