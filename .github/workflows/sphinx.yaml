@@ -7,6 +7,12 @@ on:
     paths:
       - 'docs/**'
       - 'fetchez/**'  # Rebuild if code changes (for autodoc)
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'fetchez/**'  # Rebuild if code changes (for autodoc)
 
 permissions:
   contents: write
