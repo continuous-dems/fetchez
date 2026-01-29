@@ -170,11 +170,12 @@ def generate_html_table(modules, fragment=True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--html", action="store_true", help="Output interactive HTML instead of Markdown")
+    parser.add_argument("--html-fragment", action="store_true", help="Output interactive HTML fragment instead of full page")
     args = parser.parse_args()
 
     all_modules = FetchezRegistry._modules
     
-    if args.html:
-        print(generate_html_table(all_modules))
+    if args.html or args.html_fragment:
+        print(generate_html_table(all_modules, fragment=args.html_fragment))
     else:
         print(generate_markdown_table(all_modules))
