@@ -21,11 +21,11 @@ from fetchez import cli
 logger = logging.getLogger(__name__)
 
 GMRT_URL = 'https://www.gmrt.org'
-GMRT_POINT_URL = "https://www.gmrt.org:443/services/PointServer?"
-GMRT_GRID_URL = "https://www.gmrt.org:443/services/GridServer?"
-GMRT_GRID_URLS_URL = "https://www.gmrt.org:443/services/GridServer/urls?"
-GMRT_METADATA_URL = "https://www.gmrt.org/services/GridServer/metadata?"
-GMRT_SWATH_URL = "https://www.gmrt.org/shapefiles/gmrt_swath_polygons.zip"
+GMRT_POINT_URL = 'https://www.gmrt.org:443/services/PointServer?'
+GMRT_GRID_URL = 'https://www.gmrt.org:443/services/GridServer?'
+GMRT_GRID_URLS_URL = 'https://www.gmrt.org:443/services/GridServer/urls?'
+GMRT_METADATA_URL = 'https://www.gmrt.org/services/GridServer/metadata?'
+GMRT_SWATH_URL = 'https://www.gmrt.org/shapefiles/gmrt_swath_polygons.zip'
 
 # GMRT seems to require specific user agents (Firefox/Windows)
 GMRT_HEADERS = {
@@ -36,11 +36,11 @@ GMRT_HEADERS = {
 }
 
 @cli.cli_opts(
-    help_text="Global Multi-Resolution Topography (GMRT) Synthesis",
-    res="Resolution to fetch (default, max, or specific value)",
-    fmt="Output format (geotiff, netcdf, etc.)",
-    layer="Data layer (topo, topo-mask)",
-    want_swath="Fetch swath polygon shapefile instead of grid"
+    help_text='Global Multi-Resolution Topography (GMRT) Synthesis',
+    res='Resolution to fetch (default, max, or specific value)',
+    fmt='Output format (geotiff, netcdf, etc.)',
+    layer='Data layer (topo, topo-mask)',
+    want_swath='Fetch swath polygon shapefile instead of grid'
 )
 
 # =============================================================================
@@ -152,8 +152,8 @@ class GMRT(core.FetchModule):
             ext = 'tif' if self.fmt == 'geotiff' else 'grd'
             
             # Construct filename
-            r_str = f"w{w:.2f}_s{s:.2f}" 
-            outf = f"gmrt_{self.layer}_{self.res}_{r_str}.{ext}"            
+            r_str = f'w{w:.2f}_s{s:.2f}' 
+            outf = f'gmrt_{self.layer}_{self.res}_{r_str}.{ext}'
 
             # Populate `self.results`
             # add some useful info at the end...
