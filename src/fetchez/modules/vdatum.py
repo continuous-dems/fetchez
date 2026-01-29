@@ -27,19 +27,19 @@ VDATUM_REGIONS = [
 ]
 
 @cli.cli_opts(
-    help_text="NOAA VDatum Tidal Grids",
-    datatype="Filter by datum type (e.g., 'mllw', 'mhhw', 'tidal').",
-    update="Force a re-scrape of the NOAA website."
+    help_text='NOAA VDatum Tidal Grids',
+    datatype='Filter by datum type (e.g., "mllw", "mhhw", "tidal").',
+    update='Force a re-scrape of the NOAA website.'
 )
-
 class VDatum(core.FetchModule):
     """Fetch NOAA VDatum grids, specifically Tidal Datums (MLLW, MHHW).
     
-    Because these grids are not available in the PROJ CDN, this module 
+    Because these grids are not available in the PROJ CDN, this module
     performs a "heavy" discovery process:
-      - Downloads regional ZIP files from NOAA.
-      - Inspects internal .inf files to determine bounding boxes.
-      - Builds a local spatial index (FRED) for future fast lookups.
+    
+    - Downloads regional ZIP files from NOAA.
+    - Inspects internal .inf files to determine bounding boxes.
+    - Builds a local spatial index (FRED) for future fast lookups.
     """
     
     def __init__(self, datatype: str = None, update: bool = False, **kwargs):
@@ -53,20 +53,20 @@ class VDatum(core.FetchModule):
     def _scrape_and_index(self):
         """Download zips, parse .inf, update index."""
         
-        logger.info("Initializing VDatum Index (This may take a moment)...")
+        logger.info('Initializing VDatum Index (This may take a moment)...')
         
         temp_dir = os.path.join(self._outdir, 'temp_idx')
         if not os.path.exists(temp_dir): os.makedirs(temp_dir)
 
         for region in VDATUM_REGIONS:
-            fname = f"{region}.zip"
+            fname = f'{region}.zip'
             if region == 'TIDAL': fname = "DEVAemb12_8301.zip" # Example mapping, may vary
-            elif 'XGEOID' in region: fname = f"vdatum_{region}.zip"
+            elif 'XGEOID' in region: fname = f'vdatum_{region}.zip'
             
-            url = f"{VDATUM_DATA_URL}{fname}"
+            url = f'{VDATUM_DATA_URL}{fname}'
             local_zip = os.path.join(temp_dir, fname)
             
-            logger.info(f"Indexing {region}...")
+            logger.info(f'Indexing {region}...')
             if core.Fetch(url).fetch_file(local_zip) != 0:
                 continue
 
@@ -81,8 +81,8 @@ class VDatum(core.FetchModule):
                                 
                                 if meta:
                                     geom = {
-                                        "type": "Polygon",
-                                        "coordinates": [[
+                                        'type': 'Polygon',
+                                        'coordinates': [[
                                             [meta['w'], meta['s']], [meta['e'], meta['s']],
                                             [meta['e'], meta['n']], [meta['w'], meta['n']],
                                             [meta['w'], meta['s']]
@@ -99,12 +99,12 @@ class VDatum(core.FetchModule):
                                         DataSource='vdatum'
                                     )
             except Exception as e:
-                logger.warning(f"Failed to parse {fname}: {e}")
+                logger.warning(f'Failed to parse {fname}: {e}')
             
             if os.path.exists(local_zip): os.remove(local_zip)
 
         self.fred.save()
-        logger.info("VDatum Indexing Complete.")
+        logger.info('VDatum Indexing Complete.')
 
         
     def _parse_inf(self, text):
@@ -130,7 +130,7 @@ class VDatum(core.FetchModule):
             self._scrape_and_index()
         
         if not self.fred.features:
-            logger.error("VDatum index is empty. Scrape failed.")
+            logger.error('VDatum index is empty. Scrape failed.')
             return self
 
         results = self.fred.search(region=self.region)
@@ -144,7 +144,7 @@ class VDatum(core.FetchModule):
                 dst_fn=os.path.basename(r['DataLink']),
                 data_type=r['DataType'],
                 agency='NOAA',
-                title=f"VDatum Grid ({r['ID']})"
+                title=f'VDatum Grid ({r['ID']})'
             )
             
         return self

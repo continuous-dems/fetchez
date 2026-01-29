@@ -40,6 +40,10 @@ jobs:
         run: |
           python extras/generate_module_tables.py --html-fragment >> docs/source/modules/module_tables.html
 
+      - name: Generate API Docs
+        run: |
+          sphinx-apidoc -o docs/source/api fetchez -f -M
+
       - name: Build Sphinx
         run: |
           cd docs

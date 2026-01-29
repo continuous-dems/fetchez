@@ -21,10 +21,9 @@ logger = logging.getLogger(__name__)
 NOMINATUM_URL = 'https://nominatim.openstreetmap.org/search'
 
 @cli.cli_opts(
-    help_text="Nominatum place queries",
-    query="Query String"
+    help_text='Nominatum place queries',
+    query='Query String'
 )
-
 class Nominatim(core.FetchModule):
     """Fetch coordinates from OpenStreetMap's Nominatim service."""
     
@@ -68,7 +67,6 @@ class Nominatim(core.FetchModule):
                         # Standard output for CLI piping: "lon, lat"
                         #print(f'{x}, {y}')
                         
-                        # Populate results list in case this is called programmatically
                         self.add_entry_to_results(
                             url=q_url,
                             dst_fn=None,

@@ -23,9 +23,9 @@ try:
     import boto3
     from botocore import UNSIGNED
     from botocore.client import Config
-    HAS_BOTO = TRUE
+    HAS_BOTO = True
 except ImportError:
-    HAS_BOTO = FALSE
+    HAS_BOTO = False
 
 try:
     from osgeo import ogr
@@ -45,12 +45,11 @@ BLUETOPO_PREFIX = 'BlueTopo'
 # BlueTopo Module
 # =============================================================================
 @cli.cli_opts(
-    help_text="NOAA BlueTopo Bathymetry (S3)",
-    want_interpolation="Accept interpolated data (Downstream processing flag)",
-    unc_weights="Use uncertainty weights (Downstream processing flag)",
-    keep_index="Keep the downloaded tile index file after running"
+    help_text='NOAA BlueTopo Bathymetry (S3)',
+    want_interpolation='Accept interpolated data (Downstream processing flag)',
+    unc_weights='Use uncertainty weights (Downstream processing flag)',
+    keep_index='Keep the downloaded tile index file after running'
 )
-
 class BlueTopo(core.FetchModule):
     """
     Fetch NOAA BlueTopo Data.
@@ -95,7 +94,7 @@ class BlueTopo(core.FetchModule):
                 key = r['Contents'][0]['Key']
                 return f'https://{BLUETOPO_BUCKET}.s3.amazonaws.com/{key}'
         except Exception as e:
-            logger.error(f"Error finding BlueTopo index on S3: {e}")
+            logger.error(f'Error finding BlueTopo index on S3: {e}')
         
         return None
 
@@ -104,42 +103,42 @@ class BlueTopo(core.FetchModule):
         """Run the BlueTopo fetch module."""
 
         if not HAS_BOTO:
-            logger.error("This module requires 'boto3'. Please install it to proceed.")
+            logger.error('This module requires "boto3". Please install it to proceed.')
             return
         
         if self.region is None:
             return []
             
         if not ogr:
-            logger.error("BlueTopo requires 'osgeo.ogr' (GDAL) to parse the tile index.")
+            logger.error('BlueTopo requires "osgeo.ogr" (GDAL) to parse the tile index.')
             return self
 
         s3 = self._get_s3_client()
         
         if self._bluetopo_index_url is None:
-            logger.info("Locating BlueTopo Tile Scheme on S3...")
+            logger.info('Locating BlueTopo Tile Scheme on S3...')
             self._bluetopo_index_url = self._get_index_url(s3)
             
         if not self._bluetopo_index_url:
-            logger.error("Could not locate BlueTopo tile index.")
+            logger.error('Could not locate BlueTopo tile index.')
             return self
 
         self._bluetopo_index_fn = os.path.basename(self._bluetopo_index_url)
         
         try:
             if not os.path.exists(self._bluetopo_index_fn):
-                logger.info(f"Downloading index: {self._bluetopo_index_fn}...")
+                logger.info(f'Downloading index: {self._bluetopo_index_fn}...')
                 status = core.Fetch(
                     self._bluetopo_index_url
                 ).fetch_file(self._bluetopo_index_fn)
                 
                 if status != 0:
-                    raise IOError("Failed to download BlueTopo index.")
+                    raise IOError('Failed to download BlueTopo index.')
 
             logger.info("Querying tile index...")
             v_ds = ogr.Open(self._bluetopo_index_fn)
             if v_ds is None:
-                raise IOError("Failed to open BlueTopo index (GeoPackage).")
+                raise IOError('Failed to open BlueTopo index (GeoPackage).')
 
             layer = v_ds.GetLayer()
             
@@ -157,10 +156,10 @@ class BlueTopo(core.FetchModule):
             
             feature_count = layer.GetFeatureCount()
             if feature_count == 0:
-                logger.info("No BlueTopo tiles found in this region.")
+                logger.info('No BlueTopo tiles found in this region.')
                 return self
                 
-            logger.info(f"Found {feature_count} intersecting tiles.")
+            logger.info(f'Found {feature_count} intersecting tiles.')
 
             for feature in layer:
                 tile_name = feature.GetField('tile')
@@ -185,12 +184,12 @@ class BlueTopo(core.FetchModule):
                                     license='Public Domain'
                                 )
                 except Exception as e:
-                    logger.warning(f"Failed to resolve file for tile {tile_name}: {e}")
+                    logger.warning(f'Failed to resolve file for tile {tile_name}: {e}')
 
             v_ds = None
 
         except Exception as e:
-            logger.error(f"BlueTopo Run Error: {e}")
+            logger.error(f'BlueTopo Run Error: {e}')
             
         finally:
             if not self.keep_index and self._bluetopo_index_fn:
