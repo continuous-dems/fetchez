@@ -1,10 +1,10 @@
-# 🧪 Fetchez Workflows, Examples & User Scripts
+# 🧪 Fetchez Workflows, Examples & Scripts
 
-This directory contains standalone scripts and "recipes" that demonstrate how to use `fetchez` as a Python library to build powerful geospatial workflows.
+This directory contains standalone examples and scripts that demonstrate how to use `fetchez` as a Python library to build powerful geospatial workflows.
 
 Unlike the core `fetchez` CLI, these scripts may require additional dependencies (like `gdal`, `pandas`, `rasterio`, or `geopandas`).
 
-## 📂 Available Recipes
+## 📂 Examples, Scripts, Etc.
 
 | Script | Description | Dependencies |
 | :--- | :--- | :--- |
@@ -25,5 +25,5 @@ Unlike the core `fetchez` CLI, these scripts may require additional dependencies
 Have a cool script? We'd love to see it!
 
 1.  **Keep it focused:** The script should solve one specific problem well.
-2.  **Use `fetchez`:** The script must use `fetchez` for the data acquisition step.
-3.  **Document imports:** If you use libraries outside of `fetchez` core, please list them at the top of your file.
+2.  **Use `fetchez`:** The script should use `fetchez` in some way.
+3.  **Document imports:** If you use external libraries outside of `fetchez` core, please list them at the top of your file.

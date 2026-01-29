@@ -11,6 +11,8 @@ title: The Generic Geospatial Data Acquisition and Registry Engine
 [![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/ciresdem/fetchez)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ciresdem/fetchez/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-yellow.svg)](https://www.python.org/)
+[![PyPI version](https://badge.fury.io/py/fetchez.svg)](https://badge.fury.io/py/fetchez)
+[![project chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://cudem.zulip.org)
 
 Fetchez is a lightweight, open-source command-line tool and Python library designed to discover and download geospatial data from a wide variety of public repositories. 
 
@@ -22,7 +24,7 @@ It unifies over **40 different data sources** (and counting), such as NASA, USGS
 
 ---
 
-## 🌎 Why Fetchez?
+## 🌎  Why Fetchez?
 
 Fetching elevation, bathymetry, or oceanographic data usually involves navigating dozens of different APIs, FTP sites, and web portals. Fetchez solves this by providing:
 
@@ -32,7 +34,7 @@ Fetching elevation, bathymetry, or oceanographic data usually involves navigatin
 
 ---
 
-## 📦 Installation
+## 📦  Installation
 
 Fetchez is a standard Python package. You can install it directly from the source:
 
@@ -42,7 +44,7 @@ cd fetchez
 pip install .
 ```
 
-## 💻 Usage
+## 💻  Usage
 
 The core philosophy is simple: Define a Region, Pick a Module.
 ### The Basics
@@ -87,7 +89,7 @@ We support a growing federation of data sources:
 | Reference | osm (OpenStreetMap), vdatum |
 | Generic | http (Direct URL), earthdata (NASA) |
 
-## 🐄 Plugins & Extensions
+## 🐄  Plugins & Extensions
 
 Need to fetch data from a specialized local server, a private S3 bucket, or a niche API? You don't need to fork the repo!
 
@@ -103,7 +105,7 @@ Your plugin instantly gains all of Fetchez's powers: smart region parsing, multi
 
 See the [Contribution Guide](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING.md) for a full code example.
 
-## 🤝 Contribute new Fetchez Modules!
+## 🤝  Contribute new Fetchez Modules!
 
 The power of Fetchez lies in its registry. The more modules we have, the more powerful the tool becomes for the entire geospatial community.
 
@@ -124,7 +126,7 @@ We have a comprehensive guide to help you get started:
 Read the [Contribution Guide](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING.md)
 
 
-## ⚠️ Disclaimer on Data Persistence
+## 🔱  Disclaimer on Data Persistence
 
 We provide the tools to locate and download data from authoritative public repositories, but we do not host the data ourselves.
 
@@ -137,7 +139,7 @@ Remote servers (like NOAA NCEI, USGS, or Copernicus) may experience downtime, th
 We strive to keep our modules robust and our index fresh. If you encounter a broken fetch or a changed endpoint, please open an issue. This helps the whole community keep up with the changes!
 
 
-### License
+### 📄  License
 
 Fetchez is open-source software licensed under the MIT License.
 
