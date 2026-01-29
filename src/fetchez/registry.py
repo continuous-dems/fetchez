@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 #
 # This will ensure the registry is robust and useful for everyone.
 #
-# You can also set the optional `aliases` field, to give the module aliases.
+# You can also set the optional `aliases` field, to give the module one or more alias.
 # If a fetchez module has the same metadata as one that already exists, you
 # can set the `inherits` key to that other module to avoid duplicating
 # metadata. (`mod` and `cls` still need to set correctly.
@@ -42,6 +42,7 @@ class FetchezRegistry:
         # Generic https module to send an argument to FetchModule.results
         'https': {'mod': 'fetchez.core', 'cls': 'HttpDataset', 'category': 'Generic'},
 
+        # Local module - query a local fred geojson
         'local': {
             'mod': 'fetchez.modules.local', 
             'cls': 'Local', 
@@ -849,8 +850,9 @@ class FetchezRegistry:
             mod_cls = getattr(module, info['cls'])
             return mod_cls
         except (ImportError, AttributeError) as e:
-            logger.error(f"Failed to load {mod_key}: {e}")
+            logger.error(f'Failed to load {mod_key}: {e}')
             return None
+
         
     @classmethod
     def load_user_plugins(cls):
@@ -861,8 +863,8 @@ class FetchezRegistry:
         import importlib.util
         from . import core
         
-        home_dir = os.path.expanduser("~")
-        plugin_dir = os.path.join(home_dir, ".fetchez", "plugins")
+        home_dir = os.path.expanduser('~')
+        plugin_dir = os.path.join(home_dir, '.fetchez', 'plugins')
         
         if not os.path.exists(plugin_dir):
             return
@@ -871,9 +873,9 @@ class FetchezRegistry:
         sys.path.insert(0, plugin_dir)
         
         for filename in os.listdir(plugin_dir):
-            if filename.endswith(".py") and not filename.startswith("_"):
+            if filename.endswith('.py') and not filename.startswith("_"):
                 filepath = os.path.join(plugin_dir, filename)
-                module_name = f"user_plugin_{filename[:-3]}"
+                module_name = f'user_plugin_{filename[:-3]}'
                 try:
                     spec = importlib.util.spec_from_file_location(module_name, filepath)
                     if spec and spec.loader:
@@ -887,7 +889,7 @@ class FetchezRegistry:
                                 # Check for @cli_opts metadata (optional but recommended)
                                 # or defaults
                                 mod_key = getattr(obj, 'name', name.lower())
-                                logger.info(f"Loaded user plugin: {mod_key}")
+                                logger.info(f'Loaded user plugin: {mod_key}')
                                 
                                 cls._modules[mod_key] = {
                                     'mod': f'user_plugin_{filename[:-3]}',
@@ -899,7 +901,7 @@ class FetchezRegistry:
                                 }
                                 
                 except Exception as e:
-                    logger.warning(f"Failed to load plugin {filename}: {e}")
+                    logger.warning(f'Failed to load plugin {filename}: {e}')
 
         # Remove the plugin_dir from the system path
         sys.path.pop(0)
@@ -932,6 +934,3 @@ class FetchezRegistry:
                 matches.append(key)
                 
         return sorted(matches)
-
-
-#FetchezRegistry.load_user_plugins()

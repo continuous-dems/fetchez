@@ -17,11 +17,10 @@ from fetchez import cli
 from fetchez import fred
 
 @cli.cli_opts(
-    help_text="Query a custom/local FRED index",
-    index="Name or path of the FRED index (json) to load",
-    mode=" 'reference' (default) to point to existing files, or 'copy' to stage them to outdir"
+    help_text='Query a custom/local FRED index',
+    index='Name or path of the FRED index (json) to load',
+    mode=' "reference" (default) to point to existing files, or "copy" to stage them to outdir'
 )
-
 class Local(core.FetchModule):
     """Query a custom local spatial index.
     
