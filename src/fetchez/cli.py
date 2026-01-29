@@ -235,27 +235,6 @@ def print_module_info(mod_key):
 # =============================================================================
 # Command-line Interface(s) (CLI)
 # =============================================================================
-def inventory_cli(args):
-    """fetchez-inventory -R ... module1 module2 ..."""
-    
-    region = spatial.parse_region(args.region)
-    
-    modules = []
-    for mod_name in args.modules:
-        cls = registry.FetchezRegistry.load_module(mod_name)
-        if cls:
-            modules.append(cls())
-            
-    report = core.inventory(modules, region, out_format=args.format)
-    
-    if args.output:
-        with open(args.output, 'w') as f:
-            f.write(report)
-        print(f"Inventory saved to {args.output}")
-    else:
-        print(report)
-
-        
 def fetchez_cli():
     """Run fetchez from command-line using argparse."""
 
@@ -280,6 +259,7 @@ def fetchez_cli():
     parser.add_argument('-i', '--info', metavar='MODULE', help="Show detailed info about a specific module")
     parser.add_argument('-m', '--modules', nargs=0, action=PrintModulesAction, help="Display the available modules")
     parser.add_argument('-s', '--search', metavar='TERM', help="Search modules by tag, agency, license, etc.")
+    parser.add_argument('-n', '--inventory', action='store_true', help="Generate a data inventory, don't download any data")
     parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {__version__}')
 
     # Wizard/Ask modes are experimental and not distributed...this is temporary.
@@ -443,6 +423,25 @@ def fetchez_cli():
         usable_modules.append((mod_cls, mod_kwargs))
     
     for this_region in these_regions:
+        # Output the data inventory if requested.
+        # Update in the future to allow for different outputs, 'csv' or 'geojson'
+        # we will need to update core.inventory and module results to give us
+        # some kind of geometry...
+        if global_args.inventory:
+            modules = []
+            for mod_cls, mod_kwargs in usable_modules:
+                x_f = mod_cls(
+                    src_region=this_region,
+                    **mod_kwargs  
+                )
+                
+                if x_f is None: continue                
+                modules.append(x_f)
+
+            report = core.inventory(modules, this_region, out_format='csv')
+            print(report)
+            continue
+        
         for mod_cls, mod_kwargs in usable_modules:
             try:
                 x_f = mod_cls(
