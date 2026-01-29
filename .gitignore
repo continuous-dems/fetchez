@@ -24,4 +24,4 @@ env/
 # Sphinx documentation
 docs/build/
 docs/source/modules/catalog_table.md
-docs/source/api/
+docs/source/api/*.rst
