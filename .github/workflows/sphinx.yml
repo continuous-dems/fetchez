@@ -32,7 +32,7 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install sphinx sphinx-rtd-theme myst-parser
+          pip install sphinx pydata-sphinx-theme myst-parser
           pip install .  # Install fetchez so autodoc can import it
 
       - name: Generate Module Table

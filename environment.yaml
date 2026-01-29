@@ -18,7 +18,7 @@ dependencies:
 
   # Documentation Building (Sphinx + MyST)
   - sphinx
-  - sphinx_rtd_theme
+  - pydata-sphinx-theme
   - myst-parser
 
   # Optional/Module-Specific Dependencies

@@ -44,8 +44,17 @@ exclude_patterns = []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 #html_theme = 'sphinx_rtd_theme'
-html_theme = 'alabaster'
+#html_theme = 'alabaster'
+html_theme = 'pydata_sphinx_theme'
 html_static_path = ['_static']
+
+html_theme_options = {
+    "github_url": "https://github.com/ciresdem/fetchez",
+    "show_prev_next": False,
+    "navbar_end": ["theme-switcher", "navbar-icon-links"],
+    "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+    "footer_items": ["copyright", "sphinx-version", "theme-version"],
+}
 
 # Optional: Add a logo
 # html_logo = "_static/logo.png"
