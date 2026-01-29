@@ -41,13 +41,12 @@ DAV_HEADERS = {'Content-Type': 'application/json'}
 # DAV Module
 # =============================================================================
 @cli.cli_opts(
-    help_text="NOAA Digital Coast (Data Access Viewer)",
-    datatype="Data type: 'lidar', 'raster' (DEM), 'imagery', 'landcover'",
-    title_filter="Filter results by dataset title (case-insensitive)",
-    want_footprints="Fetch the dataset footprint (tile index) zip only",
-    keep_footprints="Keep the downloaded tile index zip after processing"
+    help_text='NOAA Digital Coast (Data Access Viewer)',
+    datatype='Data type: "lidar", "raster" (DEM), "imagery", "landcover"',
+    title_filter='Filter results by dataset title (case-insensitive)',
+    want_footprints='Fetch the dataset footprint (tile index) zip only',
+    keep_footprints='Keep the downloaded tile index zip after processing'
 )
-
 class DAV(core.FetchModule):
     """
     Fetch NOAA Lidar, Elevation, and Imagery.
@@ -74,6 +73,7 @@ class DAV(core.FetchModule):
         
     def _region_to_ewkt(self):
         """Convert the current region to NAD83 (SRID 4269) EWKT Polygon string."""
+        
         if self.region is None:
             return None
             
@@ -87,6 +87,7 @@ class DAV(core.FetchModule):
     
     def _get_features(self) -> List[Dict]:
         """Query the DAV API for missions in the region."""
+        
         if self.region is None:
             return []
 
@@ -103,9 +104,9 @@ class DAV(core.FetchModule):
         req_types = [req_type]
 
         payload = {
-            "aoi": self._region_to_ewkt(),
-            "published": "true",
-            "dataTypes": req_types
+            'aoi': self._region_to_ewkt(),
+            'published': 'true',
+            'dataTypes': req_types
         }
 
         try:
@@ -114,7 +115,7 @@ class DAV(core.FetchModule):
             response = r.json()
             return response.get('data', {})
         except Exception as e:
-            logger.error(f"DAV API Query Error: {e}")
+            logger.error(f'DAV API Query Error: {e}')
             return {}
 
         
@@ -177,7 +178,7 @@ class DAV(core.FetchModule):
         """Parse the downloaded index shapefile using PyShp + PyProj."""
         
         if not HAS_LIGHT_GEO:
-            logger.error("Missing libraries. Run: pip install pyproj pyshp")
+            logger.error('Missing libraries. Run: pip install pyproj pyshp')
             return
 
         prj_path = shp_path.replace('.shp', '.prj')
@@ -191,11 +192,11 @@ class DAV(core.FetchModule):
             else:
                 target_crs = CRS.from_epsg(4269)
         except Exception as e:
-            logger.warning(f"Could not parse PRJ, assuming WGS84: {e}")
+            logger.warning(f'Could not parse PRJ, assuming WGS84: {e}')
             target_crs = CRS.from_epsg(4326)
 
         w, e, s, n = self.region
-        transformer = Transformer.from_crs("EPSG:4326", target_crs, always_xy=True)
+        transformer = Transformer.from_crs('EPSG:4326', target_crs, always_xy=True)
         
         corners = [
             transformer.transform(w, s),
@@ -221,7 +222,7 @@ class DAV(core.FetchModule):
         url_idx = find_field(['url', 'path', 'link', 'HTTP_LINK', 'URL_Link'])
 
         if name_idx == -1 or url_idx == -1:
-            logger.warning(f"Could not find Name/URL fields in {os.path.basename(shp_path)}")
+            logger.warning(f'Could not find Name/URL fields in {os.path.basename(shp_path)}')
             return
 
         for shapeRec in sf.iterShapeRecords():
@@ -238,14 +239,14 @@ class DAV(core.FetchModule):
                      if tile_url.endswith('/'):
                          tile_url += tile_name
                      elif not tile_url.lower().endswith(os.path.basename(tile_name).lower()):
-                         tile_url = f"{tile_url.rstrip('/')}/{os.path.basename(tile_name)}"
+                         tile_url = f'{tile_url.rstrip('/')}/{os.path.basename(tile_name)}'
                 
                 self.add_entry_to_results(
                     url=tile_url,
                     dst_fn=os.path.join(str(dataset_id), os.path.basename(tile_url)),
                     data_type=data_type,
                     agency='NOAA Digital Coast',
-                    title=f"Dataset {dataset_id}"
+                    title=f'Dataset {dataset_id}'
                 )
 
     def run(self):
@@ -255,14 +256,14 @@ class DAV(core.FetchModule):
             return []
             
         if not HAS_LIGHT_GEO:
-            logger.error("This module requires pyproj and pyshp.")
+            logger.error('This module requires pyproj and pyshp.')
             return self
 
-        logger.info(f"Querying Digital Coast API for {self.datatype}...")
+        logger.info(f'Querying Digital Coast API for {self.datatype}...')
         data = self._get_features()
         datasets = data.get('datasets', [])
         
-        logger.info(f"Found {len(datasets)} potential datasets.")
+        logger.info(f'Found {len(datasets)} potential datasets.')
 
         for dataset in datasets:
             attrs = dataset.get('attributes', {})
@@ -276,14 +277,14 @@ class DAV(core.FetchModule):
 
             bulk_url = None
             for link_obj in links_list:
-                if link_obj.get('linkTypeId') == "46":
+                if link_obj.get('linkTypeId') == '46':
                     bulk_url = link_obj.get('uri')
                     break
             
             if not bulk_url:
                 continue
 
-            logger.info(f"Processing: {name}...")
+            logger.info(f'Processing: {name}...')
 
             index_zip_url = self._find_index_zip(bulk_url)
             
@@ -299,7 +300,7 @@ class DAV(core.FetchModule):
                 )
                 continue
 
-            surv_name = f"dav_{fid}"
+            surv_name = f'dav_{fid}'
             local_zip = os.path.join(self._outdir, f'tileindex_{surv_name}.zip')
             
             try:
@@ -319,22 +320,22 @@ class DAV(core.FetchModule):
                         for f in unzipped:
                             if os.path.exists(f): os.remove(f)
                 else:
-                    logger.warning(f"Failed to download index: {index_zip_url}")
+                    logger.warning(f'Failed to download index: {index_zip_url}')
                         
             except Exception as e:
-                logger.error(f"Error processing DAV dataset {fid}: {e}")
+                logger.error(f'Error processing DAV dataset {fid}: {e}')
 
         return self
 
+    
 # =============================================================================
 # Subclasses / Shortcuts
 # =============================================================================
 @cli.cli_opts(
-    help_text="NOAA Sea Level Rise (SLR) DEMs",
-    want_footprints="Fetch the dataset footprint (tile index) zip only",
-    keep_footprints="Keep the downloaded tile index zip after processing"
+    help_text='NOAA Sea Level Rise (SLR) DEMs',
+    want_footprints='Fetch the dataset footprint (tile index) zip only',
+    keep_footprints='Keep the downloaded tile index zip after processing'
 )
-
 class SLR(DAV):
     """Fetch NOAA Sea Level Rise (SLR) DEMs.
     
@@ -355,11 +356,10 @@ class SLR(DAV):
 
         
 @cli.cli_opts(
-    help_text="USGS/NOAA Coastal National Elevation Database (CoNED)",
-    want_footprints="Fetch the dataset footprint (tile index) zip only",
-    keep_footprints="Keep the downloaded tile index zip after processing"
+    help_text='USGS/NOAA Coastal National Elevation Database (CoNED)',
+    want_footprints='Fetch the dataset footprint (tile index) zip only',
+    keep_footprints='Keep the downloaded tile index zip after processing'
 )
-
 class CoNED(DAV):
     """Fetch CoNED Topobathymetric Models.
     
@@ -383,7 +383,6 @@ class CoNED(DAV):
     want_footprints="Fetch the dataset footprint (tile index) zip only",
     keep_footprints="Keep the downloaded tile index zip after processing"
 )
-
 class CUDEM(DAV):
     """Fetch CUDEM Tiled DEMs via Digital Coast.
     """
