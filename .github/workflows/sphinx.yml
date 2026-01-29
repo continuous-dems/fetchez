@@ -1,0 +1,44 @@
+name: Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'fetchez/**'  # Rebuild if code changes (for autodoc)
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          pip install sphinx sphinx-rtd-theme myst-parser
+          pip install .  # Install fetchez so autodoc can import it
+
+      - name: Generate Module Table
+        # Optional: Auto-generate the catalog page before building
+        run: |
+          python extras/generate_module_table.py > docs/source/modules/catalog_table.md
+
+      - name: Build Sphinx
+        run: |
+          cd docs
+          make html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build/html
