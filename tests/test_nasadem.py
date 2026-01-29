@@ -20,8 +20,7 @@ def test_nasadem_url_generation():
 
     # We expect NASADEM to generate tiles for this 1x1 degree area.
     # For -105.5 to -104.5 (Long) and 39.5 to 40.5 (Lat), 
-    # we expect tiles covering n39w106, n39w105, n40w106, n40w105 (depending on logic)
-    # Let's just check that we got results.
+    # we expect tiles covering n39w106, n39w105, n40w106, n40w105 
     assert len(mod.results) > 0
     
     first_result = mod.results[0]
