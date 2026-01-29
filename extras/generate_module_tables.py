@@ -52,7 +52,7 @@ def generate_markdown_table(modules):
     return "\n".join(md)
 
 
-def generate_html_table(modules):
+def generate_html_table(modules, fragment=True):
     """Generate an HTML table with DataTables (sortable/searchable)."""
     
     rows = []
@@ -73,53 +73,98 @@ def generate_html_table(modules):
         </tr>
         """)
 
-    html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Fetchez Module Catalog</title>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-    <style>
-        body {{ font-family: sans-serif; padding: 20px; }}
-        code {{ background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-weight: bold; }}
-        a {{ text-decoration: none; color: #0366d6; }}
-        a:hover {{ text-decoration: underline; }}
-    </style>
-</head>
-<body>
-    <h1>Fetchez Data Catalog</h1>
-    <p>Current version includes {len(modules)} data modules.</p>
-    
-    <table id="moduleTable" class="display" style="width:100%">
-        <thead>
-            <tr>
-                <th>Module</th>
-                <th>Category</th>
-                <th>Description</th>
-                <th>Agency</th>
-                <th>Region</th>
-                <th>Resolution</th>
-                <th>License</th>
-            </tr>
-        </thead>
-        <tbody>
-            {"".join(rows)}
-        </tbody>
-    </table>
+    if fragment:
+        html = f"""
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
 
-    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script>
-        $(document).ready(function () {{
-            $('#moduleTable').DataTable({{
-                "pageLength": 25,
-                "order": [[ 1, "asc" ]] // Sort by Category default
+        <style>
+            /* Overrides to make it fit Sphinx themes better */
+            table.dataTable {{ font-size: 0.9em; }}
+            .dataTables_wrapper {{ margin-top: 20px; }}
+            code {{ background: #e3e3e3; padding: 2px 4px; border-radius: 3px; color: #333; }}
+        </style>
+
+        <div style="overflow-x: auto;">
+            <table id="moduleTable" class="display" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Agency</th>
+                        <th>Region</th>
+                        <th>Resolution</th>
+                        <th>License</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {"".join(rows)}
+                </tbody>
+            </table>
+        </div>
+
+        <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+        <script>
+            $(document).ready(function () {{
+                $('#moduleTable').DataTable({{
+                    "pageLength": 25,
+                    "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                    "order": [[ 0, "asc" ]] 
+                }});
             }});
-        }});
-    </script>
-</body>
-</html>
-    """
+        </script>
+        """
+    else:       
+        html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Fetchez Module Catalog</title>
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+        <style>
+            body {{ font-family: sans-serif; padding: 20px; }}
+            code {{ background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-weight: bold; }}
+            a {{ text-decoration: none; color: #0366d6; }}
+            a:hover {{ text-decoration: underline; }}
+        </style>
+    </head>
+    <body>
+        <h1>Fetchez Data Catalog</h1>
+        <p>Current version includes {len(modules)} data modules.</p>
+
+        <table id="moduleTable" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Module</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Agency</th>
+                    <th>Region</th>
+                    <th>Resolution</th>
+                    <th>License</th>
+                </tr>
+            </thead>
+            <tbody>
+                {"".join(rows)}
+            </tbody>
+        </table>
+
+        <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script>
+            $(document).ready(function () {{
+                $('#moduleTable').DataTable({{
+                    "pageLength": 25,
+                    "order": [[ 1, "asc" ]] // Sort by Category default
+                }});
+            }});
+        </script>
+    </body>
+    </html>
+        """
+        
     return html
 
 if __name__ == "__main__":
