@@ -6,7 +6,7 @@ fetchez.utils
 ~~~~~~~~~~~~~~~~
 
 Utility functions for colorized output, string manipulation, 
-and basic user interaction.
+and basic user interaction. Based on cudem.utils
 
 :copyright: (c) 2012 - 2026 CIRES Coastal DEM Team
 :license: MIT, see LICENSE for more details.
@@ -25,19 +25,19 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # ANSI Color Codes
 # =============================================================================
-BLACK   = "\033[30m"
-RED     = "\033[31m"
-GREEN   = "\033[32m"
-YELLOW  = "\033[33m"
-BLUE    = "\033[34m"
-MAGENTA = "\033[35m"
-CYAN    = "\033[36m"
-WHITE   = "\033[37m"
-RESET   = "\033[0m"
+BLACK   = '\033[30m'
+RED     = '\033[31m'
+GREEN   = '\033[32m'
+YELLOW  = '\033[33m'
+BLUE    = '\033[34m'
+MAGENTA = '\033[35m'
+CYAN    = '\033[36m'
+WHITE   = '\033[37m'
+RESET   = '\033[0m'
 
-BOLD      = "\033[1m"
-UNDERLINE = "\033[4m"
-REVERSE   = "\033[7m"
+BOLD      = '\033[1m'
+UNDERLINE = '\033[4m'
+REVERSE   = '\033[7m'
 
 # =============================================================================
 # Terminal Printing Helpers
@@ -50,14 +50,14 @@ REVERSE   = "\033[7m"
 def colorize(text: str, color: str) -> str:
     """Wrap text in ANSI color codes."""
     
-    return f"{color}{text}{RESET}"
+    return f'{color}{text}{RESET}'
 
 
 def echo_msg(msg: str, leading_line: bool = False):
     """Print a standard message (alias for print, compatible with scripts)."""
     
     if leading_line:
-        print("")
+        print('')
     print(msg)
 
     
@@ -70,19 +70,19 @@ def echo_error_msg(msg: str, prefix: str = "[ ERROR ]"):
 def echo_warning_msg(msg: str, prefix: str = "[ WARNING ]"):
     """Print a standardized warning message."""
     
-    print(f"{YELLOW}{BOLD}{prefix}{RESET} {msg}")
+    print(f'{YELLOW}{BOLD}{prefix}{RESET} {msg}')
 
     
 def echo_success_msg(msg: str, prefix: str = "[ OK ]"):
     """Print a standardized success message."""
     
-    print(f"{GREEN}{BOLD}{prefix}{RESET} {msg}")
+    print(f'{GREEN}{BOLD}{prefix}{RESET} {msg}')
 
     
 def echo_highlight(msg: str):
     """Print a bold/highlighted message."""
     
-    print(f"{BOLD}{msg}{RESET}")
+    print(f'{BOLD}{msg}{RESET}')
     
 
 class TqdmLoggingHandler(logging.Handler):
@@ -183,9 +183,9 @@ def str2bool(v):
         
     v_str = str(v).lower().strip()
     
-    if v_str in ("yes", "true", "t", "y", "1"):
+    if v_str in ('yes', 'true', 't', 'y', '1'):
         return True
-    elif v_str in ("no", "false", "f", "n", "0"):
+    elif v_str in ('no', 'false', 'f', 'n', '0'):
         return False
     else:
         return None
@@ -198,7 +198,7 @@ def str_truncate_middle(s, n=50):
         return s
 
     n_2 = int(n) // 2 - 2    
-    return f"{s[:n_2]}...{s[-n_2:]}"
+    return f'{s[:n_2]}...{s[-n_2:]}'
 
 
 def remove_glob(pathname: str):
@@ -211,7 +211,7 @@ def remove_glob(pathname: str):
             try:
                 os.remove(p)
             except OSError as e:
-                logger.error(f"Could not remove {p}: {e}")
+                logger.error(f'Could not remove {p}: {e}')
 
 
 # =============================================================================
@@ -248,19 +248,19 @@ def p_unzip(src_fn: str, ext: list, outdir: str = '.', verbose: bool = False) ->
                     target_path = os.path.join(outdir, filename)
                     
                     if verbose:
-                        logger.info(f"Extracting {filename}...")
+                        logger.info(f'Extracting {filename}...')
                         
-                    with z.open(file_info) as source, open(target_path, "wb") as target:
+                    with z.open(file_info) as source, open(target_path, 'wb') as target:
                         shutil.copyfileobj(source, target)
                         
                     extracted_files.append(target_path)
                     
     except zipfile.BadZipFile:
         if verbose:
-            logger.error(f"Bad Zip File: {src_fn}")
+            logger.error(f'Bad Zip File: {src_fn}')
     except Exception as e:
         if verbose:
-            logger.error(f"Unzip error {src_fn}: {e}")
+            logger.error(f'Unzip error {src_fn}: {e}')
             
     return extracted_files
                 
