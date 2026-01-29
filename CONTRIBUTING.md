@@ -38,7 +38,7 @@ One of the most powerful features of `fetchez` is its plugin architecture. You c
 ### How it Works
 1.  `fetchez` scans `~/.fetchez/plugins/` at runtime.
 2.  It loads any `.py` file it finds.
-3.  It registers any class that inherits from `geofetch.core.FetchModule`.
+3.  It registers any class that inherits from `fetchez.core.FetchModule`.
 
 ### Example Plugin
 Create a file named `~/.fetchez/plugins/usgs_checkpoints.py`:
@@ -88,9 +88,9 @@ fetchez my_checkpoints
 #### Promoting a Plugin
 Did you build a plugin that would be useful for the wider community? We'd love to incorporate it!
 
-Submit a Pull Request adding your file to geofetch/modules/.
+Submit a Pull Request adding your file to fetchez/modules/.
 
-Add a registry entry in geofetch/registry.py.
+Add a registry entry in fetchez/registry.py.
 
 ## 🌎 Adding a New Fetch Module
 
@@ -189,7 +189,10 @@ class MyS3Fetcher(core.FetchModule):
     * Use `logging` instead of `print`.
 3.  **Documentation:** Update the docstrings in your code. If you added a new module, ensure it has a class-level docstring describing the data source.
 4.  **Commit Messages:** Write clear, concise commit messages (e.g., "Add support for MyData API").
+5.  **Pull Request:** Make a pull request to merge your branch into main.
 
 ## ⚖️ License
 
-By contributing to Fetchez, you agree that your contributions will be licensed under the MIT License.
+* **Core Contributions:** By contributing to this repository (including new modules in fetchez/modules/), you agree that your contributions will be licensed under the project's MIT License. You retain your individual copyright to your work, but you grant the project a perpetual, non-exclusive right to distribute it under the MIT terms.
+
+* **External Plugins:** If you develop a module as an external user plugin (e.g., loaded from ~/.fetchez/plugins/ and not merged into this repository), you are free to license it however you wish.
