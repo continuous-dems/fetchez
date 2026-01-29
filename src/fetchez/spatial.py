@@ -101,7 +101,7 @@ def region_from_geojson(fn: str) -> Optional[Tuple[float, float, float, float]]:
             return (min_x, max_x, min_y, max_y)
             
     except Exception as e:
-        logger.warning(f"Failed to parse GeoJSON {fn}: {e}")
+        logger.warning(f'Failed to parse GeoJSON {fn}: {e}')
         
     return None
 
@@ -318,8 +318,8 @@ def region_to_geojson_geom(region: Tuple[float, float, float, float]):
     # }
 
     return {
-        "type": "Polygon",
-        "coordinates": [[
+        'type': 'Polygon',
+        'coordinates': [[
             [w, s],
             [w, n],
             [e, n],
