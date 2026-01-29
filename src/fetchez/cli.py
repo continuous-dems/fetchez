@@ -231,7 +231,7 @@ def print_module_info(mod_key):
 def fetchez_cli():
     """Run fetchez from command-line using argparse."""
 
-    _usage = f'%(prog)s [-R REGION] [-H THREADS] [-A ATTEMPTS] [-l] [-z] [-q] [-v] [-m] MODULE [MODULE-OPTS]...' 
+    _usage = f'%(prog)s [-R REGION] [-H THREADS] [-A ATTEMPTS] [-l] [-z] [-q] [-v] [-m] [-n] [-s] [-i] MODULE [MODULE-OPTS]...' 
 
     registry.FetchezRegistry.load_user_plugins()
 
@@ -246,12 +246,12 @@ def fetchez_cli():
     parser.add_argument('-R', '--region', '--aoi', action='append', help=spatial.region_help_msg())
     parser.add_argument('-H', '--threads', type=int, default=1, help='Set the number of threads (default: 1)')
     parser.add_argument('-A', '--attempts', type=int, default=5, help='Set the number of fetching attempts (default: 5)')
+    parser.add_argument('-i', '--info', metavar='MODULE', help='Show detailed info about a specific module')
+    parser.add_argument('-s', '--search', metavar='TERM', help='Search modules by tag, agency, license, etc.')
     parser.add_argument('-l', '--list', action='store_true', help='Return a list of fetch URLs in the given region.')
     parser.add_argument('-z', '--no_check_size', action='store_true', help='Don\'t check the size of remote data if local data exists.')
     parser.add_argument('-q', '--quiet', action='store_true', help='Lower the verbosity to a quiet')
-    parser.add_argument('-i', '--info', metavar='MODULE', help='Show detailed info about a specific module')
     parser.add_argument('-m', '--modules', nargs=0, action=PrintModulesAction, help='Display the available modules')
-    parser.add_argument('-s', '--search', metavar='TERM', help='Search modules by tag, agency, license, etc.')
     parser.add_argument('-n', '--inventory', action='store_true', help='Generate a data inventory, don\'t download any data')
     parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {__version__}')
     
