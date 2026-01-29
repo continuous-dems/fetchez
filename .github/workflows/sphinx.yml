@@ -7,12 +7,14 @@ on:
     paths:
       - 'docs/**'
       - 'fetchez/**'  # Rebuild if code changes (for autodoc)
+      - '.github/workflows/**'  # Trigger when you edit this workflow!
   pull_request:
     branches:
       - main
     paths:
       - 'docs/**'
       - 'fetchez/**'  # Rebuild if code changes (for autodoc)
+      - '.github/workflows/**'  # Trigger when you edit this workflow!
 
 permissions:
   contents: write
