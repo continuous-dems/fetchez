@@ -1,0 +1,32 @@
+name: fetchez
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Python Version
+  - python>=3.8
+
+  # Core Dependencies (Required to run fetchez)
+  - requests
+  - tqdm
+  - lxml
+  - shapely             # Geometry operations
+
+  # Development & Testing Tools
+  - pytest              # Running the test suite
+  - pip                 # For installing non-conda packages
+
+  # Documentation Building (Sphinx + MyST)
+  - sphinx
+  - sphinx_rtd_theme
+  - myst-parser
+
+  # Optional/Module-Specific Dependencies
+  # (Include these so developers have everything they need)
+  - boto3               # For AWS-based modules (BlueTopo, etc.)
+  - pyproj
+  - pyshp
+
+  # Install the package itself in editable mode
+  - pip:
+    - -e .
