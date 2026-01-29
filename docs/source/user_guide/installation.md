@@ -6,9 +6,10 @@
 
 ```bash
 conda install -c conda-forge fetchez
-'''
+```
 
 * From PyPI
+
 ```bash
 
 pip install fetchez
