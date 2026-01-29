@@ -79,17 +79,17 @@ class FRED:
                     self.features = data.get('features', [])
 
 
-                msg = (f"Loaded index {utils.colorize(self.name, utils.CYAN)} "
-                       f"from {utils.str_truncate_middle(self.path)} "
-                       f"({utils.colorize(str(len(self.features)), utils.BOLD)} items)")
+                msg = (f'Loaded index {utils.colorize(self.name, utils.CYAN)} '
+                       f'from {utils.str_truncate_middle(self.path)} '
+                       f'({utils.colorize(str(len(self.features)), utils.BOLD)} items)')
                 logger.info(msg)
                     
             except (json.JSONDecodeError, IOError) as e:
-                logger.error(f"Corrupt or unreadable index at {self.path}: {e}")
+                logger.error(f'Corrupt or unreadable index at {self.path}: {e}')
                 self.features = []
         else:
-            logger.debug(f"Index not found at {self.path}, starting empty.")
-            logger.info(f"Initializing new index for {utils.colorize(self.name, utils.CYAN)}")
+            logger.debug(f'Index not found at {self.path}, starting empty.')
+            logger.info(f'Initializing new index for {utils.colorize(self.name, utils.CYAN)}')
             self.features = []
                     
             
@@ -97,9 +97,9 @@ class FRED:
         """Save the current features to the GeoJSON file."""
         
         data = {
-            "type": "FeatureCollection",
-            "name": self.name,
-            "features": self.features
+            'type': 'FeatureCollection',
+            'name': self.name,
+            'features': self.features
         }
         
         # Ensure directory exists
@@ -110,9 +110,9 @@ class FRED:
         try:
             with open(self.path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, separators=(',', ':')) # Compact JSON
-            logger.info(f"Saved {len(self.features)} items to {self.name} index.")
+            logger.info(f'Saved {len(self.features)} items to {self.name} index.')
         except IOError as e:
-            logger.error(f"Failed to save FRED index {self.path}: {e}")
+            logger.error(f'Failed to save FRED index {self.path}: {e}')
 
             
     def add_survey(self, geom: Dict, **kwargs):
@@ -131,9 +131,9 @@ class FRED:
         #         props[field] = None
         
         feature = {
-            "type": "Feature",
-            "properties": props,
-            "geometry": geom
+            'type': 'Feature',
+            'properties': props,
+            'geometry': geom
         }
         self.features.append(feature)
 
@@ -165,8 +165,8 @@ class FRED:
                 search_bbox = region
 
         if region:
-            r_str = ",".join(f"{x:.2f}" for x in region)
-            logger.debug(f"Searching {self.name} in region [{r_str}]...")
+            r_str = ','.join(f'{x:.2f}' for x in region)
+            logger.debug(f'Searching {self.name} in region [{r_str}]...')
                 
         for feat in self.features:
             props = feat.get('properties', {})
@@ -203,7 +203,7 @@ class FRED:
             # If we passed all filters, add to results
             results.append(props)
 
-        logger.info(f"FRED Search found {len(results)} items.")
+        logger.info(f'FRED Search found {len(results)} items.')
         return results
 
     
@@ -248,7 +248,7 @@ class FRED:
         """
         
         if not os.path.exists(source_file):
-            logger.error(f"Source file not found: {source_file}")
+            logger.error(f'Source file not found: {source_file}')
             return
             
         if wipe:
@@ -271,13 +271,13 @@ class FRED:
                     elif 'files' in data: items = data['files']
                     elif 'items' in data: items = data['items']
             else:
-                logger.error("Unsupported file format. Use CSV or JSON.")
+                logger.error('Unsupported file format. Use CSV or JSON.')
                 return
         except Exception as e:
-            logger.error(f"Failed to read source file: {e}")
+            logger.error(f'Failed to read source file: {e}')
             return
 
-        logger.info(f"Ingesting {len(items)} items from {source_file}...")
+        logger.info(f'Ingesting {len(items)} items from {source_file}...')
         
         added = 0
         for item in items:
@@ -298,25 +298,25 @@ class FRED:
                         break
                     
             if 'DataLink' not in props:
-                logger.warning(f"Skipping item {item}: No DataLink/URL found.")
+                logger.warning(f'Skipping item {item}: No DataLink/URL found.')
                 continue
 
             link = props.get('DataLink')
             if link and not link.startswith('http') and not link.startswith('ftp'):
                 abs_path = os.path.abspath(link)
-                props['DataLink'] = f"file://{abs_path}"
+                props['DataLink'] = f'file://{abs_path}'
             
             w, e, s, n = self._detect_spatial_fields(item)
             
             if None in [w, e, s, n]:
-                logger.warning(f"Skipping item {props.get('Name')}: Missing spatial bounds.")
+                logger.warning(f'Skipping item {props.get("Name")}: Missing spatial bounds.')
                 continue
                 
             # Create GeoJSON Polygon
             # Counter-clockwise: SW -> SE -> NE -> NW -> SW
             geom = {
-                "type": "Polygon",
-                "coordinates": [[
+                'type': 'Polygon',
+                'coordinates': [[
                     [w, s], [e, s], [e, n], [w, n], [w, s]
                 ]]
             }
@@ -324,5 +324,5 @@ class FRED:
             self.add_survey(geom, **props)
             added += 1
             
-        logger.info(f"Successfully added {added} surveys to {self.name}.")
+        logger.info(f'Successfully added {added} surveys to {self.name}.')
         self.save()    
