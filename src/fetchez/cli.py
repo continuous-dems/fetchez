@@ -253,6 +253,7 @@ def fetchez_cli():
     parser.add_argument('-q', '--quiet', action='store_true', help='Lower the verbosity to a quiet')
     parser.add_argument('-m', '--modules', nargs=0, action=PrintModulesAction, help='Display the available modules')
     parser.add_argument('-n', '--inventory', action='store_true', help='Generate a data inventory, don\'t download any data')
+    parser.add_argument('-p', '--pipe-path', action='store_true', help='Print the absolute path of fetched files to stdout (useful for piping).')
     parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {__version__}')
     
     # Pre-process Arguments to fix argparses handling of -R
@@ -262,9 +263,10 @@ def fetchez_cli():
     check_size = not global_args.no_check_size
     
     level = logging.WARNING if global_args.quiet else logging.INFO
-    logging.basicConfig(level=level, format='[ %(levelname)s ] %(name)s: %(message)s')
+    # I like sending logging to stderr, and anyway we want this with --pipe-path
+    logging.basicConfig(level=level, format='[ %(levelname)s ] %(name)s: %(message)s', stream=sys.stderr)
     setup_logging() # this prevents logging from distorting tqdm and leaving partial tqdm bars everywhere...
-    
+
     if global_args.info:
         print_module_info(global_args.info)
         sys.exit(0)
@@ -403,7 +405,7 @@ def fetchez_cli():
                     try:
                         # run_fetchez expects a list of modules, so we wrap x_f in brackets [x_f].
                         # It handles the progress bar and threading internally.
-                        core.run_fetchez([x_f], threads=global_args.threads)
+                        core.run_fetchez([x_f], threads=global_args.threads, pipe_path=global_args.pipe_path)
 
                     except (KeyboardInterrupt, SystemExit):
                         logger.error('User breakage... please wait while fetchez exits.')
