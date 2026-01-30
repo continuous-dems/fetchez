@@ -764,11 +764,9 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, pipe_path=False)
     STOP_EVENT.clear()
     
     all_entries = []
-    out_fns = []
     for mod in modules:
         for entry in mod.results:
             all_entries.append((mod, entry))
-            out_fns.append(os.path.join(mod._outdir, entry['dst_fn']))
             
     total_files = len(all_entries)
     if total_files == 0:
@@ -792,7 +790,7 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, pipe_path=False)
                             logger.error(f"Failed to download: {os.path.basename(entry['dst_fn'])}")
                         else:                            
                             if pipe_path:
-                                print(os.path.abspath(out_fns[i]), file=sys.stdout, flush=True)
+                                print(os.path.abspath(entry['dst_fn']), file=sys.stdout, flush=True)
                                           
                     except Exception as e:
                         logger.error(f"Error fetching {entry['url']}: {e}")
@@ -993,7 +991,9 @@ class FetchModule:
         """Add fetch entries to `results`. any keyword/args can be
         added to `results`, but we need `url`, `dst_fn` and `data_type`.
         """
-        
+
+        if utils.str_or(dst_fn) is not None:
+            dst_fn = os.path.join(self._outdir, dst_fn)
         entry = {'url': url, 'dst_fn': dst_fn, 'data_type': data_type}
         entry.update(kwargs)
         self.results.append(entry)             
