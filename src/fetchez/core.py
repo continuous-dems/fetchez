@@ -13,7 +13,7 @@ threading, and the base FetchModule class.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
+import os, sys
 import time
 import base64
 import threading
@@ -752,7 +752,7 @@ def _fetch_worker(module, entry, verbose=True):
         return -1
 
     
-def run_fetchez(modules: List['FetchModule'], threads: int = 3):
+def run_fetchez(modules: List['FetchModule'], threads: int = 3, pipe_path=False):
     """Execute fetches in parallel using a ThreadPoolExecutor.
     Displays a single aggregate progress bar to prevent 'tearing'.
     
@@ -764,9 +764,11 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3):
     STOP_EVENT.clear()
     
     all_entries = []
+    out_fns = []
     for mod in modules:
         for entry in mod.results:
             all_entries.append((mod, entry))
+            out_fns.append(os.path.join(mod._outdir, entry['dst_fn']))
             
     total_files = len(all_entries)
     if total_files == 0:
@@ -781,14 +783,17 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3):
                 executor.submit(_fetch_worker, mod, entry, verbose=True): entry 
                 for mod, entry in all_entries
             }
-
             with tqdm(total=total_files, unit='file', desc='Fetching', position=0, leave=True) as pbar:
-                for future in concurrent.futures.as_completed(futures):
+                for i, future in enumerate(concurrent.futures.as_completed(futures)):
                     entry = futures[future]
                     try:
                         status = future.result()
                         if status != 0:
                             logger.error(f"Failed to download: {os.path.basename(entry['dst_fn'])}")
+                        else:                            
+                            if pipe_path:
+                                print(os.path.abspath(out_fns[i]), file=sys.stdout, flush=True)
+                                          
                     except Exception as e:
                         logger.error(f"Error fetching {entry['url']}: {e}")
 
