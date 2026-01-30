@@ -112,7 +112,8 @@ class BingProcessor:
         total_feats = 0
         
         for entry in results:
-            local_path = os.path.join(self.cache_dir, entry['dst_fn'])
+            #local_path = os.path.join(self.cache_dir, entry['dst_fn'])
+            local_path = entry['dst_fn']
             
             if not os.path.exists(local_path):
                 logger.warning(f"File missing: {local_path}")

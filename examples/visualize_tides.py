@@ -54,7 +54,7 @@ def fetch_tides(station, start, end, out_dir):
 
     core.run_fetchez([fetcher], threads=1)
     
-    return os.path.join(fetcher._outdir, fetcher.results[0]['dst_fn'])
+    return fetcher.results[0]['dst_fn']
 
 
 def plot_tides(csv_path, station_id, out_img):
