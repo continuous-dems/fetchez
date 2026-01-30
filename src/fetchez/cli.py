@@ -246,6 +246,7 @@ def fetchez_cli():
     parser.add_argument('-R', '--region', '--aoi', action='append', help=spatial.region_help_msg())
     parser.add_argument('-H', '--threads', type=int, default=1, help='Set the number of threads (default: 1)')
     parser.add_argument('-A', '--attempts', type=int, default=5, help='Set the number of fetching attempts (default: 5)')
+    parser.add_argument('-B', '--buffer', type=float, default=0, metavar='PERCENT', help='Buffer the input region(s) by a percentage (e.g., 5 for 5 percent).')
     parser.add_argument('-i', '--info', metavar='MODULE', help='Show detailed info about a specific module')
     parser.add_argument('-s', '--search', metavar='TERM', help='Search modules by tag, agency, license, etc.')
     parser.add_argument('-l', '--list', action='store_true', help='Return a list of fetch URLs in the given region.')
@@ -336,6 +337,9 @@ def fetchez_cli():
         # Spatial returns tuples now, not Objects
         these_regions = spatial.parse_region(global_args.region)
 
+    if global_args.buffer > 0:
+        these_regions = [spatial.buffer_region(r, global_args.buffer) for r in these_regions]
+        
     usable_modules = []
     for mod_key, mod_argv in commands:
         

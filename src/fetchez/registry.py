@@ -132,7 +132,8 @@ class FetchezRegistry:
         # Digital Coast (DAV) and shortcuts (slr, cudem, coned)
         'dav': {
             'mod': 'fetchez.modules.dav', 
-            'cls': 'DAV', 
+            'cls': 'DAV',
+            'aliases': ['digital_coast'],
             'category': 'Multidisciplinary',
             'desc': 'NOAA Digital Coast Data Access Viewer',
             'agency': 'NOAA',
