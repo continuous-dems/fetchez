@@ -743,6 +743,23 @@ class FetchezRegistry:
             'aliases': ['tidal_grids']
         },
 
+        # DTU Global Models
+        'dtu': {
+            'mod': 'fetchez.modules.dtu',
+            'cls': 'DTU',
+            'category': 'Geodesy',
+            'desc': 'DTU Global Gravity, Altimetry, and Tide Models',
+            'agency': 'DTU Space',
+            'tags': ['gravity', 'altimetry', 'oceanography', 'mss', 'tides', 'dtu', 'global'],
+            'region': 'Global',
+            'resolution': '1 arc-minute (~2km)',
+            'license': 'Public / Scientific Use',
+            'urls': {
+                'home': 'https://ftp.space.dtu.dk/pub/DTU10/',
+                'data': 'https://ftp.space.dtu.dk/pub/'
+            }
+        },
+        
         'osm': {
             'mod': 'fetchez.modules.osm', 
             'cls': 'OSM', 

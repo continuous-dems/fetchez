@@ -596,28 +596,62 @@ class Fetch:
         
         return -1    
 
-    
+
     def fetch_ftp_file(self, dst_fn, params=None, datatype=None, overwrite=False):
-        """Fetch an ftp file via urllib."""
+        """Fetch an ftp file via ftplib with a progress bar."""
         
-        status = 0        
-        logger.info(f'Fetching remote ftp file: {self.url[:20]}...')
-            
-        if not os.path.exists(os.path.dirname(dst_fn)):
+        import ftplib
+        from urllib.parse import urlparse
+
+        status = 0
+        logger.info(f'Fetching remote ftp file: {self.url}...')
+
+        dest_dir = os.path.dirname(dst_fn)
+        if dest_dir and not os.path.exists(dest_dir):
             try:
-                os.makedirs(os.path.dirname(dst_fn))
-            except:
+                os.makedirs(dest_dir)
+            except OSError:
                 pass
-            
+
         try:
-            with urllib.request.urlopen(self.url) as f:
-                with open(dst_fn, 'wb') as local_file:
-                     local_file.write(f.read())
+            parsed = urlparse(self.url)
+            host = parsed.hostname
+            path = parsed.path
+            username = parsed.username or 'anonymous'
+            password = parsed.password or 'anonymous@'
+
+            ftp = ftplib.FTP(host)
+            ftp.login(user=username, passwd=password)
             
+            ftp.voidcmd('TYPE I')
+
+            try:
+                total_size = ftp.size(path)
+            except ftplib.error_perm:
+                total_size = None
+
+            with open(dst_fn, 'wb') as local_file:
+                with tqdm(total=total_size, unit='B', unit_scale=True, 
+                          desc=os.path.basename(dst_fn), leave=True) as pbar:
+                    
+                    def callback(data):
+                        local_file.write(data)
+                        pbar.update(len(data))
+
+                    ftp.retrbinary(f'RETR {path}', callback)
+
+            ftp.quit()
             logger.info(f'Fetched remote ftp file: {os.path.basename(self.url)}.')
+
         except Exception as e:
-            logger.error(e)
+            logger.error(f'FTP Error: {e}')
             status = -1
+
+            if os.path.exists(dst_fn):
+                try:
+                    os.remove(dst_fn)
+                except OSError:
+                    pass
 
         return status
 
@@ -958,15 +992,23 @@ class FetchModule:
     
     def fetch_entry(self, entry, check_size=True, retries=5, verbose=True):
         try:
-            status = Fetch(
-                url=entry['url'],
-                headers=self.headers,
-            ).fetch_file(
-                os.path.join(self._outdir, entry['dst_fn']),
-                check_size=check_size,
-                tries=retries,
-                verbose=verbose
-            )
+            parsed_url = urllib.parse.urlparse(entry['url'])
+            if parsed_url.scheme == 'ftp':
+                logger.info('ok')
+                status = Fetch(
+                    url=entry['url'],
+                    headers=self.headers
+                ).fetch_ftp_file(os.path.join(self._outdir, entry['dst_fn']))
+            else:
+                status = Fetch(
+                    url=entry['url'],
+                    headers=self.headers,
+                ).fetch_file(
+                    os.path.join(self._outdir, entry['dst_fn']),
+                    check_size=check_size,
+                    tries=retries,
+                    verbose=verbose
+                )
         except:
             status = -1
         return status
