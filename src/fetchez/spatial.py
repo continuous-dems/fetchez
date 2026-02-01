@@ -216,6 +216,8 @@ def parse_region(input_r: Union[str, List]) -> List[Tuple[float, float, float, f
                     r = region_from_list(item)
                     if r: regions.append(r)
 
+    if not regions:
+        logger.warning(f'Failed to parse region {input_r}')
     return regions
 
 
