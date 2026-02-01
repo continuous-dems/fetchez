@@ -29,9 +29,8 @@ If you find a bug, please create a new issue on GitHub. Include:
 * The exact command you ran.
 * The error message / traceback.
 * Your operating system and Python version.
-* (If possible) The specific region (`-R`) and module that caused the failure.
 
-## 🐄 Developing User Plugins
+## 🐄 Developing User Plugins (Data Modules)
 
 One of the most powerful features of `fetchez` is its plugin architecture. You can write your own modules to fetch data from custom sources and use them immediately with the full power of the `fetchez` CLI (smart regions, threading, retries, etc.).
 
@@ -70,7 +69,7 @@ class CheckPoints3DEP(core.FetchModule):
         )            
 ```
 
-#### Testing Your Plugin
+### Testing Your Plugin
 Once you save the file, simply run:
 
 ```bash
@@ -85,10 +84,57 @@ fetchez --search plugin
 fetchez my_checkpoints
 ```
 
-#### Promoting a Plugin
+## 🪝 Developing User Hooks (Processing)
+Hooks allow you to inject custom processing into the fetch pipeline. You can write hooks to process files immediately after they are downloaded, or to run setup/teardown tasks.
+
+### How it Works
+
+fetchez scans ~/.fetchez/hooks/ at runtime.
+
+It registers any class that inherits from fetchez.hooks.FetchHook.
+
+### Example Hook
+Create a file named ~/.fetchez/hooks/audit_log.py to log every download to a file:
+
+```python
+import os
+from fetchez.hooks import FetchHook
+
+class AuditLog(FetchHook):
+    # This name is used in the CLI: --hook audit
+    name = "audit"
+    desc = "Log downloaded files to audit.txt"
+    stage = 'file'  # Runs per-file
+
+    def run(self, entries):
+        # Hooks receive a list of entries: [{url, path, type, status}, ...]
+        for entry in entries:
+            url = entry.get('url')
+            path = entry.get('dst_fn')
+            status = entry.get('status')
+            
+            if status == 0:
+                with open("audit.txt", "a") as f:
+                    f.write(f"DOWNLOADED: {path} FROM {url}\n")
+        
+        # Always return the entries so the pipeline continues!
+        return entries
+```
+
+### Testing Your Hook
+
+```bash
+# Check if it loaded
+fetchez --list-hooks
+
+# Run it
+fetchez srtm_plus --hook audit
+```
+
+#### Promoting a Plugin or Hook
 Did you build a plugin that would be useful for the wider community? We'd love to incorporate it!
 
-Submit a Pull Request adding your file to fetchez/modules/. See [Adding a New Fetch Module](#-adding-a-new-fetch-module)
+Submit a Pull Request adding your file to fetchez/modules/ or fetchez/hooks.
 
 ## 🌎 Adding a New Fetch Module
 
