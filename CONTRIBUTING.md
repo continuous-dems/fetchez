@@ -144,7 +144,7 @@ fetchez --list-hooks
 fetchez srtm_plus --hook audit
 ```
 
-#### Promoting a Plugin or Hook
+## Sharing a Plugin or Hook
 Did you build a plugin that would be useful for the wider community? We'd love to incorporate it!
 
 Submit a Pull Request adding your file to fetchez/modules/ or fetchez/hooks.
