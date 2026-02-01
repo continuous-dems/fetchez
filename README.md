@@ -176,7 +176,7 @@ Fetchez includes a powerful Hook System that allows you to chain actions togethe
 # Download data.zip
 # Extract data.tif (via unzip hook)
 # Print /path/to/data.tif (via pipe-path)
-fetchez charts --hook unzip --pipe-path
+fetchez charts --hook unzip --hook pipe
 ```
 
 You can write your own custom hooks (e.g., to log downloads to a database or trigger a script) and drop them in ~/.fetchez/hooks/. See [CONTRIBUTING.md](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING.md) for details.
