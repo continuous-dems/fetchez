@@ -169,7 +169,7 @@ Fetchez includes a powerful Hook System that allows you to chain actions togethe
 
  * pipe: Prints the final absolute path to stdout (useful for piping to GDAL/PDAL).
 
-## Example:
+### Example:
 
 ```bash
 
