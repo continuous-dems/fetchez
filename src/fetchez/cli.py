@@ -527,7 +527,6 @@ CUDEM home page: <http://cudem.colorado.edu>
 
                 except (KeyboardInterrupt, SystemExit):
                     logger.error('User breakage... please wait while fetchez exits.')
-                    # No need to manually drain queues anymore; Python's executor handles cleanup.
                     sys.exit(0)
                 # Depreciated threads/queue:
                 # try:
