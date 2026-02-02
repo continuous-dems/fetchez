@@ -474,7 +474,6 @@ CUDEM home page: <http://cudem.colorado.edu>
         these_regions = [spatial.buffer_region(r, global_args.buffer) for r in these_regions]
         
     usable_modules = []
-    all_hooks = []
     for mod_key, mod_argv in commands:
         
         # LOAD MODULE HERE
