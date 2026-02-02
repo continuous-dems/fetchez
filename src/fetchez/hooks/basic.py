@@ -181,10 +181,10 @@ class Audit(FetchHook):
             print(f"Failed to write audit log: {e}")
 
 
-class Filter(FetchHook):
+class FilenameFilter(FetchHook):
     """Filter the pipeline results by filename pattern."""
     
-    name = "filter"
+    name = "filename_filter"
     desc = "Filter results by filename. Usage: --hook filter:match=.tif"
     stage = 'file'
 
