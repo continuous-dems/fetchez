@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- hook system for fetchez!
+- Hook system for fetchez! (--list, --inventory, --pipe-path are now hooks)
+- Users can add their own hooks in ~/.fetchez/hooks
+
+### Changed
+- groupded parsers in argparse
 
 ## [0.3.0] - 2026-02-01
 ### Added

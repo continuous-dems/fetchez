@@ -13,7 +13,6 @@ class HookRegistry:
     def load_builtins(cls):
         """Load hooks shipped with fetchez (e.g., fetchez.hooks.basic)."""
         
-        # Example: Import internal modules
         from . import basic, utils
         cls._register_from_module(basic)
         cls._register_from_module(utils)
