@@ -397,7 +397,7 @@ CUDEM home page: <http://cudem.colorado.edu>
         sys.exit(0)
 
     if hasattr(global_args, 'list_hooks') and global_args.list_hooks:
-        print("\nAvailable Hooks:")
+        print("\n\tAvailable Hooks:")
         for name, cls_obj in HookRegistry._hooks.items():
             desc = getattr(cls_obj, 'desc', 'No description')
             print(f"  {name:<15} : {desc}")
@@ -525,7 +525,7 @@ CUDEM home page: <http://cudem.colorado.edu>
 
                 try:
                     # run_fetchez expects a list of modules, so we wrap x_f in brackets [x_f].
-                    core.run_fetchez([x_f], threads=global_args.threads, hooks=global_hook_objs)
+                    core.run_fetchez([x_f], threads=global_args.threads, global_hooks=global_hook_objs)
 
                 except (KeyboardInterrupt, SystemExit):
                     logger.error('User breakage... please wait while fetchez exits.')
