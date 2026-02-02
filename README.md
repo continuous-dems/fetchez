@@ -5,13 +5,13 @@
 </pre>
 **The Generic Geospatial Data Acquisition and Registry Engine**
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/ciresdem/fetchez)
+[![Version](https://img.shields.io/badge/version-0.3.1-blue.svg)](https://github.com/ciresdem/fetchez)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-yellow.svg)](https://www.python.org/)
 [![PyPI version](https://badge.fury.io/py/fetchez.svg)](https://badge.fury.io/py/fetchez)
 [![project chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://cudem.zulip.org)
 
-**Fetchez** is a lightweight, modular Python library and command-line tool designed to discover and retrieve geospatial data from a wide variety of public repositories.
+**Fetchez** is a lightweight, modular and highly extendable Python library and command-line tool designed to discover and retrieve geospatial data from a wide variety of public repositories.
 
 Originally part of the [CUDEM](https://github.com/ciresdem/cudem) project, Fetchez is now a standalone tool capable of retrieving Bathymetry, Topography, Imagery, and Oceanographic data (and more!) from sources like NOAA, USGS, NASA, and the European Space Agency.
 
@@ -20,11 +20,12 @@ Originally part of the [CUDEM](https://github.com/ciresdem/cudem) project, Fetch
 ## 🌎 Features
 
 * One command to fetch data from 50+ different [modules](https://github.com/ciresdem/fetchez/blob/main/MODULES.md), (SRTM, GMRT, NOAA NOS, USGS 3DEP, Copernicus, etc.).
+* Build automated data pipelines (e.g. `download -> unzip -> reproject -> log`) using built-in or custom processing hooks.
 * Built-in metadata registry allows you to search for datasets by tag, agency, resolution, or license.
 * Built-in "Fetchez Remote Elevation Datalist" (FRED) automatically indexes remote files for spatial querying without hitting APIs repeatedly.
 * Built-in download engine with automatic retries, timeout handling, and byte-range support for resuming interrupted downloads.
 * Minimal dependencies (`requests`, `tqdm`, `lxml`). Optional `shapely` support for precise spatial filtering.
-* Supports user-defined plugins via `~/.fetchez/plugins/`.
+* Supports user-defined Data Modules *and* Processing Hooks via `~/.fetchez/`.
 
 ---
 
@@ -84,6 +85,14 @@ fetchez --info gmrt
 ```bash
 # Automatically resolves "Boulder, CO" to a bounding box region
 fetchez -R loc:"Boulder, CO" copernicus --datatype=1
+```
+
+ * Advanced Data Pipelines (Hooks)
+
+```bash
+
+# Fetch data, automatically unzip it, and print the final filepath
+fetchez -R loc:Miami charts --hook unzip --pipe-path
 ```
 
  * List Available Modules
@@ -151,9 +160,30 @@ results = index.search(
 print(f"Found {len(results)} datasets.")
 ```
 
+## 🪝 Processing Hooks
+Fetchez includes a powerful Hook System that allows you to chain actions together. Hooks run in a pipeline, meaning the output of one hook (e.g. unzipping a file) becomes the input for the next (e.g. processing it).
+
+### Common Built-in Hooks:
+
+ * unzip: Automatically extracts .zip files.
+
+ * pipe: Prints the final absolute path to stdout (useful for piping to GDAL/PDAL).
+
+### Example:
+
+```bash
+
+# Download data.zip
+# Extract data.tif (via unzip hook)
+# Print /path/to/data.tif (via pipe-path)
+fetchez charts --hook unzip --hook pipe
+```
+
+You can write your own custom hooks (e.g., to log downloads to a database or trigger a script) and drop them in ~/.fetchez/hooks/. See [CONTRIBUTING.md](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING.md) for details.
+
 ## 🗺️ Supported Data Sources
 
-Fetchez supports over 40 modules categorized by data type. Run ```fetchez --modules``` to see the full list.
+Fetchez supports over 50 modules categorized by data type. Run ```fetchez --modules``` to see the full list.
 
 | Category | Example Modules |
 |----|----|
@@ -163,7 +193,7 @@ Fetchez supports over 40 modules categorized by data type. Run ```fetchez --modu
 | Reference | osm (OpenStreetMap), vdatum |
 | Generic | http (Direct URL), earthdata (NASA) |
 
-### 🛟️ Module-Specific Dependencies
+## 🛟️ Module-Specific Dependencies
 
 While the core `fetchez` engine is lightweight, some specialized data modules may require extra Python libraries to function (e.g., `pyshp` for TIGER data, `boto3` for AWS-based sources, or `gdal` for complex vector operations).
 
@@ -174,11 +204,17 @@ fetchez <module_name> --help
 If a dependency is missing, the module will typically exit gracefully with an error message telling you exactly what to pip install.
 ```
 
-## 🐄  Plugins & Extensions
+## 🐄  Plugins, Hooks & Extensions
 
-Need to fetch data from a specialized local server, a private S3 bucket, or a niche API? You don't need to fork the repo!
+Need to fetch data from a specialized local server? Or maybe run a custom script immediately after every download? You don't need to fork the repo!
 
-**Fetchez** supports user-defined plugins. Drop a Fetchez compatible Python script into your configuration folder, and it will be automatically registered as a command.
+**Fetchez** is designed to be extendable in two ways:
+
+Data Modules (~/.fetchez/plugins/): Add new data sources or APIs.
+
+Processing Hooks (~/.fetchez/hooks/): Add new post-processing steps (unzip, convert, log).
+
+Drop your Python scripts into these configuration folders, and they will be automatically registered as commands.
 
 **Quick Start:**
 1.  Create the folder: `mkdir ~/.fetchez/plugins`
@@ -189,7 +225,7 @@ See [CONTRIBUTING.md](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING
 
 ## 🛠  Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING.md) for details on how to register new modules with our metadata schema.
+We welcome contributions! Please see [CONTRIBUTING.md](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING.md) for details on how to register new modules or hooks with our metadata schema.
 
 ## 🔱  Disclaimer on Data Persistence
 

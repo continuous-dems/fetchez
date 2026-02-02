@@ -76,22 +76,31 @@ def setup_logging(verbose=False):
 # Mostly based on cudem.factory
 # =============================================================================
 def parse_fmod_argparse(arg_str):
-    """Parse 'module:key=val:key2=val2' strings."""
-    parts = arg_str.split(':')
-    mod_name = parts[0]
+    """Parse 'module:key=val,key2=val2' strings into argparse-ready flags.
+    
+    Input:  'srtm_plus:year=2020,verbose'
+    Output: (None, 'srtm_plus', ['--year=2020', '--verbose'])
+    """
+    
+    if ':' in arg_str:
+        mod_name, rest = arg_str.split(':', 1)
+        parts = rest.split(',')
+    else:
+        mod_name = arg_str
+        parts = []
+
     args = []
     
-    # If the string was just "module", parts is length 1
-    # If "module:arg=1", parts is length 2+
-    if len(parts) > 1:
-        for p in parts[1:]:
-            # Convert 'key=val' to '--key=val' for argparse consumption
-            if '=' in p:
-                k, v = p.split('=')
-                args.append(f"--{k}={v}")
-            else:
-                # Handle boolean flags if passed as just ':flag'
-                args.append(f"--{p}")
+    for p in parts:
+        if not p.strip(): continue
+        
+        # Convert 'key=val' to '--key=val' for argparse
+        if '=' in p:
+            k, v = p.split('=', 1)
+            args.append(f"--{k}={v}")
+        else:
+            # Handle boolean flags passed without value (e.g. ,verbose)
+            args.append(f"--{p}")
                 
     return None, mod_name, args
 
@@ -224,39 +233,131 @@ def print_module_info(mod_key):
             print(f"    {k:<10}: {v}")
     print(f"{'-'*40}\n")
 
+
+def parse_hook_arg(arg_str):
+    """Parse a hook string into (name, kwargs).
     
+    Syntax: 'name:key=val,key2=val2'
+    Example: 'reproject:crs=EPSG:3857,verbose=true'
+    """
+    
+    if ':' in arg_str:
+        name, rest = arg_str.split(':', 1)
+        parts = rest.split(',')
+    else:
+        name = arg_str
+        parts = []
+
+    kwargs = {}
+    
+    for p in parts:
+        if not p.strip(): continue
+        
+        if '=' in p:
+            k, v = p.split('=', 1)
+            
+            if v.lower() == 'true':
+                kwargs[k] = True
+            elif v.lower() == 'false':
+                kwargs[k] = False
+            elif v.startswith('.'):
+                kwargs[k] = v
+            else:
+                try:
+                    if '.' in v:
+                        kwargs[k] = float(v)
+                    else:
+                        kwargs[k] = int(v)
+                except ValueError:
+                    kwargs[k] = v
+        else:
+            # Boolean flag
+            kwargs[p] = True
+
+    return name, kwargs
+
+
+def init_hooks(hook_list_strs):
+    """Convert a list of strings ['pipe', 'unzip:force=true'] into initialized Hook objects."""
+    
+    from .hooks.registry import HookRegistry
+    
+    active_instances = []
+    if not hook_list_strs:
+        return active_instances
+
+    for h_str in hook_list_strs:
+        name, kwargs = parse_hook_arg(h_str)
+        
+        HookCls = HookRegistry.get_hook(name)
+        if HookCls:
+            try:
+                instance = HookCls(**kwargs)
+                active_instances.append(instance)
+            except Exception as e:
+                logger.error(f"Failed to initialize hook '{name}': {e}")
+        else:
+            logger.warning(f"Hook '{name}' not found. Use --list-hooks to see available plugins.")
+            
+    return active_instances
+
+
 # =============================================================================
 # Command-line Interface(s) (CLI)
 # =============================================================================
 def fetchez_cli():
     """Run fetchez from command-line using argparse."""
 
-    _usage = f'%(prog)s [-R REGION] [-H THREADS] [-A ATTEMPTS] [-l] [-z] [-q] [-v] [-m] [-n] [-s] [-i] MODULE [MODULE-OPTS]...' 
+    _usage = f'%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]...'
 
     registry.FetchezRegistry.load_user_plugins()
 
+    from .hooks.registry import HookRegistry
+    HookRegistry.load_builtins()  
+    HookRegistry.load_user_plugins()
+    
     parser = argparse.ArgumentParser(
         description=f'{utils.CYAN}%(prog)s{utils.RESET} ({__version__}) :: Discover and Fetch remote geospatial data',
         formatter_class=argparse.RawTextHelpFormatter,
         add_help=False,
         usage=_usage,
-        epilog=f"""CUDEM home page: <http://cudem.colorado.edu>"""
+        epilog=f"""
+Examples:
+  fetchez -R -105/-104/39/40 srtm_plus
+  fetchez -R loc:"Boulder, CO" copernicus --datatype=1
+  fetchez srtm_plus --hook unzip --pipe-path
+  fetchez --search bathymetry
+
+CUDEM home page: <http://cudem.colorado.edu>
+        """
     )
 
-    parser.add_argument('-R', '--region', '--aoi', action='append', help=spatial.region_help_msg())
-    parser.add_argument('-H', '--threads', type=int, default=1, help='Set the number of threads (default: 1)')
-    parser.add_argument('-A', '--attempts', type=int, default=5, help='Set the number of fetching attempts (default: 5)')
-    parser.add_argument('-B', '--buffer', type=float, default=0, metavar='PERCENT', help='Buffer the input region(s) by a percentage (e.g., 5 for 5 percent).')
-    parser.add_argument('-i', '--info', metavar='MODULE', help='Show detailed info about a specific module')
-    parser.add_argument('-s', '--search', metavar='TERM', help='Search modules by tag, agency, license, etc.')
-    parser.add_argument('-l', '--list', action='store_true', help='Return a list of fetch URLs in the given region.')
-    parser.add_argument('-z', '--no_check_size', action='store_true', help='Don\'t check the size of remote data if local data exists.')
-    parser.add_argument('-q', '--quiet', action='store_true', help='Lower the verbosity to a quiet')
-    parser.add_argument('-m', '--modules', nargs=0, action=PrintModulesAction, help='Display the available modules')
-    parser.add_argument('-n', '--inventory', action='store_true', help='Generate a data inventory, don\'t download any data')
-    parser.add_argument('-p', '--pipe-path', action='store_true', help='Print the absolute path of fetched files to stdout (useful for piping).')
-    parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {__version__}')
+    sel_grp = parser.add_argument_group('Geospatial Selection')
+    sel_grp.add_argument('-R', '--region', '--aoi', action='append', help=spatial.region_help_msg())
+    sel_grp.add_argument('-B', '--buffer', type=float, default=0, metavar='PCT', help='Buffer the input region by PCT percent.')
+
+    disc_grp = parser.add_argument_group('Discovery & Metadata')
+    disc_grp.add_argument('-m', '--modules', nargs=0, action=PrintModulesAction, help='List all available data modules.')
+    disc_grp.add_argument('-s', '--search', metavar='TERM', help='Search modules by tag, agency, or description.')
+    disc_grp.add_argument('-i', '--info', metavar='MODULE', help='Show detailed metadata for a specific module.')
+    disc_grp.add_argument('-h', '--help', action='help', help='Show this help message and exit.')
+    disc_grp.add_argument('-v', '--version', action='version', version=f'%(prog)s {__version__}')
+
+    exec_grp = parser.add_argument_group('Execution Control')
+    exec_grp.add_argument('-H', '--threads', type=int, default=1, metavar='N', help='Number of parallel download threads (default: 1).')
+    exec_grp.add_argument('-A', '--attempts', type=int, default=5, metavar='N', help='Number of retry attempts per file (default: 5).')
+    exec_grp.add_argument('-z', '--no_check_size', action='store_true', help='Skip remote file size check if local file exists.')
+    exec_grp.add_argument('-q', '--quiet', action='store_true', help='Suppress progress bars and status messages.')
+
+    pipe_grp = parser.add_argument_group('Pipeline & Hooks')
+    pipe_grp.add_argument('--hook', action='append', metavar='NAME', help="Attach a processing hook (e.g. '--hook unzip:overwrite=true').")
+    pipe_grp.add_argument('--list-hooks', action='store_true', help="List all available processing hooks.")
+    pipe_grp.add_argument('--pipe-path', action='store_true', help="Print absolute paths of downloaded files to stdout (alias for '--hook pipe').")
     
+    # These flags act as shortcuts for pre-hooks (dry-run)
+    pipe_grp.add_argument('--list', action='store_true', help='List discovered URLs without downloading (alias for "--hook list --hook dryrun").')
+    pipe_grp.add_argument('--inventory', action='store_true', help='Generate a metadata inventory without downloading (alias for "--hook inventory").')
+        
     # Pre-process Arguments to fix argparses handling of -R
     fixed_argv = fix_argparse_region(sys.argv[1:])
     global_args, remaining_argv = parser.parse_known_args(fixed_argv)
@@ -294,7 +395,43 @@ def fetchez_cli():
             
         print("-" * 60)
         sys.exit(0)
-        
+
+    if hasattr(global_args, 'list_hooks') and global_args.list_hooks:
+        print("\n\tAvailable Hooks:")
+        for name, cls_obj in HookRegistry._hooks.items():
+            desc = getattr(cls_obj, 'desc', 'No description')
+            print(f"  {name:<15} : {desc}")
+        sys.exit(0)
+
+    # --- Init Global Hooks ---
+    global_hook_objs = []
+    if hasattr(global_args, 'hook') and global_args.hook:
+        global_hook_objs = init_hooks(global_args.hook)
+
+    # We want dry run to stop downloading (for list)
+    add_dry_run = False
+
+    if global_args.list:
+        from .hooks.basic import ListEntries
+        global_hook_objs.append(ListEntries())
+        add_dry_run = True
+
+    if global_args.inventory:
+        from .hooks.basic import Inventory
+        global_hook_objs.append(Inventory(format='json'))
+        add_dry_run = False
+    
+    if global_args.pipe_path:
+        from .hooks.basic import PipeOutput
+        global_hook_objs.append(PipeOutput())
+        #logging.getLogger('fetchez').setLevel(logging.ERROR)
+        add_dry_run = False
+
+    if add_dry_run:
+        from .hooks.basic import DryRun
+        global_hook_objs.append(DryRun())
+
+    # --- Parse out modules/commands ---
     module_keys = {}
     for key, val in registry.FetchezRegistry._modules.items():
         module_keys[key] = key
@@ -304,7 +441,6 @@ def fetchez_cli():
     commands = []
     current_cmd = None
     current_args = []
-
     for arg in remaining_argv:
         is_module = (arg in module_keys) or (arg.split(':')[0] in module_keys)
         
@@ -313,9 +449,7 @@ def fetchez_cli():
                 commands.append((current_cmd, current_args))
             
             if len(arg.split(':')) > 1:
-                # Use local parse function
                 _, raw_name, current_args = parse_fmod_argparse(arg)
-                # Resolve alias if necessary
                 current_cmd = module_keys.get(raw_name, raw_name) 
             else:
                 current_cmd = module_keys.get(arg, arg)
@@ -334,18 +468,17 @@ def fetchez_cli():
     if not global_args.region:
         these_regions = [(-180, 180, -90, 90)]
     else:
-        # Spatial returns tuples now, not Objects
         these_regions = spatial.parse_region(global_args.region)
 
     if global_args.buffer > 0:
         these_regions = [spatial.buffer_region(r, global_args.buffer) for r in these_regions]
-        
+
+    # --- Parse Module args ---
     usable_modules = []
     for mod_key, mod_argv in commands:
         
         # LOAD MODULE HERE
-        mod_cls = registry.FetchezRegistry.load_module(mod_key)
-        
+        mod_cls = registry.FetchezRegistry.load_module(mod_key)        
         if mod_cls is None:
             logger.error(f'Could not load module: {mod_key}')
             continue
@@ -356,33 +489,21 @@ def fetchez_cli():
             add_help=True,
             formatter_class=argparse.RawTextHelpFormatter
         )
-
+        mod_parser.add_argument('--hook', action='append', help=f"Hook for {mod_key} only.")
         _populate_subparser(mod_parser, mod_cls)
 
         mod_args_ns = mod_parser.parse_args(mod_argv)
         mod_kwargs = vars(mod_args_ns)
-        usable_modules.append((mod_cls, mod_kwargs))
-    
-    for this_region in these_regions:
-        # Output the data inventory if requested.
-        # Update in the future to allow for different outputs, 'csv' or 'geojson'
-        # we will need to update core.inventory and module results to give us
-        # some kind of geometry...
-        if global_args.inventory:
-            modules = []
-            for mod_cls, mod_kwargs in usable_modules:
-                x_f = mod_cls(
-                    src_region=this_region,
-                    **mod_kwargs  
-                )
-                
-                if x_f is None: continue                
-                modules.append(x_f)
 
-            report = core.inventory(modules, this_region, out_format='csv')
-            print(report)
-            continue
-        
+        if 'hook' in mod_kwargs and mod_kwargs['hook']:
+            mod_kwargs['hook'] = init_hooks(mod_kwargs['hook'])
+        else:
+            mod_kwargs['hook'] = []
+
+        usable_modules.append((mod_cls, mod_kwargs))
+
+    # --- Loop regions and mods and run ---
+    for this_region in these_regions:
         for mod_cls, mod_kwargs in usable_modules:
             try:
                 x_f = mod_cls(
@@ -402,39 +523,33 @@ def fetchez_cli():
                 if not x_f.results:
                     continue
 
-                if global_args.list:
-                    for result in x_f.results:
-                        print(result['url'])
-                else:
-                    try:
-                        # run_fetchez expects a list of modules, so we wrap x_f in brackets [x_f].
-                        # It handles the progress bar and threading internally.
-                        core.run_fetchez([x_f], threads=global_args.threads, pipe_path=global_args.pipe_path)
+                try:
+                    # run_fetchez expects a list of modules, so we wrap x_f in brackets [x_f].
+                    core.run_fetchez([x_f], threads=global_args.threads, global_hooks=global_hook_objs)
 
-                    except (KeyboardInterrupt, SystemExit):
-                        logger.error('User breakage... please wait while fetchez exits.')
-                        # No need to manually drain queues anymore; Python's executor handles cleanup.
-                        sys.exit(0)
-                    # depreciated threads/queue
-                    # try:
-                    #     fr = core.fetch_results(
-                    #         x_f,
-                    #         n_threads=global_args.threads,
-                    #         check_size=check_size,
-                    #         attempts=global_args.attempts
-                    #     )
-                    #     fr.daemon = True                
-                    #     fr.start()
-                    #     fr.join()         
-                    # except (KeyboardInterrupt, SystemExit):
-                    #     logger.error('User breakage... please wait while fetchez exits.')
-                    #     x_f.status = -1
-                    #     while not fr.fetch_q.empty():
-                    #         try:
-                    #             fr.fetch_q.get(False)
-                    #             fr.fetch_q.task_done()
-                    #         except queue.Empty:
-                    #             break
+                except (KeyboardInterrupt, SystemExit):
+                    logger.error('User breakage... please wait while fetchez exits.')
+                    sys.exit(0)
+                # Depreciated threads/queue:
+                # try:
+                #     fr = core.fetch_results(
+                #         x_f,
+                #         n_threads=global_args.threads,
+                #         check_size=check_size,
+                #         attempts=global_args.attempts
+                #     )
+                #     fr.daemon = True                
+                #     fr.start()
+                #     fr.join()         
+                # except (KeyboardInterrupt, SystemExit):
+                #     logger.error('User breakage... please wait while fetchez exits.')
+                #     x_f.status = -1
+                #     while not fr.fetch_q.empty():
+                #         try:
+                #             fr.fetch_q.get(False)
+                #             fr.fetch_q.task_done()
+                #         except queue.Empty:
+                #             break
 
             except (KeyboardInterrupt, SystemExit):
                 logger.error('User interruption.')

@@ -42,6 +42,16 @@ class FetchezRegistry:
         # Generic https module to send an argument to FetchModule.results
         'https': {'mod': 'fetchez.core', 'cls': 'HttpDataset', 'category': 'Generic'},
 
+        'file': {
+            'mod': 'fetchez.modules.path', 
+            'cls': 'LocalDataset',
+            'category': 'Generic',
+            'desc': 'Process a local file path through the pipeline.',
+            'agency': 'Local',
+            'tags': ['local', 'file', 'system', 'path'],
+            'region': 'Global'
+        },
+        
         # Local module - query a local fred geojson
         'local': {
             'mod': 'fetchez.modules.local', 
@@ -874,7 +884,7 @@ class FetchezRegistry:
         
     @classmethod
     def load_user_plugins(cls):
-        """Scan ~/.fetchez/plugins/ for external modules and register them."""
+        """Scan ~/.fetchez/plugins/ and .fetchez/plugins for external modules and register them."""
 
         import os, sys
         import inspect
@@ -883,45 +893,47 @@ class FetchezRegistry:
         
         home_dir = os.path.expanduser('~')
         plugin_dir = os.path.join(home_dir, '.fetchez', 'plugins')
-        
-        if not os.path.exists(plugin_dir):
-            return
+        cwd_plugin_dir = os.path.join('.fetchez', 'plugins')
 
-        # Add the plugin_dir to the system path for imports
-        sys.path.insert(0, plugin_dir)
-        
-        for filename in os.listdir(plugin_dir):
-            if filename.endswith('.py') and not filename.startswith("_"):
-                filepath = os.path.join(plugin_dir, filename)
-                module_name = f'user_plugin_{filename[:-3]}'
-                try:
-                    spec = importlib.util.spec_from_file_location(module_name, filepath)
-                    if spec and spec.loader:
-                        user_mod = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(user_mod)
-                        
-                        for name, obj in inspect.getmembers(user_mod):
-                            if inspect.isclass(obj) and issubclass(obj, core.FetchModule):
-                                if obj is core.FetchModule: continue
-                                
-                                # Check for @cli_opts metadata; or defaults
-                                mod_key = getattr(obj, 'name', name.lower())
-                                logger.info(f'Loaded user plugin: {mod_key}')
-                                
-                                cls._modules[mod_key] = {
-                                    'mod': f'user_plugin_{filename[:-3]}',
-                                    'cls': name,
-                                    'category': 'User Plugin',
-                                    'desc': getattr(obj, '__doc__', 'User defined module').strip().split('\n')[0],
-                                    'agency': 'External',
-                                    '_class_obj': obj 
-                                }
-                                
-                except Exception as e:
-                    logger.warning(f'Failed to load plugin {filename}: {e}')
+        for plugin_dir in [home_plugin_dir, cwd_plugin_dir]:
+            if not os.path.exists(plugin_dir):
+                return
 
-        # Remove the plugin_dir from the system path
-        sys.path.pop(0)
+            # Add the plugin_dir to the system path for imports
+            sys.path.insert(0, plugin_dir)
+
+            for filename in os.listdir(plugin_dir):
+                if filename.endswith('.py') and not filename.startswith("_"):
+                    filepath = os.path.join(plugin_dir, filename)
+                    module_name = f'user_plugin_{filename[:-3]}'
+                    try:
+                        spec = importlib.util.spec_from_file_location(module_name, filepath)
+                        if spec and spec.loader:
+                            user_mod = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(user_mod)
+
+                            for name, obj in inspect.getmembers(user_mod):
+                                if inspect.isclass(obj) and issubclass(obj, core.FetchModule):
+                                    if obj is core.FetchModule: continue
+
+                                    # Check for @cli_opts metadata; or defaults
+                                    mod_key = getattr(obj, 'name', name.lower())
+                                    logger.info(f'Loaded user plugin: {mod_key}')
+
+                                    cls._modules[mod_key] = {
+                                        'mod': f'user_plugin_{filename[:-3]}',
+                                        'cls': name,
+                                        'category': 'User Plugin',
+                                        'desc': getattr(obj, '__doc__', 'User defined module').strip().split('\n')[0],
+                                        'agency': 'External',
+                                        '_class_obj': obj 
+                                    }
+
+                    except Exception as e:
+                        logger.warning(f'Failed to load plugin {filename}: {e}')
+
+            # Remove the plugin_dir from the system path
+            sys.path.pop(0)
         
         
     @classmethod

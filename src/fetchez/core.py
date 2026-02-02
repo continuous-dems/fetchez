@@ -59,6 +59,8 @@ NAMESPACES = {
 
 logger = logging.getLogger(__name__)
 
+HOOK_LOCK = threading.Lock()
+
 # =============================================================================
 # Helper Functions
 # =============================================================================
@@ -658,6 +660,10 @@ class Fetch:
 
 # =============================================================================
 # Threading & Queues
+#
+# `fetch_queue` and `fetch_results` have been depreciated, but left for legacy
+# usage. They don't currently support hooks, but that could be added if we
+# want to maintain these functions.
 # =============================================================================
 def fetch_queue(q: queue.Queue, stop_event: threading.Event, c: bool = True):
     """Worker for the fetch queue.
@@ -775,7 +781,6 @@ class fetch_results(threading.Thread):
         self.stop_event.set()
 
 
-# --- TESTING ---
 def _fetch_worker(module, entry, verbose=True):
     """Helper wrapper to call fetch_entry on a module."""
     
@@ -786,139 +791,104 @@ def _fetch_worker(module, entry, verbose=True):
         return -1
 
     
-def run_fetchez(modules: List['FetchModule'], threads: int = 3, pipe_path=False):
+def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=None):
     """Execute fetches in parallel using a ThreadPoolExecutor.
     Displays a single aggregate progress bar to prevent 'tearing'.
     
     Args:
         modules: List of FetchModule instances (pre-populated with .results)
         threads: Number of parallel threads
+        global_hooks: Hooks that apply to the ENTIRE batch (e.g. Audit, DryRun).
+                      Module-specific hooks (like Unzip) should be attached to the 
+                      modules themselves.
     """
 
     STOP_EVENT.clear()
-    
-    all_entries = []
+
+    # Initialize Hooks
+    # Separated by stage
+    if global_hooks is None: global_hooks = []
+    pre_hooks = [h for h in global_hooks if h.stage == 'pre']
+    for hook in pre_hooks:
+        try:
+            result = hook.run(all_entries)
+            if isinstance(result, list):
+                all_entries = result
+        except Exception as e:
+            logger.error(f"Pre-fetch hook '{hook.name}' failed: {e}")
+            
+    all_entries = [] # entries pre-fetch
     for mod in modules:
         for entry in mod.results:
-            all_entries.append((mod, entry))
-            
+            all_entries.append((mod, entry))            
+
+    for hook in pre_hooks:
+        try:
+            result = hook.run(all_entries)
+            if isinstance(result, list):
+                all_entries = result
+                
+        except Exception as e:
+            logger.error(f'Pre-fetch hook "{hook.name}" failed: {e}')
+
     total_files = len(all_entries)
     if total_files == 0:
-        logger.info("No files to fetch.")
+        logger.info('No files to fetch (queue empty).')
         return
-
+            
     logger.info(f'Starting parallel fetch: {total_files} files with {threads} threads.')
 
+    all_results = [] # entries post-fetch
+    
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
             futures = {
-                executor.submit(_fetch_worker, mod, entry, verbose=True): entry 
+                executor.submit(_fetch_worker, mod, entry, verbose=True): (mod, entry)
                 for mod, entry in all_entries
             }
             with tqdm(total=total_files, unit='file', desc=f'Fetching <{mod.name} @ {mod.region}>', position=0, leave=True) as pbar:
-                for i, future in enumerate(concurrent.futures.as_completed(futures)):
-                    entry = futures[future]
+                for future in concurrent.futures.as_completed(futures):
+                    mod, original_entry = futures[future]
                     try:
                         status = future.result()
+                        original_entry.update({'status': status})
+                        
                         if status != 0:
-                            logger.error(f"Failed to download: {os.path.basename(entry['dst_fn'])}")
-                        else:                            
-                            if pipe_path:
-                                print(os.path.abspath(entry['dst_fn']), file=sys.stdout, flush=True)
-                                          
+                            logger.error(f'Failed to download: {os.path.basename(original_entry["dst_fn"])}')
                     except Exception as e:
-                        logger.error(f"Error fetching {entry['url']}: {e}")
+                        logger.error(f'Worker exception: {e}')
+                        original_entry.update({'status': -1})
+                        
+                    current_entries = [original_entry]
+                    active_hooks = [h for h in global_hooks if h.stage == 'file'] + \
+                        [h for h in mod.hooks if h.stage == 'file']
 
+                    for hook in active_hooks:
+                        try:
+                            current_entries = hook.run(current_entries)
+                            if current_entries is None: current_entries = []
+                        except Exception as e:
+                            logger.error(f"Hook '{hook.name}' failed: {e}")
+                            
+                    # These are the entries that survived the hooks (e.g. TIFs extracted from ZIPs)
+                    if current_entries:
+                        all_results.extend(current_entries)
+                    
                     pbar.update(1)
-                    
+
+        post_hooks = [h for h in global_hooks if h.stage == 'post']
+        for hook in post_hooks:
+            try:
+                hook.run(all_results)
+            except Exception as e:
+                logger.error(f"Post-fetch hook '{hook.name}' failed: {e}")            
+            
     except KeyboardInterrupt:
-        #STOP_EVENT.set()
-        #tqdm.write("\n🛑 Stopping downloads... (waiting for workers to exit)")        
-        #executor.shutdown(wait=False, cancel_futures=True)
-        
-        raise
-
-                
-def run_fetches(modules, threads=3):    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
-        # Submit all download tasks
-        futures = {executor.submit(mod.fetch_file, entry): entry for mod in modules for entry in mod.results}
-        
-        for future in concurrent.futures.as_completed(futures):
-            entry = futures[future]
-            try:
-                status = future.result()
-            except Exception as e:
-                logger.error('fetch failed')            
-
-
-def inventory(modules: List['FetchModule'], region: Tuple[float, float, float, float], out_format: str = 'json') -> str:
-    """Run the specified module(s) to discover available data, but do NOT download.
-    Returns the inventory as a string (JSON/CSV).
-    
-    Args:
-        modules: List of instantiated FetchModule objects.
-        region: The bounding box (w, e, s, n).
-        out_format: 'json', 'csv', or 'geojson'.
-    """
-    
-    import json
-    import csv
-    from io import StringIO
-    
-    inventory_list = []
-
-    silent = logger.getEffectiveLevel() > logging.INFO
-    
-    with tqdm(total=len(modules), desc="Scanning Datasets", unit="mod", disable=not silent) as pbar:
-        for mod in modules:
-            try:
-                mod.region = region
-                mod.run()
-
-                for res in mod.results:
-                    item = {
-                        'module': mod.name,
-                        'title': res.get('title', 'Unknown'),
-                        'url': res.get('url'),
-                        'filename': res.get('dst_fn'),
-                        'date': res.get('date', ''),
-                        'size': res.get('size', '') # Some modules might populate this
-                    }
-                    inventory_list.append(item)
-                    
-            except Exception as e:
-                logger.error(f'Module {mod.name} failed during inventory: {e}')
-            
-            pbar.update(1)
-
-    if out_format == 'json':
-        return json.dumps(inventory_list, indent=2)
-        
-    elif out_format == 'csv':
-        output = StringIO()
-        if inventory_list:
-            keys = inventory_list[0].keys()
-            dict_writer = csv.DictWriter(output, keys)
-            dict_writer.writeheader()
-            dict_writer.writerows(inventory_list)
-        return output.getvalue()
-
-    elif out_format == 'geojson':
-        features = []
-        for item in inventory_list:
-            # maybe have modules attach 'geom' to results
-            feat = {
-                'type': 'Feature',
-                'properties': item,
-                'geometry': None 
-            }
-            features.append(feat)
-            
-        return json.dumps({'type': 'FeatureCollection', 'features': features}, indent=2)
-
-    return ""
-
+        STOP_EVENT.set()
+        tqdm.write('\n🛑 Stopping downloads... (waiting for workers to exit)')
+        executor.shutdown(wait=False, cancel_futures=True)
+       
+        raise                
                 
 # =============================================================================
 # Fetch Module (Base & Default/Test Implementations)
@@ -936,6 +906,7 @@ class FetchModule:
             self,
             src_region=None,
             callback=fetches_callback,
+            hook=None,
             outdir=None,
             name='fetches',
             min_year=None,
@@ -958,6 +929,9 @@ class FetchModule:
         else:
             self._outdir = os.path.join(self.outdir, self.name)
 
+        self.internal_hooks = []
+        self.external_hooks = hook if hook else []
+            
         # For dlim support, we can check these variables for
         # to do the proper processing. Set these to their correct
         # values in the sub-class.
@@ -983,7 +957,23 @@ class FetchModule:
 
         self.silent = logger.getEffectiveLevel() > logging.INFO            
 
+
+    @property
+    def hooks(self):
+        """Combine internal and external hooks in the correct execution order."""
         
+        return self.internal_hooks + self.external_hooks
+
+
+    def add_hook(self, hook_obj):
+        """Add a hook instance at runtime."""
+        
+        if hasattr(hook_obj, 'run'):
+            self.external_hooks.append(hook_obj)
+        else:
+            logger.warning(f"Hook {hook_obj} does not appear to be a valid FetchHook class.")
+            
+    
     def run(self):
         """set `run` in a sub-module to populate `results` with urls"""
         
@@ -1046,13 +1036,13 @@ class FetchModule:
 class HttpDataset(FetchModule):
     """Fetch an http file directly."""
     
-    def __init__(self, url, **kwargs):
+    def __init__(self, url=None, **kwargs):
         super().__init__(**kwargs)
         self.url = url
 
-        
-        self.add_entry_to_results(
-            self.url,
-            os.path.basename(self.url),
-            'https'
-        )
+        if self.url:
+            self.add_entry_to_results(
+                self.url,
+                os.path.basename(self.url),
+                'https'
+            )

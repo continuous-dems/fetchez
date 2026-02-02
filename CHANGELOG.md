@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- Hook system for fetchez! (--list, --inventory, --pipe-path are now hooks)
+- Users can add their own hooks in ~/.fetchez/hooks
+
+### Changed
+- groupded parsers in argparse
+
 ## [0.3.0] - 2026-02-01
 ### Added
 - fetchez.spatial region_from_place centered on place
@@ -13,19 +21,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add DAV
 - fetchez.utils p_unzip from cudem.utils
 - examples dir for examples, workflows, scripts using fetchez
-- bing and tides examples	
+- bing and tides examples
 - sphinx auto-docs
 - inventory option in the cli
 - Most old fetches modules are now ported to fetchez
-	
+
 ### Changed
-- README updates	
+- README updates
 - CLI description (geospatial vs elevation)
 - concurent.futures testing for threads
 - STOP_EVENT in fetchez.core threads
 - logger uses tqdm.write to not clobber progress bars
 - spatial.parse_regions will now output all the regions found in a geojson
-	
+
 ## [0.2.0] - 2026-01-27
 ### Added
 - Initial standalone release of Fetchez.
