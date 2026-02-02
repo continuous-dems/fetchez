@@ -31,6 +31,16 @@ dependencies = [
     "shapely",
 ]
 
+[project.optional-dependencies]
+# Feature-specific groups
+aws = ["boto3"]
+vector = ["pyshp", "pyproj"]
+gdal = ["gdal"]  # Note: GDAL is notoriously hard to pip install, but valid here
+
+# "Meta" groups that combine others
+full = ["boto3", "pyshp", "pyproj"]
+dev = ["pytest"]
+
 keywords = ["Geospatial"]
 
 [project.scripts]
