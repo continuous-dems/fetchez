@@ -77,6 +77,7 @@ def setup_logging(verbose=False):
 # =============================================================================
 def parse_fmod_argparse(arg_str):
     """Parse 'module:key=val:key2=val2' strings."""
+    
     parts = arg_str.split(':')
     mod_name = parts[0]
     args = []
@@ -237,10 +238,24 @@ def parse_hook_arg(arg_str):
     for p in parts[1:]:
         if '=' in p:
             k, v = p.split('=', 1)
-            kwargs[k] = utils.str2bool(v) if v.lower() in ['true', 'false'] else utils.float_or(v, v)
+            
+            if v.lower() == 'true':
+                kwargs[k] = True
+            elif v.lower() == 'false':
+                kwargs[k] = False
+            elif v.startswith('.'):
+                kwargs[k] = v
+            else:
+                try:
+                    if '.' in v:
+                        kwargs[k] = float(v)
+                    else:
+                        kwargs[k] = int(v)
+                except ValueError:
+                    kwargs[k] = v                    
         else:
             kwargs[p] = True
-            
+
     return name, kwargs
 
 

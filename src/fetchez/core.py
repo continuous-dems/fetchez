@@ -956,12 +956,7 @@ class FetchModule:
 
     @property
     def hooks(self):
-        """Combine internal and external hooks in the correct execution order.
-        
-        Order:
-        1. Internal (Module-specific, e.g. unzipping raw data)
-        2. External (User, e.g. auditing or piping final results)
-        """
+        """Combine internal and external hooks in the correct execution order."""
         
         return self.internal_hooks + self.external_hooks
 

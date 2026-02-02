@@ -42,6 +42,16 @@ class FetchezRegistry:
         # Generic https module to send an argument to FetchModule.results
         'https': {'mod': 'fetchez.core', 'cls': 'HttpDataset', 'category': 'Generic'},
 
+        'file': {
+            'mod': 'fetchez.modules.path', 
+            'cls': 'LocalDataset',
+            'category': 'Generic',
+            'desc': 'Process a local file path through the pipeline.',
+            'agency': 'Local',
+            'tags': ['local', 'file', 'system', 'path'],
+            'region': 'Global'
+        },
+        
         # Local module - query a local fred geojson
         'local': {
             'mod': 'fetchez.modules.local', 
