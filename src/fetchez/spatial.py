@@ -211,7 +211,6 @@ def parse_region(input_r: Union[str, List]) -> List[Tuple[float, float, float, f
                             regions.append(r)
                         elif isinstance(r, list):
                             regions.extend(r)
-                            if r: regions.append(r)
                 elif isinstance(item, (list, tuple)) and _coordinate_list_p(item):
                     r = region_from_list(item)
                     if r: regions.append(r)

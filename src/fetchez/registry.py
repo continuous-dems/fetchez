@@ -892,7 +892,7 @@ class FetchezRegistry:
         from . import core
         
         home_dir = os.path.expanduser('~')
-        plugin_dir = os.path.join(home_dir, '.fetchez', 'plugins')
+        home_plugin_dir = os.path.join(home_dir, '.fetchez', 'plugins')
         cwd_plugin_dir = os.path.join('.fetchez', 'plugins')
 
         for plugin_dir in [home_plugin_dir, cwd_plugin_dir]:
