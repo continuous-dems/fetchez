@@ -193,16 +193,24 @@ Fetchez supports over 50 modules categorized by data type. Run ```fetchez --modu
 | Reference | osm (OpenStreetMap), vdatum |
 | Generic | http (Direct URL), earthdata (NASA) |
 
-## 🛟️ Module-Specific Dependencies
+## 🛟 Module-Specific Dependencies
 
-While the core `fetchez` engine is lightweight, some specialized data modules may require extra Python libraries to function (e.g., `pyshp` for TIGER data, `boto3` for AWS-based sources, or `gdal` for complex vector operations).
+Fetchez is designed to be lightweight. The core installation only includes what is strictly necessary to run the engine.
 
-If you try to run a module and it complains about a missing import, check the module's help command. We document these requirements in the module's help text:
+However, some data modules require extra libraries to function (e.g., `boto3` for AWS data, `pyshp` for Shapefiles). You can install these "Extras" automatically using pip:
 
 ```bash
-fetchez <module_name> --help
-If a dependency is missing, the module will typically exit gracefully with an error message telling you exactly what to pip install.
+# Install support for AWS-based modules (BlueTopo, etc.)
+pip install "fetchez[aws]"
+
+# Install support for Vector processing (Shapefiles, etc.)
+pip install "fetchez[vector]"
+
+# Install ALL optional dependencies
+pip install "fetchez[full]"
 ```
+
+If you try to run a module without its required dependency, fetchez will exit with a helpful error message telling you exactly which extra group to install.
 
 ## 🐄  Plugins, Hooks & Extensions
 

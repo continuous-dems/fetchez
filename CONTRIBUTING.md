@@ -205,13 +205,16 @@ Open src/fetchez/registry.py and add your module to the _modules dictionary. Ple
 
 Fetchez aims to keep its core footprint small. If your new module or plugin requires a non-standard library (e.g., `boto3`, `pyshp`, `netCDF4`):
 
-1.  **Do Not Add to Core Requirements:** Do not add the library to `pyproject.toml` unless it is essential for the entire `fetchez` engine.
-2.  **Soft Imports:** Wrap your imports in a `try/except ImportError` block so the module does not crash the CLI for users who don't use that specific data source.
-3.  **Document It:** Clearly list the required packages in the class docstring.
+1.  **Do Not Add to Core Requirements:** Do NOT add the library to the main `dependencies` list in `pyproject.toml`.
+2.  **Add to Optional Dependencies:** Open `pyproject.toml` and add your library to a relevant group under `[project.optional-dependencies]`. If no group fits, create a new one (e.g. `netcdf = ["netCDF4"]`).
+3.  **Soft Imports:** Wrap your imports in a `try/except ImportError` block so the module does not crash the CLI for users who don't use that specific data source.
+4.  **Document It:** Clearly list the required packages (and the install command) in the class docstring.
 
 **Example:**
 
 ```python
+# fetchez/modules/mys3.py
+
 try:
     import boto3
     HAS_BOTO = True
@@ -223,14 +226,13 @@ class MyS3Fetcher(core.FetchModule):
     """Fetches data from private S3 buckets.
 
     **Dependencies:**
-    This module requires `boto3`. Install it via:
-    `pip install boto3`
+    This module requires `boto3`.
+    Install via: `pip install "fetchez[aws]"`
     """
     
     def run(self):
         if not HAS_BOTO:
-            # Use the logger to inform the user nicely
-            logger.error("This module requires 'boto3'. Please install it to proceed.")
+            logger.error("Missing dependency 'boto3'. Please run: pip install 'fetchez[aws]'")
             return
         
         # Proceed with fetching...
