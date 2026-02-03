@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fetchez"
-version = "0.3.2"
+version = "0.3.3"
 description = "Geo-Spatial Data Fetching"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -35,7 +35,7 @@ dependencies = [
 # Feature-specific groups
 aws = ["boto3"]
 vector = ["pyshp", "pyproj"]
-gdal = ["gdal"]  # Note: GDAL is notoriously hard to pip install, but valid here
+gdal = ["gdal"]
 
 # "Meta" groups that combine others
 full = ["boto3", "pyshp", "pyproj"]

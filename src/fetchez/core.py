@@ -790,124 +790,119 @@ def _fetch_worker(module, entry, verbose=True):
         logger.error(f'Worker failed for {entry.get("url", "unknown")}: {e}')
         return -1
 
-    
+
 def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=None):
-    """Execute fetches in parallel using a ThreadPoolExecutor.
-    Displays a single aggregate progress bar to prevent 'tearing'.
+    """Run Fetchez in parallel with hooks.
     
-    Args:
-        modules: List of FetchModule instances (pre-populated with .results)
-        threads: Number of parallel threads
-        global_hooks: Hooks that apply to the ENTIRE batch (e.g. Audit, DryRun).
-                      Module-specific hooks (like Unzip) should be attached to the 
-                      modules themselves.
+      - mod.hooks: Run ONLY on entries belonging to 'mod'.
+      - global_hooks: Run on ALL entries combined.
     """
-
     STOP_EVENT.clear()
-
     if global_hooks is None: global_hooks = []
-    mod_pre_hooks = []
-    mod_post_hooks = []
-    
-    all_entries = [] # entries pre-fetch
+
+    for mod in modules:
+        mod_pre = [h for h in mod.hooks if h.stage == 'pre']
+        if not mod_pre:
+            continue
+            
+        local_entries = [(mod, e) for e in mod.results]
+        
+        for hook in mod_pre:
+            try:
+                local_entries = hook.run(local_entries)
+                if local_entries is None: local_entries = []
+            except Exception as e:
+                logger.error(f'Module "{mod.name}" pre-hook "{hook.name}" failed: {e}')
+
+        # Update the mod.results
+        mod.results = [e for m, e in local_entries]
+
+    all_entries = []
     for mod in modules:
         for entry in mod.results:
             all_entries.append((mod, entry))
-        if mod.hooks:
-            mod_pre_hooks = [h for h in mod.hooks if h.stage == 'pre']
-            mod_post_hooks = [h for h in mod.hooks if h.stage == 'post']
-            
-    pre_hooks = [h for h in global_hooks if h.stage == 'pre']
-    mod_pre_hooks = [h for h in mod_pre_hooks if h.name in [gh.name for gh in pre_hooks]]
-    for hook in pre_hooks:
-        logger.info(f'Running pre-hook {hook.name} from Global Hooks')
-        try:
-            result = hook.run(all_entries)
-            if isinstance(result, list):
-                all_entries = result
-                
-        except Exception as e:
-            logger.error(f'Pre-fetch hook "{hook.name}" failed: {e}')
 
-    for hook in mod_pre_hooks:
-        logger.info(f'Running pre-hook {hook.name} from Module Hooks')
+    global_pre = [h for h in global_hooks if h.stage == 'pre']
+    for hook in global_pre:
         try:
             result = hook.run(all_entries)
             if isinstance(result, list):
                 all_entries = result
-                
         except Exception as e:
-            logger.error(f'Pre-fetch hook "{hook.name}" failed: {e}')
-                    
+            logger.error(f'Global pre-hook "{hook.name}" failed: {e}')
+
     total_files = len(all_entries)
     if total_files == 0:
-        logger.info('No files to fetch (queue empty).')
+        logger.info('No files to fetch.')
         return
-            
-    logger.info(f'Starting parallel fetch: {total_files} files with {threads} threads.')
 
-    all_results = [] # entries post-fetch
-    
+    logger.info(f'Starting parallel fetch: {total_files} files with {threads} threads.')    
+    final_results_with_owner = []
+
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
             futures = {
                 executor.submit(_fetch_worker, mod, entry, verbose=True): (mod, entry)
                 for mod, entry in all_entries
             }
-            with tqdm(total=total_files, unit='file', desc=f'Fetching <{mod.name} @ {mod.region}>', position=0, leave=True) as pbar:
+            
+            with tqdm(total=total_files, unit='file', desc='Fetching', position=0, leave=True) as pbar:
                 for future in concurrent.futures.as_completed(futures):
                     mod, original_entry = futures[future]
+                    
                     try:
                         status = future.result()
                         original_entry.update({'status': status})
-                        
                         if status != 0:
-                            logger.error(f'Failed to download: {os.path.basename(original_entry["dst_fn"])}')
+                            logger.error(f"Failed: {os.path.basename(original_entry['dst_fn'])}")
                     except Exception as e:
-                        logger.error(f'Worker exception: {e}')
+                        logger.error(f"Worker exception: {e}")
                         original_entry.update({'status': -1})
-                        
-                    current_entries = [original_entry]
-                    active_hooks = [h for h in global_hooks if h.stage == 'file'] + \
-                        [h for h in mod.hooks if h.stage == 'file']
 
+                    active_hooks = [h for h in global_hooks if h.stage == 'file'] + \
+                                   [h for h in mod.hooks if h.stage == 'file']
+                    
+                    current_entries = [original_entry]
                     for hook in active_hooks:
                         try:
                             current_entries = hook.run(current_entries)
                             if current_entries is None: current_entries = []
                         except Exception as e:
-                            logger.error(f"Hook '{hook.name}' failed: {e}")
-                            
-                    # These are the entries that survived the hooks (e.g. TIFs extracted from ZIPs)
-                    if current_entries:
-                        all_results.extend(current_entries)
-                    
+                            logger.error(f'File hook "{hook.name}" failed: {e}')
+
+                    for res in current_entries:
+                        final_results_with_owner.append((mod, res))
+
                     pbar.update(1)
 
-        post_hooks = [h for h in global_hooks if h.stage == 'post']
-        mod_post_hooks = [h for h in mod_post_hooks if h.name in [gh.name for gh in post_hooks]]
-        for hook in post_hooks:
-            logger.info(f'Running post-hook {hook.name} from Global Hooks')
-            try:
-                hook.run(all_results)
-            except Exception as e:
-                logger.error(f"Post-fetch hook '{hook.name}' failed: {e}")            
-
-        for hook in mod_post_hooks:
-            logger.info(f'Running post-hook {hook.name} from Module Hooks')
-            try:
-                hook.run(all_results)
-            except Exception as e:
-                logger.error(f"Post-fetch hook '{hook.name}' failed: {e}")            
-
-                    
     except KeyboardInterrupt:
         STOP_EVENT.set()
-        tqdm.write('\n🛑 Stopping downloads... (waiting for workers to exit)')
         executor.shutdown(wait=False, cancel_futures=True)
-       
-        raise                
-                
+        raise
+
+    results_by_mod = {m: [] for m in modules}
+    for m, r in final_results_with_owner:
+        if m in results_by_mod:
+            results_by_mod[m].append(r)
+
+    for mod in modules:
+        mod_post = [h for h in mod.hooks if h.stage == 'post']
+        if mod_post and results_by_mod[mod]:
+            for hook in mod_post:
+                try:
+                    hook.run(results_by_mod[mod])
+                except Exception as e:
+                    logger.error(f'Module "{mod.name}" post-hook "{hook.name}" failed: {e}')
+
+    flat_results = [r for m, r in final_results_with_owner]    
+    global_post = [h for h in global_hooks if h.stage == 'post']
+    for hook in global_post:
+        try:
+            hook.run(flat_results)
+        except Exception as e:
+            logger.error(f'Global post-hook "{hook.name}" failed: {e}')
+
+            
 # =============================================================================
 # Fetch Module (Base & Default/Test Implementations)
 #

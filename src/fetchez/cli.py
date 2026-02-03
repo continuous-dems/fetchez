@@ -340,7 +340,7 @@ CUDEM home page: <http://cudem.colorado.edu>
     disc_grp.add_argument('-m', '--modules', nargs=0, action=PrintModulesAction, help='List all available data modules.')
     disc_grp.add_argument('-s', '--search', metavar='TERM', help='Search modules by tag, agency, or description.')
     disc_grp.add_argument('-i', '--info', metavar='MODULE', help='Show detailed metadata for a specific module.')
-    disc_grp.add_argument('-h', '--help', action='help', help='Show this help message and exit.')
+    disc_grp.add_argument('-h', '--help', action='store_true', help='Show this help message and exit.')
     disc_grp.add_argument('-v', '--version', action='version', version=f'%(prog)s {__version__}')
 
     exec_grp = parser.add_argument_group('Execution Control')
@@ -361,7 +361,7 @@ CUDEM home page: <http://cudem.colorado.edu>
     # Pre-process Arguments to fix argparses handling of -R
     fixed_argv = fix_argparse_region(sys.argv[1:])
     global_args, remaining_argv = parser.parse_known_args(fixed_argv)
-      
+
     check_size = not global_args.no_check_size
     
     #level = logging.WARNING if global_args.quiet else logging.INFO
@@ -403,7 +403,7 @@ CUDEM home page: <http://cudem.colorado.edu>
             print(f"  {name:<15} : {desc}")
         sys.exit(0)
 
-    # --- Init Global Hooks ---
+    # --- Init Global Hook Shortcuts ---
     global_hook_objs = []
     if hasattr(global_args, 'hook') and global_args.hook:
         global_hook_objs = init_hooks(global_args.hook)
@@ -461,6 +461,13 @@ CUDEM home page: <http://cudem.colorado.edu>
     if current_cmd:
         commands.append((current_cmd, current_args))
 
+    if global_args.help:
+        if not commands:
+            parser.print_help()
+            sys.exit(0)
+        else:
+            commands[0][1].append('--help')
+        
     if not commands:
         parser.print_help()
         sys.exit(0)
@@ -489,16 +496,18 @@ CUDEM home page: <http://cudem.colorado.edu>
             add_help=True,
             formatter_class=argparse.RawTextHelpFormatter
         )
-        mod_parser.add_argument('--hook', action='append', help=f"Hook for {mod_key} only.")
+        mod_parser.add_argument('--mod-hook', action='append', help=f'Add a hook for {mod_key} only.')
         _populate_subparser(mod_parser, mod_cls)
-
+        
         mod_args_ns = mod_parser.parse_args(mod_argv)
         mod_kwargs = vars(mod_args_ns)
 
-        if 'hook' in mod_kwargs and mod_kwargs['hook']:
-            mod_kwargs['hook'] = init_hooks(mod_kwargs['hook'])
+        if 'mod_hook' in mod_kwargs and mod_kwargs['mod_hook']:
+            mod_kwargs['hook'] = init_hooks(mod_kwargs['mod_hook'])
         else:
             mod_kwargs['hook'] = []
+
+        del mod_kwargs['mod_hook']            
 
         usable_modules.append((mod_cls, mod_kwargs))
 
