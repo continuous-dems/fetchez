@@ -241,7 +241,7 @@ class FilenameFilter(FetchHook):
     
     name = 'filename_filter'
     desc = 'Filter results by filename. Usage: --hook filter:match=.tif'
-    stage = 'file'
+    stage = 'pre'
 
     def __init__(self, match=None, exclude=None, regex=False, **kwargs):
         """Args:
@@ -261,8 +261,8 @@ class FilenameFilter(FetchHook):
         # Output: Filtered list of file entries
         
         kept_entries = []
-        
-        for entry in entries:
+
+        for mod, entry in entries:
             local_path = entry.get('dst_fn', '')
             filename = os.path.basename(local_path)
             
@@ -285,6 +285,7 @@ class FilenameFilter(FetchHook):
                         keep = False
             
             if keep:
-                kept_entries.append(entry)
-                
-        return kept_entries    
+                kept_entries.append((mod, entry))
+
+        logger.info(f'Filename Filter hook filtered files and has kept {len(kept_entries)} matches.')
+        return kept_entries
