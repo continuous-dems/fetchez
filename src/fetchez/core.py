@@ -805,24 +805,22 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
 
     STOP_EVENT.clear()
 
-    # Initialize Hooks
-    # Separated by stage
     if global_hooks is None: global_hooks = []
-    # for hook in pre_hooks:
-    #     try:
-    #         result = hook.run(all_entries)
-    #         if isinstance(result, list):
-    #             all_entries = result
-    #     except Exception as e:
-    #         logger.error(f"Pre-fetch hook '{hook.name}' failed: {e}")
-            
+    mod_pre_hooks = []
+    mod_post_hooks = []
+    
     all_entries = [] # entries pre-fetch
     for mod in modules:
         for entry in mod.results:
             all_entries.append((mod, entry))
+        if mod.hooks:
+            mod_pre_hooks = [h for h in mod.hooks if h.stage == 'pre']
+            mod_post_hooks = [h for h in mod.hooks if h.stage == 'post']
             
     pre_hooks = [h for h in global_hooks if h.stage == 'pre']
+    mod_pre_hooks = [h for h in mod_pre_hooks if h.name in [gh.name for gh in pre_hooks]]
     for hook in pre_hooks:
+        logger.info(f'Running pre-hook {hook.name} from Global Hooks')
         try:
             result = hook.run(all_entries)
             if isinstance(result, list):
@@ -831,6 +829,16 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
         except Exception as e:
             logger.error(f'Pre-fetch hook "{hook.name}" failed: {e}')
 
+    for hook in mod_pre_hooks:
+        logger.info(f'Running pre-hook {hook.name} from Module Hooks')
+        try:
+            result = hook.run(all_entries)
+            if isinstance(result, list):
+                all_entries = result
+                
+        except Exception as e:
+            logger.error(f'Pre-fetch hook "{hook.name}" failed: {e}')
+                    
     total_files = len(all_entries)
     if total_files == 0:
         logger.info('No files to fetch (queue empty).')
@@ -877,12 +885,22 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
                     pbar.update(1)
 
         post_hooks = [h for h in global_hooks if h.stage == 'post']
+        mod_post_hooks = [h for h in mod_post_hooks if h.name in [gh.name for gh in post_hooks]]
         for hook in post_hooks:
+            logger.info(f'Running post-hook {hook.name} from Global Hooks')
             try:
                 hook.run(all_results)
             except Exception as e:
                 logger.error(f"Post-fetch hook '{hook.name}' failed: {e}")            
-            
+
+        for hook in mod_post_hooks:
+            logger.info(f'Running post-hook {hook.name} from Module Hooks')
+            try:
+                hook.run(all_results)
+            except Exception as e:
+                logger.error(f"Post-fetch hook '{hook.name}' failed: {e}")            
+
+                    
     except KeyboardInterrupt:
         STOP_EVENT.set()
         tqdm.write('\n🛑 Stopping downloads... (waiting for workers to exit)')

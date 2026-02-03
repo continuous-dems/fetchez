@@ -14,6 +14,8 @@ Fetch Multibeam bathymetry from NOAA NCEI, MBDB (ArcGIS), and R2R.
 import os
 import re
 import logging
+import requests
+from tqdm import tqdm
 from io import StringIO
 from typing import Optional, List, Dict, Any, Tuple
 
@@ -107,15 +109,14 @@ class Multibeam(core.FetchModule):
     def check_for_generated_data(self, base_url: str) -> bool:
         """Check if a 'generated' directory exists for processed data."""
         
-        req = core.Fetch(base_url).fetch_req()
-        if req is None or req.status_code == 404:
-            parts = base_url.split('/')
-            parts.insert(-1, 'generated')
-            gen_url = '/'.join(parts)
-            
-            req_gen = core.Fetch(gen_url).fetch_req()
-            if req_gen is not None and req_gen.status_code != 404:
-                return True
+        #req = core.Fetch(base_url).fetch_req()
+        #if req is None or req.status_code == 404:
+        parts = base_url.split('/')
+        parts.insert(-1, 'generated')
+        gen_url = '/'.join(parts)
+        response = requests.head(gen_url, timeout=5, allow_redirects=True)
+        if response is not None and response.status_code in [200, 302]:
+            return True
         return False
 
     
@@ -126,9 +127,9 @@ class Multibeam(core.FetchModule):
             return []
         
         w, e, s, n = self.region
-        params = {'geometry': f"{w},{s},{e},{n}"}
+        params = {'geometry': f'{w},{s},{e},{n}'}
         
-        logger.info("Querying NCEI Multibeam database...")
+        logger.info('Querying NCEI Multibeam database...')
         req = core.Fetch(NCEI_SEARCH_URL).fetch_req(params=params, timeout=30)
         
         if req is None or req.status_code != 200:
@@ -136,7 +137,6 @@ class Multibeam(core.FetchModule):
             return []
 
         # Parse Results
-        # Structure: Survey -> Version -> List of files
         surveys_found = {} 
 
         lines = req.text.split('\n')
@@ -149,24 +149,20 @@ class Multibeam(core.FetchModule):
             parts = line.split(' ')[0].split('/') 
             if len(parts) < 10: continue
 
-            # Typical Path: .../platforms/ocean/mgg/multibeam/data/version/SHIP/SURVEY/...
+            # .../platforms/ocean/mgg/multibeam/data/version/SHIP/SURVEY/...
             try:
                 survey = parts[6]
                 ship = parts[5]
                 version = parts[9][-1] # '1' or '2' usually
                 filename = parts[-1]
                 
-                # Construct Data URL
-                # Rebuild path from part 3 onwards
                 rel_path = '/'.join(line.split('/')[3:]).split(' ')[0]
                 data_url = f"{NCEI_DATA_URL}{rel_path}"
                 
-                # Date Extraction
                 date_match = re.search(r"([0-9]{8})", filename)
                 date_str = date_match.group(0) if date_match else None
                 year = int(date_str[:4]) if date_str else None
 
-                # Filters
                 if self.survey_id and survey not in self.survey_id.split('/'): continue
                 if self.exclude_survey_id and survey in self.exclude_survey_id.split('/'): continue
                 if self.ship_id and ship.lower() not in [x.lower() for x in self.ship_id.split('/')]: continue
@@ -175,7 +171,6 @@ class Multibeam(core.FetchModule):
                 if self.min_year and year and year < self.min_year: continue
                 if self.max_year and year and year > self.max_year: continue
 
-                # Store
                 if survey not in surveys_found:
                     surveys_found[survey] = {'date': date_str, 'versions': {}}
                 
@@ -196,40 +191,40 @@ class Multibeam(core.FetchModule):
         logger.info(f"Found {len(surveys_found)} relevant surveys.")
 
         # Process Survey List
-        for survey, data in surveys_found.items():
-            versions = data['versions']
-            
-            # Prefer version '2' (Processed) if processed flag is True
-            target_version = '2' if self.processed_p and '2' in versions else '1'
-            
-            if target_version not in versions:
-                if not self.processed_p:
-                    # Add all versions
-                    for v in versions:
-                        self._add_version_files(versions[v])
-                    continue
-                else:
-                    # Dallback to v1 here.
-                    continue 
+        with tqdm(total=len(surveys_found), desc='Scanning multibeam files...', leave=False) as pbar:
+            for survey, data in surveys_found.items():
+                versions = data['versions']            
+                target_version = '2' if self.processed_p and '2' in versions else '1'            
+                if target_version not in versions:
+                    if not self.processed_p:
+                        # Add all versions
+                        for v in versions:
+                            self._add_version_files(versions[v])
+                        continue
+                    else:
+                        # Dallback to v1 here.
+                        continue 
 
-            # Process specific version files
-            file_list = versions[target_version]
-            if not file_list: continue
+                # Process specific version files
+                file_list = versions[target_version]
+                if not file_list: continue
 
-            # Check for 'generated' directory (often holds the actual processed grids/data)
-            use_generated = self.check_for_generated_data(file_list[0][0])
-            
-            final_files = []
-            for f_entry in file_list:
-                url, dst, fmt = f_entry
-                if use_generated:
-                    u_parts = url.split('/')
-                    u_parts.insert(-1, 'generated')
-                    url = '/'.join(u_parts)
-                
-                final_files.append([url, dst, fmt])
+                # Check for 'generated' directory (often holds the actual processed grids/data)
 
-            self._add_version_files(final_files)
+                use_generated = self.check_for_generated_data(file_list[0][0])
+
+                final_files = []
+                for f_entry in file_list:
+                    url, dst, fmt = f_entry
+                    if use_generated:
+                        u_parts = url.split('/')
+                        u_parts.insert(-1, 'generated')
+                        url = '/'.join(u_parts)
+
+                    final_files.append([url, dst, fmt])
+
+                self._add_version_files(final_files)
+                pbar.update()
             
         return self
 
@@ -241,7 +236,6 @@ class Multibeam(core.FetchModule):
             url, dst, fmt = entry
             
             # Determine INF url
-            # .fbt files usually have .inf files with specific naming conventions
             base = utils.str_or(url).replace('.gz', '')
             base = utils.str_or(url).replace('.fbt', '')
             inf_url = f"{base}.inf" if not url.endswith('.inf') else url
