@@ -37,6 +37,12 @@ logger = logging.getLogger(__name__)
 DAV_API_URL = 'https://coast.noaa.gov/dataviewer/api/v1/search/missions'
 DAV_HEADERS = {'Content-Type': 'application/json'}
 
+try:
+    from fetchez.modules.tnm import TheNationalMap
+    HAS_TNM = True
+except ImportError:
+    HAS_TNM = False
+
 # =============================================================================
 # DAV Module
 # =============================================================================
@@ -252,6 +258,15 @@ class DAV(core.FetchModule):
                     title=f'Dataset {dataset_id}'
                 )
 
+    def _extract_usgs_project(self, url):
+        """Extract project from the bulk URL."""
+        
+        if 'Projects/' in url:
+            parts = url.split('Projects/')[-1]
+            return parts.split('/')[0]        
+        return None
+
+    
     def run(self):
         """Run the DAV fetching module."""
         
@@ -275,12 +290,16 @@ class DAV(core.FetchModule):
             f_datatype = attrs.get('dataType')
             links_list = attrs.get('links', [])
 
+            
             if self.survey_id and (int(self.survey_id.strip()) != int(fid.strip())):
                 continue
-            
+
             if self.title_filter and self.title_filter.lower() not in name.lower():
                 continue
 
+            providers = attrs.get('providers', [])
+            is_usgs = any(p.get('name') == 'U.S. Geological Survey' for p in providers)
+            
             bulk_url = None
             for link_obj in links_list:
                 if link_obj.get('linkTypeId') == '46':
@@ -290,10 +309,38 @@ class DAV(core.FetchModule):
             if not bulk_url:
                 continue
 
+            if is_usgs and HAS_TNM:
+                project_name = self._extract_usgs_project(bulk_url)
+                
+                if project_name:
+                    logger.info(f"Routing USGS dataset '{project_name}' to TNM module...")
+
+                    dav_dir = self._outdir.rstrip(os.sep)
+                    base_dir = os.path.dirname(dav_dir)
+                    tnm_outdir = os.path.join(base_dir, 'tnm')
+                    
+                    if self.datatype == 'lidar':
+                        target_datasets = '11' # Lidar Point Cloud
+                    else:
+                        # For DEMs, search both OPR (8) and 1-meter (2) to be safe
+                        target_datasets = '8/2'
+
+                    tnm_mod = TheNationalMap(
+                        src_region=self.region,
+                        #outdir=tnm_outdir,
+                        datasets=target_datasets,
+                        q=project_name,
+                    )
+                    
+                    tnm_mod.run()
+                    self.results.extend(tnm_mod.results)
+                    
+                    continue
+            
             logger.info(f'Processing: {name}...')
 
             index_zip_url = self._find_index_zip(bulk_url)
-            
+
             if not index_zip_url:
                 continue
 
