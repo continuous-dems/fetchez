@@ -58,6 +58,7 @@ class DAV(core.FetchModule):
     
     def __init__(
             self,
+            survey_id: str = None,
             datatype: str = 'lidar',
             title_filter: Optional[str] = None,
             want_footprints: bool = False,
@@ -66,6 +67,7 @@ class DAV(core.FetchModule):
             **kwargs
     ):
         super().__init__(name=name, **kwargs)
+        self.survey_id = survey_id
         self.datatype = datatype.lower() if datatype else 'lidar'
         self.title_filter = title_filter
         self.want_footprints = want_footprints
@@ -266,13 +268,16 @@ class DAV(core.FetchModule):
         
         logger.info(f'Found {len(datasets)} potential datasets.')
 
-        for dataset in datasets:
+        for dataset in datasets:                
             attrs = dataset.get('attributes', {})
             fid = attrs.get('id')
             name = attrs.get('title')
             f_datatype = attrs.get('dataType')
             links_list = attrs.get('links', [])
 
+            if self.survey_id and (int(self.survey_id.strip()) != int(fid.strip())):
+                continue
+            
             if self.title_filter and self.title_filter.lower() not in name.lower():
                 continue
 
@@ -297,7 +302,7 @@ class DAV(core.FetchModule):
                     url=index_zip_url,
                     dst_fn=os.path.join(str(fid), os.path.basename(index_zip_url)),
                     data_type='footprint',
-                    title=f"Footprint {name}"
+                    title=f'Footprint {name}'
                 )
                 continue
 
@@ -380,9 +385,9 @@ class CoNED(DAV):
 
         
 @cli.cli_opts(
-    help_text="CUDEM (Continuously Updated Digital Elevation Model)",
-    want_footprints="Fetch the dataset footprint (tile index) zip only",
-    keep_footprints="Keep the downloaded tile index zip after processing"
+    help_text='CUDEM (Continuously Updated Digital Elevation Model)',
+    want_footprints='Fetch the dataset footprint (tile index) zip only',
+    keep_footprints='Keep the downloaded tile index zip after processing'
 )
 class CUDEM(DAV):
     """Fetch CUDEM Tiled DEMs via Digital Coast.

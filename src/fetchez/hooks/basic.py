@@ -85,7 +85,7 @@ class PreInventory(FetchHook):
                 'data_type': entry.get('data_type'),
                 'date': entry.get('date', ''),
             }
-            inventory_list.append(item)
+            inventory_list.append(entry)
 
         if self.format == 'json':
             print(json.dumps(inventory_list, indent=2))
