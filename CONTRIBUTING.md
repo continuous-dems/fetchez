@@ -149,6 +149,66 @@ Did you build a plugin that would be useful for the wider community? We'd love t
 
 Submit a Pull Request adding your file to fetchez/modules/ or fetchez/hooks.
 
+## ⚡ Developing & Sharing Presets
+Presets (or "Macros") are the easiest way to share complex data engineering workflows without writing Python code. They allow you to bundle multiple processing steps into a single, shareable JSON snippet.
+
+*** The Preset Configuration File ***
+
+Presets are stored in `~/.fetchez/presets.json`. You can generate a valid template using `fetchez --init-presets`.
+
+The file has two main sections:
+
+* Global Presets: Macros available for every module.
+
+* Module Presets: Macros that only appear when using a specific module.
+
+presets.json Example
+
+```json
+
+{
+    "presets": {
+        "geo-audit": {
+            "help": "Global: Generate SHA256 hashes and a full audit log.",
+            "hooks": [
+                {"name": "checksum", "args": {"algo": "sha256"}},
+                {"name": "audit", "args": {"file": "audit.json"}}
+            ]
+        }
+    },
+    "modules": {
+        "multibeam": {
+            "presets": {
+                "scout": {
+                    "help": "Multibeam Only: Fetch only metadata (.inf) files to check coverage.",
+                    "hooks": [
+                        {"name": "filename_filter", "args": {"match": ".inf", "stage": "pre"}}
+                    ]
+                }
+            }
+        }
+    }
+}
+```
+
+*** Best Practices for Sharing ***
+
+If you have developed a robust workflow (e.g., "Standard Archival Prep" or "Cloud Optimized GeoTIFF Conversion", or whatever), you can share it easily!
+
+* Test your preset: Ensure the hooks run in the correct order (e.g., unzip before filter).
+
+* Add a Help String: The "help" field in the JSON is displayed in the CLI when users run `fetchez --help`. Make it descriptive if you can!
+
+* Share the JSON: You can post your JSON snippet in a GitHub Issue or Discussion or on our Zulip chat.
+
+* Contribute to Core: If a preset is universally useful, you can propose adding it to the `init_presets()` function in `fetchez/presets.py` via a Pull Request.
+
+*** Module-Specific Overrides ***
+
+You can use the modules section to create specialized shortcuts for specific datasets.
+
+For example, you often use fetchez dav (NOAA Digital Coast) but only want to check if data exists without downloading gigabytes of lidar. Now, you can create a preset that filters for "footprint" files only by writing a series of hooks and then combining them into a preset. Then, when you run `fetchez dav --help`, you will see your custom `--footprint-only` flag listed under "DAV Presets", but it won't clutter the menu for other modules.
+
 ## 🌎 Adding a New Fetch Module
 
 The most common contribution is adding support for a new data source.
