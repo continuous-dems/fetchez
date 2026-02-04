@@ -14,9 +14,7 @@ This init file also holds the FetchHook super class
 class FetchHook:
     """Base class for all Fetchez Hooks."""
     
-    # Unique identifier for CLI (e.g., --hook unzip)
     name = "base_hook"
-    # Description for --list-hooks
     desc = "Does nothing."
     # Defaults to 'file', but could be 'pre_fetch' or 'post_fetch'
     # 'pre':  Runs once before any downloads start.
@@ -24,9 +22,19 @@ class FetchHook:
     # 'post': Runs once after all downloads are finished.
     stage = 'file' 
 
+    
     def __init__(self, **kwargs):
         self.opts = kwargs
 
+    def __eq__(self, other):
+        """Hooks are 'equal' if they are the same type and have identical dicts."""
+        
+        if not isinstance(other, type(self)):
+            return False
+        
+        return self.__dict__ == other.__dict__
+
+    
     def run(self, entry):
         """Execute the hook.
         

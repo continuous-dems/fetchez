@@ -325,7 +325,7 @@ def fetchez_cli():
 Examples:
   fetchez -R -105/-104/39/40 srtm_plus
   fetchez -R loc:"Boulder, CO" copernicus --datatype=1
-  fetchez srtm_plus --hook unzip --pipe-path
+  fetchez charts --hook unzip --hook filename_filter:match=.000 --pipe-path
   fetchez --search bathymetry
 
 CUDEM home page: <http://cudem.colorado.edu>
@@ -349,15 +349,16 @@ CUDEM home page: <http://cudem.colorado.edu>
     exec_grp.add_argument('-z', '--no_check_size', action='store_true', help='Skip remote file size check if local file exists.')
     exec_grp.add_argument('-q', '--quiet', action='store_true', help='Suppress progress bars and status messages.')
 
-    pipe_grp = parser.add_argument_group('Pipeline & Hooks')
-    pipe_grp.add_argument('--hook', action='append', metavar='NAME', help="Attach a processing hook (e.g. '--hook unzip:overwrite=true').")
-    pipe_grp.add_argument('--list-hooks', action='store_true', help="List all available processing hooks.")
-    pipe_grp.add_argument('--pipe-path', action='store_true', help="Print absolute paths of downloaded files to stdout (alias for '--hook pipe').")
+    preset_grp = parser.add_argument_group('Pipeline Shortcuts (Hook Presets)')
+    preset_grp.add_argument('-l', '--list', action='store_true', help="List discovered URLs to stdout (Pre-Hook).")    
+    preset_grp.add_argument('--inventory', metavar='FMT', nargs='?', const='json', help="Print manifest of files to be fetched (default: json). Prevents download.")    
+    preset_grp.add_argument('--pipe-path', action='store_true', help="Print absolute paths of downloaded files for piping (Post-Hook).")    
+    preset_grp.add_argument('--audit-log', metavar='FILE', help="Generate a full audit log with Checksums and Metadata.")
+
+    adv_grp = parser.add_argument_group('Advanced Configuration')
+    adv_grp.add_argument('--hook', action='append', help="Add a custom global hook (e.g. 'audit:file=log.txt').")
+    adv_grp.add_argument('--list-hooks', action='store_true', help="List all available hooks.")
     
-    # These flags act as shortcuts for pre-hooks (dry-run)
-    pipe_grp.add_argument('--list', action='store_true', help='List discovered URLs without downloading (alias for "--hook list --hook dryrun").')
-    pipe_grp.add_argument('--inventory', action='store_true', help='Generate a metadata inventory without downloading (alias for "--hook inventory").')
-        
     # Pre-process Arguments to fix argparses handling of -R
     fixed_argv = fix_argparse_region(sys.argv[1:])
     global_args, remaining_argv = parser.parse_known_args(fixed_argv)
@@ -406,31 +407,33 @@ CUDEM home page: <http://cudem.colorado.edu>
     # --- Init Global Hook Shortcuts ---
     global_hook_objs = []
     if hasattr(global_args, 'hook') and global_args.hook:
-        global_hook_objs = init_hooks(global_args.hook)
+        #global_hook_objs = init_hooks(global_args.hook)
+        global_hook_objs.extend(init_hooks(global_args.hook))
 
-    # We want dry run to stop downloading (for list)
-    add_dry_run = False
-
+    # Process Shortcuts
     if global_args.list:
-        from .hooks.basic import ListEntries
+        from .hooks.basic import ListEntries, DryRun
         global_hook_objs.append(ListEntries())
-        add_dry_run = True
+        if not any(h.name == 'dryrun' for h in global_hook_objs):
+             global_hook_objs.append(DryRun())
 
     if global_args.inventory:
-        from .hooks.basic import Inventory
-        global_hook_objs.append(Inventory(format='json'))
-        add_dry_run = False
-    
+        from .hooks.basic import Inventory, DryRun
+        fmt = global_args.inventory 
+        global_hook_objs.append(Inventory(format=fmt))
+        if not any(h.name == 'dryrun' for h in global_hook_objs):
+            global_hook_objs.append(DryRun())
+
     if global_args.pipe_path:
         from .hooks.basic import PipeOutput
         global_hook_objs.append(PipeOutput())
-        #logging.getLogger('fetchez').setLevel(logging.ERROR)
-        add_dry_run = False
 
-    if add_dry_run:
-        from .hooks.basic import DryRun
-        global_hook_objs.append(DryRun())
-
+    if global_args.audit_log:
+        from .hooks.basic import Checksum, MetadataEnrich, Audit        
+        global_hook_objs.append(Checksum(algo='md5'))
+        global_hook_objs.append(MetadataEnrich())
+        global_hook_objs.append(Audit(file=global_args.audit_log))
+        
     # --- Parse out modules/commands ---
     module_keys = {}
     for key, val in registry.FetchezRegistry._modules.items():
