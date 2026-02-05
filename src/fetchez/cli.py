@@ -14,6 +14,7 @@ This module contains the CLI for the Fetchez library.
 import os
 import sys
 import logging
+import json
 import argparse
 import inspect
 import queue
@@ -295,13 +296,13 @@ def init_hooks(hook_list_strs):
                 instance = HookCls(**kwargs)
                 active_instances.append(instance)
             except Exception as e:
-                logger.error(f"Failed to initialize hook '{name}': {e}")
+                logger.error(f'Failed to initialize hook "{name}": {e}')
         else:
-            logger.warning(f"Hook '{name}' not found. Use --list-hooks to see available plugins.")
+            logger.warning(f'Hook "{name}" not found. Use --list-hooks to see available plugins.')
             
     return active_instances
 
-
+        
 # =============================================================================
 # Command-line Interface(s) (CLI)
 # =============================================================================
@@ -313,9 +314,16 @@ def fetchez_cli():
     registry.FetchezRegistry.load_user_plugins()
 
     from .hooks.registry import HookRegistry
+    from . import presets
+    from . import config
+    
     HookRegistry.load_builtins()  
     HookRegistry.load_user_plugins()
-    
+
+    #user_presets = presets.load_user_presets()
+    user_presets = config.load_user_config().get('presets', {})
+    user_mod_presets = config.load_user_config().get('modules', {})
+
     parser = argparse.ArgumentParser(
         description=f'{utils.CYAN}%(prog)s{utils.RESET} ({__version__}) :: Discover and Fetch remote geospatial data',
         formatter_class=argparse.RawTextHelpFormatter,
@@ -325,7 +333,7 @@ def fetchez_cli():
 Examples:
   fetchez -R -105/-104/39/40 srtm_plus
   fetchez -R loc:"Boulder, CO" copernicus --datatype=1
-  fetchez srtm_plus --hook unzip --pipe-path
+  fetchez charts --hook unzip --hook filename_filter:match=.000 --pipe-path
   fetchez --search bathymetry
 
 CUDEM home page: <http://cudem.colorado.edu>
@@ -349,15 +357,23 @@ CUDEM home page: <http://cudem.colorado.edu>
     exec_grp.add_argument('-z', '--no_check_size', action='store_true', help='Skip remote file size check if local file exists.')
     exec_grp.add_argument('-q', '--quiet', action='store_true', help='Suppress progress bars and status messages.')
 
-    pipe_grp = parser.add_argument_group('Pipeline & Hooks')
-    pipe_grp.add_argument('--hook', action='append', metavar='NAME', help="Attach a processing hook (e.g. '--hook unzip:overwrite=true').")
-    pipe_grp.add_argument('--list-hooks', action='store_true', help="List all available processing hooks.")
-    pipe_grp.add_argument('--pipe-path', action='store_true', help="Print absolute paths of downloaded files to stdout (alias for '--hook pipe').")
+    preset_grp = parser.add_argument_group('Pipeline Shortcuts (Hook Presets)')
+    preset_grp.add_argument('-l', '--list', action='store_true', help="List discovered URLs to stdout (Pre-Hook).")    
+    preset_grp.add_argument('--inventory', metavar='FMT', nargs='?', const='json', help="Print manifest of files to be fetched (default: json). Prevents download.")    
+    preset_grp.add_argument('--pipe-path', action='store_true', help="Print absolute paths of downloaded files for piping (Post-Hook).")    
+    preset_grp.add_argument('--audit-log', metavar='FILE', help="Generate a full audit log with Checksums and Metadata.")
+
+    # User presets
+    for name, defs in user_presets.items():
+        flag_name = f"--{name}"
+        help_text = defs.get('help', 'Custom user preset.')    
+        preset_grp.add_argument(flag_name, action='store_true', help=help_text)
     
-    # These flags act as shortcuts for pre-hooks (dry-run)
-    pipe_grp.add_argument('--list', action='store_true', help='List discovered URLs without downloading (alias for "--hook list --hook dryrun").')
-    pipe_grp.add_argument('--inventory', action='store_true', help='Generate a metadata inventory without downloading (alias for "--hook inventory").')
-        
+    adv_grp = parser.add_argument_group('Advanced Configuration')
+    adv_grp.add_argument('--hook', action='append', help="Add a custom global hook (e.g. 'audit:file=log.txt').")
+    adv_grp.add_argument('--list-hooks', action='store_true', help="List all available hooks.")
+    adv_grp.add_argument('--init-presets', action='store_true', help="Generate a default ~/.fetchez/presets.json file.")
+    
     # Pre-process Arguments to fix argparses handling of -R
     fixed_argv = fix_argparse_region(sys.argv[1:])
     global_args, remaining_argv = parser.parse_known_args(fixed_argv)
@@ -369,6 +385,10 @@ CUDEM home page: <http://cudem.colorado.edu>
     #logging.basicConfig(level=level, format='[ %(levelname)s ] %(name)s: %(message)s', stream=sys.stderr)
     setup_logging(not global_args.quiet) # this prevents logging from distorting tqdm and leaving partial tqdm bars everywhere...
 
+    if global_args.init_presets:
+        presets.init_presets()
+        sys.exit(0)
+    
     if global_args.info:
         print_module_info(global_args.info)
         sys.exit(0)
@@ -406,31 +426,41 @@ CUDEM home page: <http://cudem.colorado.edu>
     # --- Init Global Hook Shortcuts ---
     global_hook_objs = []
     if hasattr(global_args, 'hook') and global_args.hook:
-        global_hook_objs = init_hooks(global_args.hook)
+        #global_hook_objs = init_hooks(global_args.hook)
+        global_hook_objs.extend(init_hooks(global_args.hook))
 
-    # We want dry run to stop downloading (for list)
-    add_dry_run = False
+    # --- Process Shortcuts ---
+    for name, defs in user_presets.items():
+        arg_attr = name.replace('-', '_')
 
+        # load presets
+        if getattr(global_args, arg_attr, False):
+            chain = presets.hook_list_from_preset(defs)
+            global_hook_objs.extend(chain)
+    
     if global_args.list:
-        from .hooks.basic import ListEntries
+        from .hooks.basic import ListEntries, DryRun
         global_hook_objs.append(ListEntries())
-        add_dry_run = True
+        if not any(h.name == 'dryrun' for h in global_hook_objs):
+             global_hook_objs.append(DryRun())
 
     if global_args.inventory:
-        from .hooks.basic import Inventory
-        global_hook_objs.append(Inventory(format='json'))
-        add_dry_run = False
-    
+        from .hooks.basic import Inventory, DryRun
+        fmt = global_args.inventory 
+        global_hook_objs.append(Inventory(format=fmt))
+        if not any(h.name == 'dryrun' for h in global_hook_objs):
+            global_hook_objs.append(DryRun())
+
     if global_args.pipe_path:
         from .hooks.basic import PipeOutput
         global_hook_objs.append(PipeOutput())
-        #logging.getLogger('fetchez').setLevel(logging.ERROR)
-        add_dry_run = False
 
-    if add_dry_run:
-        from .hooks.basic import DryRun
-        global_hook_objs.append(DryRun())
-
+    if global_args.audit_log:
+        from .hooks.basic import Checksum, MetadataEnrich, Audit        
+        global_hook_objs.append(Checksum(algo='md5'))
+        global_hook_objs.append(MetadataEnrich())
+        global_hook_objs.append(Audit(file=global_args.audit_log))
+        
     # --- Parse out modules/commands ---
     module_keys = {}
     for key, val in registry.FetchezRegistry._modules.items():
@@ -497,18 +527,44 @@ CUDEM home page: <http://cudem.colorado.edu>
             formatter_class=argparse.RawTextHelpFormatter
         )
         mod_parser.add_argument('--mod-hook', action='append', help=f'Add a hook for {mod_key} only.')
-        _populate_subparser(mod_parser, mod_cls)
         
+        active_presets = getattr(mod_cls, 'presets', {}).copy()
+        if mod_key in user_mod_presets:
+            user_mod_presets = user_mod_presets[mod_key].get('presets', {})
+            # User presets overwrite built-in presets
+            active_presets.update(user_mod_presets)
+
+        if active_presets:
+            mod_preset_grp = mod_parser.add_argument_group(f'{mod_key} Presets')
+            
+            for pname, pdef in active_presets.items():
+                flag_name = f"--{pname}"
+                help_text = pdef.get('help', f"Apply {mod_key} preset: {pname}")
+                
+                mod_preset_grp.add_argument(
+                    flag_name, 
+                    action='store_true', 
+                    help=help_text
+                )
+                
+        _populate_subparser(mod_parser, mod_cls)
         mod_args_ns = mod_parser.parse_args(mod_argv)
         mod_kwargs = vars(mod_args_ns)
-
+        
         if 'mod_hook' in mod_kwargs and mod_kwargs['mod_hook']:
             mod_kwargs['hook'] = init_hooks(mod_kwargs['mod_hook'])
         else:
             mod_kwargs['hook'] = []
 
-        del mod_kwargs['mod_hook']            
-
+        del mod_kwargs['mod_hook'] 
+        for pname, pdef in active_presets.items():
+            arg_attr = pname.replace('-', '_')
+            if getattr(mod_args_ns, arg_attr, False):
+                chain = presets.hook_list_from_preset({'hooks': pdef['hooks']})
+                mod_kwargs['hook'].extend(chain)
+                
+            mod_kwargs.pop(arg_attr, None)
+               
         usable_modules.append((mod_cls, mod_kwargs))
 
     # --- Loop regions and mods and run ---

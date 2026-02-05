@@ -861,6 +861,11 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
 
                     active_hooks = [h for h in global_hooks if h.stage == 'file'] + \
                                    [h for h in mod.hooks if h.stage == 'file']
+
+                    gf_hooks = [h for h in global_hooks if h.stage == 'file']
+                    lf_hooks = [h for h in mod.hooks if h.stage == 'file']
+
+                    active_hooks = utils.merge_hooks(gf_hooks, lf_hooks)
                     
                     current_entries = [original_entry]
                     for hook in active_hooks:
@@ -924,7 +929,8 @@ class FetchModule:
             name='fetches',
             min_year=None,
             max_year=None,
-            params={}
+            params={},
+            **kwargs,
     ):
         self.region = src_region
         self.callback = callback
@@ -944,7 +950,17 @@ class FetchModule:
 
         self.internal_hooks = []
         self.external_hooks = hook if hook else []
-            
+
+        presets = {} 
+        
+        # Example structure:
+        # presets = {
+        #    'lidar-clean': [
+        #        {'name': 'unzip'},
+        #        {'name': 'filter', 'args': {'match': '.laz'}}
+        #    ]
+        # }
+        
         # For dlim support, we can check these variables for
         # to do the proper processing. Set these to their correct
         # values in the sub-class.

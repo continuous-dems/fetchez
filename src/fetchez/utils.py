@@ -263,4 +263,24 @@ def p_unzip(src_fn: str, ext: list, outdir: str = '.', verbose: bool = False) ->
             logger.error(f'Unzip error {src_fn}: {e}')
             
     return extracted_files
-                
+
+
+# =============================================================================
+# Hooks
+# =============================================================================
+def merge_hooks(global_hooks, local_hooks):
+    """Merge global and local hooks, removing exact duplicates.
+
+    Order: Globals first, then Locals.
+    """
+    
+    merged = []
+    for h in global_hooks:
+        if h not in merged:
+            merged.append(h)
+            
+    for h in local_hooks:
+        if h not in merged:
+            merged.append(h)
+            
+    return merged

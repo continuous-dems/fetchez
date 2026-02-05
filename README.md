@@ -3,32 +3,51 @@
 <pre>
 🐄🌍 [ F E T C H E Z ] 🌍🐄
 </pre>
-**The Generic Geospatial Data Acquisition and Registry Engine**
+**The Geospatial Logistics & ETL Platform**
 
-[![Version](https://img.shields.io/badge/version-0.3.3-blue.svg)](https://github.com/ciresdem/fetchez)
+[![Version](https://img.shields.io/badge/version-0.3.4-blue.svg)](https://github.com/ciresdem/fetchez)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-yellow.svg)](https://www.python.org/)
 [![PyPI version](https://badge.fury.io/py/fetchez.svg)](https://badge.fury.io/py/fetchez)
 [![project chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://cudem.zulip.org)
 
-**Fetchez** is a lightweight, modular and highly extendable Python library and command-line tool designed to discover and retrieve geospatial data from a wide variety of public repositories.
-
-Originally part of the [CUDEM](https://github.com/ciresdem/cudem) project, Fetchez is now a standalone tool capable of retrieving Bathymetry, Topography, Imagery, and Oceanographic data (and more!) from sources like NOAA, USGS, NASA, and the European Space Agency.
+**Fetchez** is a lightweight, modular and highly extendable Python library and command-line tool designed to discover and retrieve geospatial data from a wide variety of public repositories. Originally part of the [CUDEM](https://github.com/ciresdem/cudem) project, Fetchez is now a standalone tool capable of retrieving Bathymetry, Topography, Imagery, and Oceanographic data (and more!) from sources like NOAA, USGS, NASA, and the European Space Agency.
 
 ---
 
+## ❓ Why Fetchez?
+Because finding geospatial data is the hardest part of the job.
+
+If you work with geospatial data, you know the pain:
+
+"Where is the latest 1-meter DEM for Seattle?"
+
+"Did the NOAA API endpoint change again?"
+
+"How do I script a download for 5,000 files from a map viewer that only has a 'Download' button?"
+
+Fetchez solves the "Logistics Gap."
+
+It abstracts away the messy reality of 50+ different public repositories (USGS, NOAA, NASA, ESA) into a single, consistent interface. You ask for "Bathymetry in the Gulf of Mexico," and Fetchez handles the API keys, pagination, retries, and file management—delivering clean, standardized files to your hard drive so you can get back to the actual science.
+
 ## 🌎 Features
 
-* One command to fetch data from 50+ different [modules](https://github.com/ciresdem/fetchez/blob/main/MODULES.md), (SRTM, GMRT, NOAA NOS, USGS 3DEP, Copernicus, etc.).
-* Build automated data pipelines (e.g. `download -> unzip -> reproject -> log`) using built-in or custom processing hooks.
-* Built-in metadata registry allows you to search for datasets by tag, agency, resolution, or license.
-* Built-in "Fetchez Remote Elevation Datalist" (FRED) automatically indexes remote files for spatial querying without hitting APIs repeatedly.
-* Built-in download engine with automatic retries, timeout handling, and byte-range support for resuming interrupted downloads.
+* One command to fetch data from 50+ different modules, (SRTM, GMRT, NOAA NOS, USGS 3DEP, Copernicus, etc.).
+* Built-in download management handles retries, resume-on-failure, authentication, and mirror switching automatically.
+* Seamlessly mix disparate data types (e.g., fetch Stream Gauges (JSON), DEMs (GeoTIFF), and Coastlines (Shapefile) in one project).
+* Define automated workflows (Hooks) (e.g., download -> unzip -> reproject -> grid) using Python-based Processing Hooks.
+* Save complex processing chains (Presets) as simple reusable flags (e.g., fetchez ... --run-through-waffles).
+* Includes "FRED" (Fetchez Remote Elevation Datalist) to index and query remote or local files spatially without hitting slow APIs or maintianing a database.
 * Minimal dependencies (`requests`, `tqdm`, `lxml`). Optional `shapely` support for precise spatial filtering.
 * Supports user-defined Data Modules *and* Processing Hooks via `~/.fetchez/`.
 
 ---
 
+## 🧩 Where does Fetchez fit?
+
+The geospatial ecosystem is full of powerful processing engines, translators, tansformers, converters, etc. but they all assume you already have the data ready to use. Fetchez fills the gap between the internet, your hard drive and your workflow.
+
+In short: Use Fetchez to get the data so you can crunch the data.
 
 ## 📦 Installation
 
@@ -180,6 +199,54 @@ fetchez charts --hook unzip --hook pipe
 ```
 
 You can write your own custom hooks (e.g., to log downloads to a database or trigger a script) and drop them in ~/.fetchez/hooks/. See [CONTRIBUTING.md](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING.md) for details.
+
+## 🔗 Pipeline Presets (Macros)
+Tired of typing the same chain of hooks every time? Presets allow you to define reusable workflow macros.
+
+Instead of running this long command:
+
+```bash
+
+fetchez copernicus --hook checksum:algo=sha256 --hook enrich --hook audit:file=log.json
+```
+
+You can simply run:
+
+```bash
+
+fetchez copernicus --audit-full
+```
+
+*** How to use them ***
+
+Fetchez comes with a few built-in shortcuts (check fetchez --help to see them), but the real power comes from defining your own.
+
+* Initialize your config: Run this command to generate a starter configuration file at `~/.fetchez/presets.json`:
+
+```bash
+
+fetchez --init-presets
+```
+
+* Define your workflow: Edit the JSON file to create a named preset. A preset is just a list of hooks with arguments.
+
+```json
+
+"my-clean-workflow": {
+  "help": "Unzip files and immediately remove the zip archive.",
+  "hooks": [
+    {"name": "unzip", "args": {"remove": "true"}},
+    {"name": "pipe"}
+  ]
+}
+```
+
+* Run it: Your new preset automatically appears as a CLI flag!
+
+```bash
+
+fetchez charts --my-clean-workflow
+```
 
 ## 🗺️ Supported Data Sources
 

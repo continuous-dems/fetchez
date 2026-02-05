@@ -21,6 +21,7 @@ from typing import List, Dict, Optional, Any, Tuple, Union
 from tqdm import tqdm
 
 from . import utils
+from . import config
 from . import spatial
 
 try:
@@ -62,6 +63,8 @@ class FRED:
             self.path = self.filename
         elif os.path.exists(os.path.join(FETCH_DATA_DIR, self.filename)):
             self.path = os.path.join(FETCH_DATA_DIR, self.filename)
+        elif os.path.exists(os.path.join(config.CONFIG_PATH, 'indices', self.filename)):
+            self.path = os.path.join(config.CONFIG_PATH, 'indices', self.filename)
         else:
             self.path = self.filename
             

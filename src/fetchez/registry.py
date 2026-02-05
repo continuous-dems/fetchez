@@ -935,7 +935,25 @@ class FetchezRegistry:
             # Remove the plugin_dir from the system path
             sys.path.pop(0)
         
+
+    @classmethod
+    def load_installed_plugins(cls):
+        """Load plugins installed via Pip (entry_points)."""
         
+        # Look for any installed package that registered a 'fetchez.plugins' entry point
+        entry_points = importlib.metadata.entry_points(group='fetchez.plugins')
+
+        for entry_point in entry_points:
+            try:
+                plugin_module = entry_point.load()
+                # The plugin module should expose a 'setup_fetchez' function
+                if hasattr(plugin_module, 'setup_fetchez'):
+                    plugin_module.setup_fetchez(cls) # Pass the Registry to the plugin
+                    logger.info(f"Loaded extension: {entry_point.name}")
+            except Exception as e:
+                logger.error(f"Failed to load extension {entry_point.name}: {e}")
+            
+            
     @classmethod
     def search_modules(cls, query: str) -> list:
         """Search modules by matching the query string against:

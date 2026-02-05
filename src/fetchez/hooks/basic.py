@@ -241,13 +241,14 @@ class FilenameFilter(FetchHook):
     
     name = 'filename_filter'
     desc = 'Filter results by filename. Usage: --hook filter:match=.tif'
-    stage = 'pre'
+    stage = 'file'
 
-    def __init__(self, match=None, exclude=None, regex=False, **kwargs):
+    def __init__(self, match=None, exclude=None, regex=False, stage=None, **kwargs):
         """Args:
             match (str): Keep only files containing this string.
             exclude (str): Discard files containing this string.
             regex (bool): Treat match/exclude strings as regex patterns.
+            stage (str): Override hook stage ('pre', 'file', 'post').
         """
         
         super().__init__(**kwargs)
@@ -255,6 +256,10 @@ class FilenameFilter(FetchHook):
         self.exclude = utils.str_or(exclude)
         self.regex = regex
 
+        if stage:
+            self.stage = stage.lower() if stage.lower() in ['pre', 'file', 'post'] else 'file'
+
+        logger.info(f'filename_filter is set to stage {self.stage}')
         
     def run(self, entries):
         # Input: List of file entries
@@ -262,7 +267,12 @@ class FilenameFilter(FetchHook):
         
         kept_entries = []
 
-        for mod, entry in entries:
+        for item in entries:
+            if isinstance(item, tuple):
+                mod, entry = item
+            else:
+                entry = item
+                
             local_path = entry.get('dst_fn', '')
             filename = os.path.basename(local_path)
             
@@ -285,7 +295,7 @@ class FilenameFilter(FetchHook):
                         keep = False
             
             if keep:
-                kept_entries.append((mod, entry))
+                kept_entries.append(item)
 
         logger.info(f'Filename Filter hook filtered files and has kept {len(kept_entries)} matches.')
         return kept_entries
