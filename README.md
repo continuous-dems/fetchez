@@ -47,13 +47,7 @@ It abstracts away the messy reality of 50+ different public repositories (USGS, 
 
 The geospatial ecosystem is full of powerful processing engines, translators, tansformers, converters, etc. but they all assume you already have the data ready to use. Fetchez fills the gap between the internet, your hard drive and your workflow.
 
-| Tool | Role | The **Fetchez** Relationship |
-| -- | -- | -- |
-| GDAL / PDAL | The Factory | Fetchez is the Logistics Manager. It locates the raw materials (LAZ/TIF files), handles the shipping (downloading/unzipping), and delivers a clean manifest of local paths directly to GDAL/PDAL for processing. |
-| GeoPandas | The Analyst | Fetchez is the Surveyor. It handles the upstream ETL—crawling APIs and standardizing formats—so you can load a clean GeoDataFrame without writing custom scraping scripts.
-| Wget / Curl| The Courier | Fetchez is the Broker. Unlike simple file downloaders, Fetchez understands Geospatial Context (Bounding Boxes, Datums, Projections) and Repository Logic (Pagination, Token Auth, Directory Structures). |
-
-In short: Use Fetchez to get the data. Use GDAL/PDAL to crunch the data.
+In short: Use Fetchez to get the data so you can crunch the data.
 
 ## 📦 Installation
 
