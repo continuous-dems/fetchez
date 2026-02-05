@@ -323,8 +323,8 @@ def fetchez_cli():
     
     #user_presets = presets.load_user_presets()
     #user_presets = config.load_user_config().get('presets', {})
-    #user_mod_presets = config.load_user_config().get('modules', {})
     user_presets = presets.get_global_presets()
+    user_mod_presets = config.load_user_config().get('modules', {})
     
     parser = argparse.ArgumentParser(
         description=f'{utils.CYAN}%(prog)s{utils.RESET} ({__version__}) :: Discover and Fetch remote geospatial data',
