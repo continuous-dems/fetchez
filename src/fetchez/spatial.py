@@ -35,6 +35,32 @@ def region_help_msg():
   file.geojson             : Bounding box of vector file
     """
 
+# =============================================================================
+# Argument Pre-processing to account for negative coordinates at the
+# beginning of the region. argparse otherwise would think it was a new
+# argument; breaking the sometimes prefered syntax.
+# =============================================================================
+def fix_argparse_region(raw_argv):
+    fixed_argv = []
+    i = 0
+    while i < len(raw_argv):
+        arg = raw_argv[i]
+        
+        ## Check if this is a region flag and there is a next argument
+        if arg in ['-R', '--region', '--aoi'] and i + 1 < len(raw_argv):
+            next_arg = raw_argv[i+1]
+            if next_arg.startswith('-'):
+                if arg == '-R':
+                    fixed_argv.append(f"{arg}{next_arg}")
+                else:
+                    fixed_argv.append(f"{arg}={next_arg}")
+                i += 2
+                continue
+
+        fixed_argv.append(arg)
+        i += 1
+    return fixed_argv
+
 
 def region_from_string(r_str: str) -> Optional[Tuple[float, float, float, float]]:
     """Parse a standard GMT-style region string (e.g. -R-105/-104/39/40)."""

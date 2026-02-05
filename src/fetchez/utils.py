@@ -18,6 +18,7 @@ import getpass
 import logging
 import zipfile
 import shutil
+import tempfile
 import tqdm
 
 logger = logging.getLogger(__name__)
@@ -201,6 +202,39 @@ def str_truncate_middle(s, n=50):
     return f'{s[:n_2]}...{s[-n_2:]}'
 
 
+def inc2str(inc):
+    """Convert a WGS84 geographic increment to a string identifier."""
+    
+    return str(fractions.Fraction(str(inc * 3600)).limit_denominator(10)).replace('/', '')
+
+
+def str2inc(inc_str):
+    """Convert a GMT-style inc_str (e.g. 6s) to geographic units.
+
+    c/s - arc-seconds
+    m - arc-minutes    
+    """
+
+    import fractions
+    
+    if inc_str is None or str(inc_str).lower() == 'none' or len(str(inc_str)) == 0:
+        return None
+        
+    inc_str = str(inc_str)
+    units = inc_str[-1]
+    
+    try:
+        if units == 'c' or units == 's':
+            return float(inc_str[:-1]) / 3600.
+        elif units == 'm':
+            return float(inc_str[:-1]) / 360.
+        else:
+            return float(inc_str)
+    except ValueError as e:
+        echo_error_msg(f'Could not parse increment {inc_str}: {e}')
+        return None
+
+
 def remove_glob(pathname: str):
     """Safely remove files matching a glob pattern."""
     
@@ -214,6 +248,16 @@ def remove_glob(pathname: str):
                 logger.error(f'Could not remove {p}: {e}')
 
 
+def make_temp_fn(basename, temp_dir=None):
+    """Generate a temporary filename."""
+    
+    prefix = os.path.splitext(basename)[0]
+    suffix = os.path.splitext(basename)[1]
+    fd, path = tempfile.mkstemp(suffix=suffix, prefix=f"{prefix}_", dir=temp_dir)
+    os.close(fd)
+    return path
+
+                
 # =============================================================================
 # Archives, etc.
 # =============================================================================
@@ -263,6 +307,45 @@ def p_unzip(src_fn: str, ext: list, outdir: str = '.', verbose: bool = False) ->
             logger.error(f'Unzip error {src_fn}: {e}')
             
     return extracted_files
+
+
+def p_f_unzip(src_file, fns=None, outdir='./', tmp_fn=False):
+    """Unzip specific files from src_file based on matches in `fns`."""
+    
+    if fns is None:
+        fns = []
+    
+    extracted_paths = []
+    ext = os.path.splitext(src_file)[1].lower()
+    
+    if ext == '.zip':
+        with zipfile.ZipFile(src_file, 'r') as z:
+            namelist = z.namelist()
+            for pattern in fns:
+                for member in namelist:
+                    # Match pattern in the base filename
+                    if pattern in os.path.basename(member):
+                        if member.endswith('/'): # Skip directories
+                            continue
+                            
+                        dest_fn = os.path.join(outdir, os.path.basename(member))
+                        if tmp_fn:
+                            dest_fn = make_temp_fn(member, temp_dir=outdir)
+                        
+                        # Extract and write the file
+                        with open(dest_fn, 'wb') as f:
+                            f.write(z.read(member))
+                        
+                        extracted_paths.append(dest_fn)
+                        logger.info(f'Extracted: {member} to {dest_fn}')
+    else:
+        # Fallback if the file isn't a zip
+        for pattern in fns:
+            if pattern == os.path.basename(src_file):
+                extracted_paths.append(src_file)
+                break
+                
+    return extracted_paths
 
 
 # =============================================================================

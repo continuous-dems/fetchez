@@ -26,6 +26,7 @@ class FetchHook:
     def __init__(self, **kwargs):
         self.opts = kwargs
 
+        
     def __eq__(self, other):
         """Hooks are 'equal' if they are the same type and have identical dicts."""
         

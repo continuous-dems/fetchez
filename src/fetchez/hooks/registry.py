@@ -54,6 +54,24 @@ class HookRegistry:
                         logger.warning(f"Failed to load user hook {f}: {e}")
             sys.path.pop(0)
 
+
+    @classmethod
+    def register_hook(cls, hook_cls):
+        """Register a hook class. 
+
+        The hook must have a 'name' attribute (e.g. name='unzip').
+        """
+
+        import inspect
+        if not hasattr(hook_cls, 'name'):
+            logger.warning(f"Cannot register hook {hook_cls}: Missing 'name' attribute.")
+            return
+
+        key = hook_cls.name
+        if inspect.isclass(hook_cls) and issubclass(hook_cls, FetchHook) and hook_cls is not FetchHook:            
+            cls._hooks[key] = hook_cls
+            logger.debug(f"Registered external hook: {key}")
+
         
     @classmethod
     def _register_from_module(cls, module):
@@ -64,8 +82,18 @@ class HookRegistry:
             if inspect.isclass(obj) and issubclass(obj, FetchHook) and obj is not FetchHook:
                 key = getattr(obj, 'name', name.lower())
                 cls._hooks[key] = obj
+                logger.debug(f"Registered hook from module: {key}")
 
                 
     @classmethod
     def get_hook(cls, name):
+        """Retrieve a hook class by name."""
+        
         return cls._hooks.get(name)
+
+    
+    @classmethod
+    def list_hooks(cls):
+        """Return a dict of all registered hooks."""
+        
+        return cls._hooks

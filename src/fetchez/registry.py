@@ -942,7 +942,6 @@ class FetchezRegistry:
         
         # Look for any installed package that registered a 'fetchez.plugins' entry point
         entry_points = importlib.metadata.entry_points(group='fetchez.plugins')
-
         for entry_point in entry_points:
             try:
                 plugin_module = entry_point.load()
@@ -981,3 +980,31 @@ class FetchezRegistry:
                 matches.append(key)
                 
         return sorted(matches)
+
+    @classmethod
+    def register_module(cls, mod_key, mod_cls, metadata=None):
+        """Register a new module dynamically (e.g., from a plugin).
+        
+        Args:
+            mod_key (str): The CLI command name (e.g., 'datum_grids').
+            mod_cls (class): The actual Python class (inheriting from FetchModule).
+            metadata (dict): Optional metadata for discovery (desc, tags, etc.).
+        """
+        
+        if metadata is None:
+            metadata = {}
+            
+        # Build the registry entry
+        entry = {
+            'mod': mod_cls.__module__,   # The python path (e.g. 'transformez.modules')
+            'cls': mod_cls.__name__,     # The class name (e.g. 'DatumGridFetcher')
+            '_class_obj': mod_cls,       # Direct reference (skips importlib later)
+            'category': metadata.get('category', 'User Plugin'),
+            'desc': metadata.get('desc', 'No description provided.'),
+            'tags': metadata.get('tags', []),
+            'agency': metadata.get('agency', 'External'),
+            'license': metadata.get('license', 'Unknown'),
+        }
+
+        cls._modules[mod_key] = entry
+        logger.debug(f"Registered external module: {mod_key}")    

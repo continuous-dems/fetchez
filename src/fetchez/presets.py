@@ -32,6 +32,7 @@ from . import config
 
 #home_dir = os.path.expanduser('~')
 #CONFIG_PATH = os.path.join(home_dir, '.fetchez', 'presets.json')
+_GLOBAL_PRESETS = {}
 
 logger = logging.getLogger(__name__)    
 
@@ -39,11 +40,12 @@ def load_user_presets():
     """Load presets from the user's config file."""
 
     try:
-        data = utils.load_user_config()
+        data = config.load_user_config()
         return data.get('presets', {})
     except:
         logger.warning(f'Could not load presets: {e}') 
         return {}
+
     
 def hook_list_from_preset(preset_def):
     """Convert JSON definition to list of Hook Objects."""
@@ -61,6 +63,30 @@ def hook_list_from_preset(preset_def):
             hooks.append(hook_cls(**kwargs))
             
     return hooks
+
+def register_global_preset(name, help_text, hooks):
+    """Register a global CLI preset from a plugin.
+    
+    Args:
+        name (str): The flag name (e.g., 'make-shift-grid').
+        help_text (str): Description for --help.
+        hooks (list): List of dicts defining the hook chain.
+    """
+    
+    _GLOBAL_PRESETS[name] = {
+        'help': help_text,
+        'hooks': hooks
+    }
+
+    
+def get_global_presets():
+    """Return combined user presets AND plugin presets."""
+    all_presets = _GLOBAL_PRESETS.copy()
+    user_presets = load_user_presets()
+    all_presets.update(user_presets)
+    
+    return all_presets
+
 
 def init_presets():
     """Generate a default presets.json file."""

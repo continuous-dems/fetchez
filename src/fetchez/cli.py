@@ -139,33 +139,6 @@ def _populate_subparser(subparser, module_cls, global_args=['self', 'kwargs', 'p
             elif param.annotation is float: type_fn = float
             
             subparser.add_argument(f'--{name}', default=default, type=type_fn, help=f"{help_str} (default: {default})")
-
-
-# =============================================================================
-# Argument Pre-processing to account for negative coordinates at the
-# beginning of the region. argparse otherwise would think it was a new
-# argument; breaking the sometimes prefered syntax.
-# =============================================================================
-def fix_argparse_region(raw_argv):
-    fixed_argv = []
-    i = 0
-    while i < len(raw_argv):
-        arg = raw_argv[i]
-        
-        ## Check if this is a region flag and there is a next argument
-        if arg in ['-R', '--region', '--aoi'] and i + 1 < len(raw_argv):
-            next_arg = raw_argv[i+1]
-            if next_arg.startswith('-'):
-                if arg == '-R':
-                    fixed_argv.append(f"{arg}{next_arg}")
-                else:
-                    fixed_argv.append(f"{arg}={next_arg}")
-                i += 2
-                continue
-
-        fixed_argv.append(arg)
-        i += 1
-    return fixed_argv
         
     
 # =============================================================================
@@ -312,18 +285,20 @@ def fetchez_cli():
     _usage = f'%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]...'
 
     registry.FetchezRegistry.load_user_plugins()
-
+    registry.FetchezRegistry.load_installed_plugins()
+    
     from .hooks.registry import HookRegistry
     from . import presets
     from . import config
     
     HookRegistry.load_builtins()  
     HookRegistry.load_user_plugins()
-
+    
     #user_presets = presets.load_user_presets()
-    user_presets = config.load_user_config().get('presets', {})
+    #user_presets = config.load_user_config().get('presets', {})
+    user_presets = presets.get_global_presets()
     user_mod_presets = config.load_user_config().get('modules', {})
-
+    
     parser = argparse.ArgumentParser(
         description=f'{utils.CYAN}%(prog)s{utils.RESET} ({__version__}) :: Discover and Fetch remote geospatial data',
         formatter_class=argparse.RawTextHelpFormatter,
@@ -375,7 +350,7 @@ CUDEM home page: <http://cudem.colorado.edu>
     adv_grp.add_argument('--init-presets', action='store_true', help="Generate a default ~/.fetchez/presets.json file.")
     
     # Pre-process Arguments to fix argparses handling of -R
-    fixed_argv = fix_argparse_region(sys.argv[1:])
+    fixed_argv = spatial.fix_argparse_region(sys.argv[1:])
     global_args, remaining_argv = parser.parse_known_args(fixed_argv)
 
     check_size = not global_args.no_check_size
@@ -384,7 +359,7 @@ CUDEM home page: <http://cudem.colorado.edu>
     # I like sending logging to stderr, and anyway we want this with --pipe-path
     #logging.basicConfig(level=level, format='[ %(levelname)s ] %(name)s: %(message)s', stream=sys.stderr)
     setup_logging(not global_args.quiet) # this prevents logging from distorting tqdm and leaving partial tqdm bars everywhere...
-
+    
     if global_args.init_presets:
         presets.init_presets()
         sys.exit(0)
