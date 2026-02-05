@@ -365,7 +365,6 @@ def region_to_geojson_geom(region: Tuple[float, float, float, float]):
     }
 
 
-
 def chunk_region(region: Tuple[float, float, float, float], chunk_size: float = 1.0) -> List[Tuple[float, float, float, float]]:
     """Split a region into smaller sub-regions of a specified size.
     
@@ -401,3 +400,13 @@ def chunk_region(region: Tuple[float, float, float, float], chunk_size: float = 
         cur_w = next_w
         
     return chunks
+
+def region_and_inc_to_width_height(region, increment):
+    inc_val = str2inc(increment) if isinstance(increment, str) else increment
+    
+    width = region[1] - region[0]
+    height = region[3] - region[2]
+    nx = int(width / inc_val) + 1
+    ny = int(height / inc_val) + 1
+    
+    return nx, ny
