@@ -36,10 +36,9 @@ dependencies = [
 aws = ["boto3"]
 vector = ["pyshp", "pyproj"]
 gdal = ["gdal"]
-cog = ["zarr", "tiffile"]
 
 # "Meta" groups that combine others
-full = ["boto3", "pyshp", "pyproj", "zarr", "tiffile"]
+full = ["boto3", "pyshp", "pyproj"]
 dev = ["pytest"]
 
 keywords = ["Geospatial"]
