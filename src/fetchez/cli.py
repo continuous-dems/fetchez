@@ -504,6 +504,7 @@ CUDEM home page: <http://cudem.colorado.edu>
         mod_parser.add_argument('--mod-hook', action='append', help=f'Add a hook for {mod_key} only.')
         
         active_presets = getattr(mod_cls, 'presets', {}).copy()
+        active_presets.update(presets.get_module_presets(mod_key))
         if mod_key in user_mod_presets:
             user_mod_presets = user_mod_presets[mod_key].get('presets', {})
             # User presets overwrite built-in presets

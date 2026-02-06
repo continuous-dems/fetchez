@@ -889,7 +889,7 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
         raise
 
     results_by_mod = {m: [] for m in modules}
-    for m, r_tuple in final_results_with_owner:
+    for r_tuple in final_results_with_owner:
         owner_mod, entry = r_tuple
         if owner_mod in results_by_mod:
             results_by_mod[owner_mod].append((owner_mod, entry))

@@ -33,6 +33,8 @@ from . import config
 #home_dir = os.path.expanduser('~')
 #CONFIG_PATH = os.path.join(home_dir, '.fetchez', 'presets.json')
 _GLOBAL_PRESETS = {}
+# Structure: { 'module_name': { 'preset_name': { 'help': ..., 'hooks': ... } } }
+_MODULE_PRESETS = {}
 
 logger = logging.getLogger(__name__)    
 
@@ -64,19 +66,72 @@ def hook_list_from_preset(preset_def):
             
     return hooks
 
+# fetchez/src/fetchez/presets.py
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Global presets (appear in main --help)
+_GLOBAL_PRESETS = {}
+
+# Module-specific presets (appear in module-specific --help)
+# Structure: { 'module_name': { 'preset_name': { 'help': ..., 'hooks': ... } } }
+_MODULE_PRESETS = {}
+
 def register_global_preset(name, help_text, hooks):
-    """Register a global CLI preset from a plugin.
-    
-    Args:
-        name (str): The flag name (e.g., 'make-shift-grid').
-        help_text (str): Description for --help.
-        hooks (list): List of dicts defining the hook chain.
+    """Register a global CLI preset (e.g., --audit).
+    These are available for ALL modules.
     """
     
+    if name in _GLOBAL_PRESETS:
+        logger.warning(f"Overwriting global preset '{name}'")
+        
     _GLOBAL_PRESETS[name] = {
         'help': help_text,
         'hooks': hooks
     }
+    logger.debug(f"Registered global preset: --{name}")
+
+    
+def register_module_preset(module, name, help_text, hooks):
+    """
+    Register a module-specific preset (e.g., --extract for multibeam).
+    These only appear when running that specific module.
+    
+    Args:
+        module (str): The module key (e.g., 'multibeam').
+        name (str): The flag name (e.g., 'extract').
+        help_text (str): Description.
+        hooks (list): List of hook configurations.
+    """
+    if module not in _MODULE_PRESETS:
+        _MODULE_PRESETS[module] = {}
+        
+    if name in _MODULE_PRESETS[module]:
+        logger.warning(f"Overwriting preset '{name}' for module '{module}'")
+
+    _MODULE_PRESETS[module][name] = {
+        'help': help_text,
+        'hooks': hooks
+    }
+    logger.debug(f"Registered preset --{name} for module {module}")
+
+    
+def get_module_presets(module_name):
+    """Return presets registered for a specific module, 
+     PLUS any global presets that don't conflict.
+    """
+    
+    # Start with global
+    available = _GLOBAL_PRESETS.copy()
+    
+    # Overlay module specific ones (they take precedence)
+    if module_name in _MODULE_PRESETS:
+        mod_specific = _MODULE_PRESETS[module_name]
+        available.update(mod_specific)
+        
+    return available
 
     
 def get_global_presets():
