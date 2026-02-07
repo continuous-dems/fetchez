@@ -279,6 +279,21 @@ def init_hooks(hook_list_strs):
 # =============================================================================
 # Command-line Interface(s) (CLI)
 # =============================================================================
+def index_cli():
+    """CLI Entry point for 'fetchez-index' or similar."""
+    from fetchez.fred import FRED
+    
+    parser = argparse.ArgumentParser(description="Index local geospatial files for Fetchez.")
+    parser.add_argument('directory', help="Directory to scan")
+    parser.add_argument('--name', '-n', default='local_data', help="Name of the index (default: local_data)")
+    parser.add_argument('--recursive', '-r', action='store_true', help="Scan recursively")
+    
+    args = parser.parse_args()
+    
+    f = FRED(args.name, local=True) 
+    f.scan(args.directory, recursive=args.recursive)
+
+    
 def fetchez_cli():
     """Run fetchez from command-line using argparse."""
 

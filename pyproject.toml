@@ -43,6 +43,7 @@ full = ["fetchez[aws,vector]"]
 [project.scripts]
 # CLI Entry Points
 fetchez = "fetchez.cli:fetchez_cli"
+fetchez-index = "fetchez.cli:index_cli"
 
 [project.urls]
 Homepage = "https://github.com/ciresdem/fetchez"
