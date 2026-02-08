@@ -24,8 +24,6 @@ try:
 except ImportError:
     HAS_SHAPELY = False
 
-from . import utils 
-
 logger = logging.getLogger(__name__)
 
 def region_help_msg():
@@ -395,6 +393,20 @@ def region_valid_p(region, check_xy=True):
         return region.valid_p(check_xy)
     # Handle tuples via temporary Region object
     return Region.from_list(region).valid_p(check_xy) if region else False
+
+
+def region_to_shapely(region: Tuple[float, float, float, float]):
+    """Convert a fetchez region (xmin, xmax, ymin, ymax) to a shapely box.
+    
+    fetchez regions are like GMT: (west, east, south, north) while
+    shapely regions are not: (minx, miny, maxx, maxy)
+    """
+    
+    if not region or not HAS_SHAPELY:
+        return None
+        
+    west, east, south, north = region
+    return box(west, south, east, north)
 
 
 # Backwards compatibility aliases
