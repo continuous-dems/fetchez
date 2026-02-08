@@ -24,8 +24,6 @@ try:
 except ImportError:
     HAS_SHAPELY = False
 
-from . import utils 
-
 logger = logging.getLogger(__name__)
 
 def region_help_msg():
@@ -396,6 +394,63 @@ def region_valid_p(region, check_xy=True):
     # Handle tuples via temporary Region object
     return Region.from_list(region).valid_p(check_xy) if region else False
 
+
+def region_center(region: Tuple[float, float, float, float]):
+    """Calculate the center of a region."""
+
+    w, e, s, n = region
+    center_lon = (w + e) / 2
+    center_lat = (s + n) / 2
+
+    return center_lon, center_lat
+
+
+def region_to_shapely(region: Tuple[float, float, float, float]):
+    """Convert a fetchez region (xmin, xmax, ymin, ymax) to a shapely box.
+    
+    fetchez regions are like GMT: (west, east, south, north) while
+    shapely regions are not: (minx, miny, maxx, maxy)
+    """
+    
+    if not region or not HAS_SHAPELY:
+        return None
+        
+    west, east, south, north = region
+    return box(west, south, east, north)
+
+def region_to_wkt(region: Tuple[float, float, float, float]):
+    """Convert a fetchez region (xmin, xmax, ymin, ymax) to WKT (via shapely)"""
+
+    polygon = region_to_shapely(region)
+    return polygon.wkt
+
+
+def region_to_bbox(region: Tuple[float, float, float, float]):
+    """Convert a fetchez region to a `bbox`"""
+
+    w, e, s, n = region
+    return (w, s, e, n)
+
+
+def region_to_geojson_geom(region: Tuple[float, float, float, float]):
+    w, e, s, n = region
+    # geom = {
+    #     "type": "Polygon",
+    #     "coordinates": [[
+    #         [w, s], [e, s], [e, n], [w, n], [w, s]
+    #     ]]
+    # }
+
+    return {
+        'type': 'Polygon',
+        'coordinates': [[
+            [w, s],
+            [w, n],
+            [e, n],
+            [e, s],
+            [w, s]
+        ]]
+    }
 
 # Backwards compatibility aliases
 region_from_list = Region.from_list
