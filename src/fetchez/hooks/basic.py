@@ -35,6 +35,7 @@ class PipeOutput(FetchHook):
     name = 'pipe'
     desc = 'Print absolute file paths to stdout for piping.'
     stage = 'post'
+    category = 'pipeline'
 
     def run(self, entries):
         """Input is: [url, path, type, status]"""
@@ -50,6 +51,7 @@ class DryRun(FetchHook):
     name = 'dryrun'
     desc = 'Clear the download queue (simulate only).'
     stage = 'pre'
+    category = 'pipeline'
     
     def run(self, entries):
         # Return empty list to stop execution
@@ -60,6 +62,7 @@ class ListEntries(FetchHook):
     name = "list"
     desc = "Print discovered URLs to stdout."
     stage = 'pre'
+    category = 'metadata'
 
     def run(self, entries):
         for mod, entry in entries:
@@ -78,6 +81,7 @@ class Checksum(FetchHook):
     name = "checksum"
     desc = "Calculate file checksums (md5/sha1/sha256)."
     stage = 'file'
+    category = 'metadata'
 
     def __init__(self, algo='md5', **kwargs):
         super().__init__(**kwargs)
@@ -133,6 +137,7 @@ class MetadataEnrich(FetchHook):
     name = "enrich"
     desc = "Add file timestamps and mime-types to metadata."
     stage = 'file'
+    category = 'metadata'
 
     def run(self, entries):
         for mod, entry in entries:
@@ -159,7 +164,8 @@ class Inventory(FetchHook):
     name = 'pre_inventory'
     desc = 'Output metadata inventory (JSON/CSV). Usage: --hook inventory:format=csv'
     stage = 'pre'
-    
+    category = 'metadata'
+        
     def __init__(self, format='json', **kwargs):
         super().__init__(**kwargs)
         self.format = format.lower()
@@ -199,6 +205,7 @@ class Audit(FetchHook):
     name = 'audit'
     desc = 'Save a run summary to a file. Usage: --hook audit:file=log.json'
     stage = 'post'
+    category = 'metadata'
 
     def __init__(self, file='audit.json', format='json', **kwargs):
         super().__init__(**kwargs)
@@ -245,6 +252,7 @@ class FilenameFilter(FetchHook):
     name = 'filename_filter'
     desc = 'Filter results by filename. Usage: --hook filter:match=.tif'
     stage = 'file'
+    category = 'file-op'
 
     def __init__(self, match=None, exclude=None, regex=False, stage=None, **kwargs):
         """Args:

@@ -15,7 +15,11 @@ class FetchHook:
     """Base class for all Fetchez Hooks."""
     
     name = "base_hook"
-    desc = "Does nothing."
+    desc = "Does something."
+
+    # Category for CLI grouping: metadata, file-op, stream-transform, sink, pipeline, etc.
+    category = "uncategorized"
+    
     # Defaults to 'file', but could be 'pre_fetch' or 'post_fetch'
     # 'pre':  Runs once before any downloads start.
     # 'file': Runs in the worker thread immediately after a file download.

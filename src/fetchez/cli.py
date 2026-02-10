@@ -392,10 +392,32 @@ CUDEM home page: <http://cudem.colorado.edu>
         sys.exit(0)
 
     if hasattr(global_args, 'list_hooks') and global_args.list_hooks:
-        print("\n\tAvailable Hooks:")
+        print("\nAvailable Hooks:")
+        print("=" * 60)
+        
+        # Group by category
+        grouped_hooks = {}
         for name, cls_obj in HookRegistry._hooks.items():
-            desc = getattr(cls_obj, 'desc', 'No description')
-            print(f"  {name:<15} : {desc}")
+            cat = getattr(cls_obj, 'category', 'uncategorized').lower()
+            if cat not in grouped_hooks:
+                grouped_hooks[cat] = []
+            grouped_hooks[cat].append((name, cls_obj))
+            
+        # Define display order
+        cat_order = ['pipeline', 'metadata', 'file-op', 'stream-transform', 'stream-filter', 'sink', 'uncategorized']
+        existing_cats = [c for c in cat_order if c in grouped_hooks]
+        remaining_cats = sorted([c for c in grouped_hooks if c not in cat_order])
+        
+        for cat in existing_cats + remaining_cats:
+            # Format header: [ Metadata ]
+            print(f"\n[ {cat.title()} ]") 
+            
+            for name, cls_obj in sorted(grouped_hooks[cat], key=lambda x: x[0]):
+                desc = getattr(cls_obj, 'desc', 'No description')
+                # stage = getattr(cls_obj, 'stage', 'file')
+                print(f"  {utils.colorize(name, utils.BOLD):<18} : {desc}")
+                
+        print()
         sys.exit(0)
 
     # --- Init Global Hook Shortcuts ---

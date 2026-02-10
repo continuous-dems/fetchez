@@ -5,7 +5,7 @@
 </pre>
 **The Geospatial Logistics & ETL Platform**
 
-[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/ciresdem/fetchez)
+[![Version](https://img.shields.io/badge/version-0.4.1-blue.svg)](https://github.com/ciresdem/fetchez)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-yellow.svg)](https://www.python.org/)
 [![PyPI version](https://badge.fury.io/py/fetchez.svg)](https://badge.fury.io/py/fetchez)

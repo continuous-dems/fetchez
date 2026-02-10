@@ -257,7 +257,38 @@ def make_temp_fn(basename, temp_dir=None):
     os.close(fd)
     return path
 
-                
+
+def parse_fmod(fmod):
+    """Parse a factory module string.
+    
+    Returns:
+        Tuple containing (all_options, module_name, module_arguments)
+    """
+    
+    opts = fmod2dict(fmod)
+    mod = opts.get('_module')
+    mod_args = {k: v for k, v in opts.items() if k != '_module'}
+    return opts, mod, mod_args
+
+
+def parse_fmod_argparse(fmod):
+    """Parse a factory module string.
+    
+    Returns:
+        Tuple containing (all_options, module_name, module_arguments)
+    """
+    
+    opts = fmod2dict(fmod)
+    mod = opts.get('_module')
+    mod_args = {k: v for k, v in opts.items() if k != '_module'}
+    mod_args = [f'--{k}={v}' for k,v in opts.items() if k != '_module']
+    return opts, mod, mod_args
+
+
+def range_pairs(lst):
+    return [(lst[i], lst[i+1]) for i in range(len(lst) - 1)]
+
+
 # =============================================================================
 # Archives, etc.
 # =============================================================================

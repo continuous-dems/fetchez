@@ -26,6 +26,7 @@ class Unzip(FetchHook):
     name = "unzip"
     desc = "Extract .zip archives. Usage: --hook unzip:remove=true:overwrite=false"
     stage = 'file'
+    category = 'file-op'
 
     def __init__(self, remove=False, overwrite=False, **kwargs):
         """
