@@ -282,6 +282,18 @@ def init_hooks(hook_list_strs):
 def fetchez_cli():
     """Run fetchez from command-line using argparse."""
 
+    # Check if first arg exists and ends in .json or yaml. -- project file --
+    if len(sys.argv) > 1 and sys.argv[1].endswith('.json') and os.path.isfile(sys.argv[1]):
+        from . import project
+        
+        logging.basicConfig(level=logging.INFO, format='[ %(levelname)s ] %(name)s: %(message)s', stream=sys.stderr)
+        
+        project_file = sys.argv[1]
+        run = project.ProjectRun(project_file)
+        run.run()
+        sys.exit(0)
+
+    
     _usage = f'%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]...'
 
     registry.FetchezRegistry.load_user_plugins()
@@ -348,6 +360,7 @@ CUDEM home page: <http://cudem.colorado.edu>
     adv_grp.add_argument('--hook', action='append', help="Add a custom global hook (e.g. 'audit:file=log.txt').")
     adv_grp.add_argument('--list-hooks', action='store_true', help="List all available hooks.")
     adv_grp.add_argument('--init-presets', action='store_true', help="Generate a default ~/.fetchez/presets.json file.")
+    #adv_grp.add_argument('--init-presets', action='store_true', help="Export active presets to ./fetchez_presets_template.json (template for customization).")
     
     # Pre-process Arguments to fix argparses handling of -R
     fixed_argv = spatial.fix_argparse_region(sys.argv[1:])

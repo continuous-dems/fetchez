@@ -29,6 +29,7 @@ dependencies = [
     "lxml",
     "tqdm",
     "shapely",
+    'pyyaml',
 ]
 
 keywords = ["Geospatial"]
