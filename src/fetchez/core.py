@@ -21,6 +21,7 @@ import queue
 import netrc
 import io
 import logging
+import collections
 from tqdm import tqdm
 import urllib.parse
 from urllib.error import HTTPError, URLError
@@ -863,6 +864,7 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
 
     silent = logger.getEffectiveLevel() > logging.INFO
     
+    # --- Module Pre-Hooks ---
     for mod in modules:
         mod_pre = [h for h in mod.hooks if h.stage == 'pre']
         if not mod_pre:
@@ -885,6 +887,7 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
         for entry in mod.results:
             all_entries.append((mod, entry))
 
+    # --- Global Pre-Hooks ---
     global_pre = [h for h in global_hooks if h.stage == 'pre']
     for hook in global_pre:
         try:
@@ -899,9 +902,12 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
         logger.info('No files to fetch.')
         return
 
-    logger.info(f'Starting parallel fetch: {total_files} files with {threads} threads.')    
+    logger.info(f'Starting parallel fetch: {total_files} files with {threads} threads.')     
     final_results_with_owner = []
-
+    
+    # We track active hooks to ensure we teardown everything that ran
+    active_hooks_set = []
+    
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
             futures = {
@@ -922,28 +928,36 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
                         logger.error(f"Worker exception: {e}")
                         original_entry.update({'status': -1})
 
-                    active_hooks = [h for h in global_hooks if h.stage == 'file'] + \
-                                   [h for h in mod.hooks if h.stage == 'file']
-
+                    # --- 3. File Hooks ---
                     gf_hooks = [h for h in global_hooks if h.stage == 'file']
                     lf_hooks = [h for h in mod.hooks if h.stage == 'file']
 
                     active_hooks = utils.merge_hooks(gf_hooks, lf_hooks)
-                    
+                    active_hooks_set.append(active_hooks)
+
                     current_entries = [(mod, original_entry)]
+                    
                     for hook in active_hooks:
                         try:
+                            # Hook runs on current entry list
                             current_entries = hook.run(current_entries)
                             if current_entries is None: current_entries = []
                         except Exception as e:
                             logger.error(f'File hook "{hook.name}" failed: {e}')
 
-                    for item in current_entries:
-                        if isinstance(item, dict):
-                            final_results_with_owner.append((mod, item))
-                        else:
-                            final_results_with_owner.append(item)
-                            
+                    # --- STREAM DRIVER  ---
+                    # If any hook set up a generator stream (e.g. SimpleStack, Filters),
+                    # we must exhaust it here to trigger the processing.
+                    processed_entries = []
+                    for owner, item in current_entries:
+                        stream = item.get('stream')                        
+                        if stream and isinstance(stream, (collections.abc.Iterator, collections.abc.Generator)):
+                            logger.debug(f"Exhausting stream for {os.path.basename(item.get('dst_fn', ''))}...")
+                            collections.deque(stream, maxlen=0)
+                        
+                        processed_entries.append((owner, item))
+                    
+                    final_results_with_owner.extend(processed_entries)
                     pbar.update(1)
 
     except KeyboardInterrupt:
@@ -951,6 +965,23 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
         executor.shutdown(wait=False, cancel_futures=True)
         raise
 
+    finally:
+        # --- Teardown The Hook(s) ---
+        logger.debug("Running teardown for all hooks...")
+        
+        all_possible_hooks = active_hooks_set
+        for h in global_hooks: all_possible_hooks.append(h)
+        for m in modules: 
+            for h in m.hooks: all_possible_hooks.append(h)
+
+        for hook in all_possible_hooks:
+            if hasattr(hook, 'teardown'):
+                try:
+                    hook.teardown()
+                except Exception as e:
+                    logger.error(f"Teardown failed for hook '{hook.name}': {e}")
+    
+    # --- Post Hooks ---
     results_by_mod = {m: [] for m in modules}
     for r_tuple in final_results_with_owner:
         owner_mod, entry = r_tuple
@@ -966,14 +997,13 @@ def run_fetchez(modules: List['FetchModule'], threads: int = 3, global_hooks=Non
                 except Exception as e:
                     logger.error(f'Module "{mod.name}" post-hook "{hook.name}" failed: {e}')
 
-    flat_results = final_results_with_owner                     
-    #flat_results = [r for m, r in final_results_with_owner]    
+    flat_results = final_results_with_owner                      
     global_post = [h for h in global_hooks if h.stage == 'post']
     for hook in global_post:
         try:
             hook.run(flat_results)
         except Exception as e:
-            logger.error(f'Global post-hook "{hook.name}" failed: {e}')
+            logger.error(f'Global post-hook "{hook.name}" failed: {e}')    
 
             
 # =============================================================================

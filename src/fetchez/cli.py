@@ -514,6 +514,7 @@ CUDEM home page: <http://cudem.colorado.edu>
             commands[0][1].append('--help')
         
     if not commands:
+        logger.error('You must select at least one module')
         parser.print_help()
         sys.exit(0)
 
@@ -584,6 +585,7 @@ CUDEM home page: <http://cudem.colorado.edu>
         usable_modules.append((mod_cls, mod_kwargs))
 
     # --- Loop regions and mods and run ---
+    active_modules = []  # The batch queue
     for this_region in these_regions:
         for mod_cls, mod_kwargs in usable_modules:
             try:
@@ -599,44 +601,52 @@ CUDEM home page: <http://cudem.colorado.edu>
 
                 x_f.run()
 
-                logger.info(f'Found {len(x_f.results)} data files.')
+                count = len(x_f.results)
+                logger.info(f'Found {count} data files from {mod_cls}.')
 
-                if not x_f.results:
-                    continue
-
-                try:
-                    # run_fetchez expects a list of modules, so we wrap x_f in brackets [x_f].
-                    core.run_fetchez([x_f], threads=global_args.threads, global_hooks=global_hook_objs)
-
-                except (KeyboardInterrupt, SystemExit):
-                    logger.error('User breakage... please wait while fetchez exits.')
-                    sys.exit(0)
-                # Depreciated threads/queue:
-                # try:
-                #     fr = core.fetch_results(
-                #         x_f,
-                #         n_threads=global_args.threads,
-                #         check_size=check_size,
-                #         attempts=global_args.attempts
-                #     )
-                #     fr.daemon = True                
-                #     fr.start()
-                #     fr.join()         
-                # except (KeyboardInterrupt, SystemExit):
-                #     logger.error('User breakage... please wait while fetchez exits.')
-                #     x_f.status = -1
-                #     while not fr.fetch_q.empty():
-                #         try:
-                #             fr.fetch_q.get(False)
-                #             fr.fetch_q.task_done()
-                #         except queue.Empty:
-                #             break
+                if count > 0:
+                    active_modules.append(x_f)
 
             except (KeyboardInterrupt, SystemExit):
                 logger.error('User interruption.')
                 sys.exit(-1)
             except Exception:
                 logger.error(f'Error running module', exc_info=True)
+
+    if active_modules:
+        try:
+            core.run_fetchez(
+                active_modules, 
+                threads=global_args.threads, 
+                global_hooks=global_hook_objs
+            )
+            # Depreciated threads/queue:
+            # try:
+            #     fr = core.fetch_results(
+            #         x_f,
+            #         n_threads=global_args.threads,
+            #         check_size=check_size,
+            #         attempts=global_args.attempts
+            #     )
+            #     fr.daemon = True                
+            #     fr.start()
+            #     fr.join()         
+            # except (KeyboardInterrupt, SystemExit):
+            #     logger.error('User breakage... please wait while fetchez exits.')
+            #     x_f.status = -1
+            #     while not fr.fetch_q.empty():
+            #         try:
+            #             fr.fetch_q.get(False)
+            #             fr.fetch_q.task_done()
+            #         except queue.Empty:
+            #             break
+
+        except (KeyboardInterrupt, SystemExit):
+            logger.error('User breakage... please wait while fetchez exits.')
+            sys.exit(0)
+            
+    else:
+        logger.warning("No data found for any requested modules.")
 
                 
 if __name__ == '__main__':

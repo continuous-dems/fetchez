@@ -332,7 +332,6 @@ def parse_region(input_r: Union[str, List]) -> List[Region]:
     """Main function to parse region input into a list of Region objects."""
     
     regions = []
-    
     # 1. Single String
     if isinstance(input_r, str):
         s_lower = input_r.lower()
@@ -360,7 +359,7 @@ def parse_region(input_r: Union[str, List]) -> List[Region]:
         # Don't warn on None input, only on failed parse of actual input
         if input_r is not None:
             logger.warning(f'Failed to parse region {input_r}')
-            
+
     return regions
 
 

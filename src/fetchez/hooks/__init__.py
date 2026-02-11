@@ -39,6 +39,16 @@ class FetchHook:
         
         return self.__dict__ == other.__dict__
 
+
+    def teardown(self):
+        """Cleanup.
+
+        Called strictly once after all processing is complete.
+        Override this to close files, finalize grids, or print summaries.
+        """
+        
+        pass
+
     
     def run(self, entry):
         """Execute the hook.

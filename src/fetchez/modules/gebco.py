@@ -74,5 +74,5 @@ class GEBCO(FetchModule):
         self.add_entry_to_results(
             url=url,
             dst_fn=dst_fn,
-            data_type="archive"
+            data_type="archive",
         )
