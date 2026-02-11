@@ -292,7 +292,6 @@ def fetchez_cli():
         run = project.ProjectRun(project_file)
         run.run()
         sys.exit(0)
-
     
     _usage = f'%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]...'
 
