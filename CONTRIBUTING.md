@@ -4,7 +4,7 @@ Thank you for considering contributing to Fetchez! We welcome contributions from
 
 Whether you're fixing a bug, adding a new data module, or improving documentation, this guide will help you get started.
 
-## 🛠️ Development Setup
+##  Development Setup
 
 1.  **Fork the Repository:** Click the "Fork" button on the top right of the GitHub page.
 2.  **Clone your Fork:**
@@ -22,7 +22,7 @@ Whether you're fixing a bug, adding a new data module, or improving documentatio
     pip install -e .
     ```
 
-## 🐛 Reporting Bugs
+## Reporting Bugs
 
 
 If you find a bug, please create a new issue on GitHub. Include:
@@ -30,7 +30,7 @@ If you find a bug, please create a new issue on GitHub. Include:
 * The error message / traceback.
 * Your operating system and Python version.
 
-## 📚 Improving Documentation & Examples
+## Improving Documentation & Examples
 
 Great documentation is just as important as code! We want Fetchez to be accessible to everyone, from students to seasoned geospatial engineers.
 
@@ -43,7 +43,7 @@ Great documentation is just as important as code! We want Fetchez to be accessib
     * Update the `help_text` in the module's `@cli.cli_opts` decorator.
     * Update the class docstring with specific details about the dataset (resolution, vertical datum, etc.).
 
-## 🐄 Developing User Plugins (Data Modules)
+## Developing User Plugins (Data Modules)
 
 One of the most powerful features of `fetchez` is its plugin architecture. You can write your own modules to fetch data from custom sources and use them immediately with the full power of the `fetchez` CLI (smart regions, threading, retries, etc.).
 
@@ -97,7 +97,7 @@ fetchez --search plugin
 fetchez my_checkpoints
 ```
 
-## 🪝 Developing User Hooks (Processing)
+## Developing User Hooks (Processing)
 Hooks allow you to inject custom processing into the fetch pipeline. You can write hooks to process files immediately after they are downloaded, or to run setup/teardown tasks.
 
 ### How it Works
@@ -149,7 +149,7 @@ Did you build a plugin that would be useful for the wider community? We'd love t
 
 Submit a Pull Request adding your file to fetchez/modules/ or fetchez/hooks.
 
-## 🔗 Developing & Sharing Presets
+## Developing & Sharing Presets
 Presets (or "Macros") are the easiest way to share complex data engineering workflows without writing Python code. They allow you to bundle multiple processing steps into a single, shareable JSON snippet.
 
 *** The Preset Configuration File ***
@@ -209,7 +209,7 @@ You can use the modules section to create specialized shortcuts for specific dat
 
 For example, you often use fetchez dav (NOAA Digital Coast) but only want to check if data exists without downloading gigabytes of lidar. Now, you can create a preset that filters for "footprint" files only by writing a series of hooks and then combining them into a preset. Then, when you run `fetchez dav --help`, you will see your custom `--footprint-only` flag listed under "DAV Presets", but it won't clutter the menu for other modules.
 
-## 🌎 Adding a New Fetch Module
+## Adding a New Fetch Module
 
 The most common contribution is adding support for a new data source.
 
@@ -298,7 +298,7 @@ class MyS3Fetcher(core.FetchModule):
         # Proceed with fetching...
 ```
 
-## 📝 Pull Request Guidelines
+## Pull Request Guidelines
 
 1.  **Branching:** Create a new branch for your changes (`git checkout -b feature/add-mydata`).
 2.  **Coding Style:**
@@ -310,7 +310,7 @@ class MyS3Fetcher(core.FetchModule):
 4.  **Commit Messages:** Write clear, concise commit messages (e.g., "Add support for MyData API").
 5.  **Pull Request:** Make a pull request to merge your branch into main.
 
-## ⚖️ License
+##  License
 
 * **Core Contributions:** By contributing to this repository (including new modules in fetchez/modules/), you agree that your contributions will be licensed under the project's MIT License. You retain your individual copyright to your work, but you grant the project a perpetual, non-exclusive right to distribute it under the MIT terms.
 
