@@ -12,8 +12,6 @@
 
 ---
 
-Fetchez is a modern, plugin-based engine for discovering and retrieving geospatial data. It replaces brittle, hard-coded download scripts with a unified interface for accessing diverse datasets, from local files to remote APIs like NOAA CO-OPS and NCEI Multibeam.
-
 ### Why Fetchez?
 
 Geospatial data access is fragmented. You often need one script to scrape a website for tide stations, another to download LiDAR from an S3 bucket, and a third to parse a local directory of shapefiles.
