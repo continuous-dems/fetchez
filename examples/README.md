@@ -4,7 +4,7 @@ This directory contains standalone examples and scripts that demonstrate how to 
 
 Unlike the core `fetchez` CLI, these scripts may require additional dependencies (like `gdal`, `pandas`, `rasterio`, or `geopandas`).
 
-## 📂 Examples, Scripts, Etc.
+## Examples, Scripts, Etc.
 
 | Script | Type | Description | Dependencies |
 | :--- | :--- | :--- | :--- |
@@ -12,7 +12,7 @@ Unlike the core `fetchez` CLI, these scripts may require additional dependencies
 | `visualize_tides.py` | Script | Fetches NOAA Tide data and generates a generic plot. | `fetchez`, `matplotlib`, `pandas` |
 | `hook_reproject.py` | **Hook** | Automatically reprojects downloaded rasters using GDAL (e.g., `--hook reproject:crs=EPSG:3857`). | `fetchez`, `gdal` |
 
-## 💻 How to Run
+## How to Run
 
 ### 1. Standalone Scripts
 These are standard Python scripts that import `fetchez` as a library.
@@ -43,7 +43,7 @@ Hooks are plugins that `fetchez` loads automatically. To use an example hook:
     fetchez copernicus --hook reproject:crs=EPSG:3857,suffix=_web
     ```
 
-## 🤝 How to Contribute
+## How to Contribute
 
 Have a cool script or a useful hook? We'd love to see it!
 
