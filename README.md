@@ -1,6 +1,6 @@
-# 🌍 Fetchez 🐄
+# 🌍 Fetchez 🐄 
 
-**The Geospatial Logistics & ETL Platform**
+**Fetch geospatial data with ease.** *Fetchez Les Données*
 
 [![Version](https://img.shields.io/badge/version-0.4.2-blue.svg)](https://github.com/ciresdem/fetchez)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -12,20 +12,17 @@
 
 ---
 
-## Why Fetchez?
-Because finding geospatial data is the hardest part of the job.
+Fetchez is a modern, plugin-based engine for discovering and retrieving geospatial data. It replaces brittle, hard-coded download scripts with a unified interface for accessing diverse datasets, from local files to remote APIs like NOAA CO-OPS and NCEI Multibeam.
 
-If you work with geospatial data, you know the pain:
+### Why Fetchez?
 
-"Where is the latest 1-meter DEM for Seattle?"
+Geospatial data access is fragmented. You often need one script to scrape a website for tide stations, another to download LiDAR from an S3 bucket, and a third to parse a local directory of shapefiles.
 
-"Did the NOAA API endpoint change again?"
-
-"How do I script a download for 5,000 files from a map viewer that only has a 'Download' button?"
-
-Fetchez solves the "Logistics Gap."
-
-It abstracts away the messy reality of 50+ different public repositories (USGS, NOAA, NASA, ESA) into a single, consistent interface. You ask for "Bathymetry in the Gulf of Mexico," and Fetchez handles the API keys, pagination, retries, and file management—delivering clean, standardized files to your hard drive so you can get back to the actual science.
+**Fetchez unifies this chaos.**
+* **One Command to Fetch Them All:** Whether you need bathymetry, topography, or water levels, the syntax is always the same: `fetchez [module] -R [region]`.
+* **Streaming First:** Fetchez is built for the cloud-native era. It prefers streaming data through standard pipes over downloading massive archives to disk.
+* **Plugin Architecture:** The core engine is lightweight and agnostic. Data sources are just Python plugins, making it trivial to add support for new APIs or proprietary internal servers without forking the main codebase.
+* **Smart caching:** It handles the boring stuff like retries, caching, and checksum verification, so you can get back to the science.
 
 ## Features
 
