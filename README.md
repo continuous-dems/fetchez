@@ -1,6 +1,6 @@
-# 🌍 Fetchez 🐄 🐕
+# 🌍 Fetchez 🐄 
 
-**Fetch geospatial data with ease.**
+**Fetch geospatial data with ease.** *Fetchez Les Données*
 
 [![Version](https://img.shields.io/badge/version-0.4.2-blue.svg)](https://github.com/ciresdem/fetchez)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
