@@ -824,7 +824,6 @@ class FetchezRegistry:
         resolving metadta inheritance.
         """
         
-        # Resolve aliases first
         if mod_key not in cls._modules:
             for k, v in cls._modules.items():
                 if mod_key in v.get('aliases', []):
@@ -834,7 +833,7 @@ class FetchezRegistry:
         if mod_key not in cls._modules:
             return {}
 
-        entry = cls._modules[mod_key]
+        entry: Dict[Any, Any] = cls._modules[mod_key]
         
         if 'inherits' in entry:
             parent_key = entry['inherits']
