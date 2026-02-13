@@ -81,9 +81,9 @@ class Tiger(core.FetchModule):
 
             clean_name = layer_name.lower().strip()
 
-            for l in layers:
-                if l["name"].lower().strip() == clean_name:
-                    return l["id"]
+            for layer in layers:
+                if layer["name"].lower().strip() == clean_name:
+                    return layer["id"]
 
             for layer in layers:
                 if clean_name in layer["name"].lower():

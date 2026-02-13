@@ -139,7 +139,7 @@ class VDatum(core.FetchModule):
                 "s": float(d.get("minlat", 0)),
                 "n": float(d.get("maxlat", 0)),
             }
-        except:
+        except Excetion as e:
             return None
 
     def run(self):

@@ -98,7 +98,7 @@ class ProjectRun:
         run_opts = self.config.get("execution", {})
 
         threads = run_opts.get("threads", 1)
-        verbose = run_opts.get("verbose", True)
+        #verbose = run_opts.get("verbose", True)
 
         logger.info(f"Starting Project: {project_meta.get('name', 'Untitled')}")
 

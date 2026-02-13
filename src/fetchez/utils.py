@@ -133,7 +133,7 @@ def int_or(val, or_val=None):
 
     try:
         return int(float_or(val))
-    except:
+    except Excetion as e:
         return or_val
 
 
@@ -142,7 +142,7 @@ def float_or(val, or_val=None):
 
     try:
         return float(val)
-    except:
+    except Exception as e:
         return or_val
 
 
@@ -154,7 +154,7 @@ def str_or(instr, or_val=None, replace_quote=True):
     try:
         s = str(instr)
         return s.replace('"', "") if replace_quote else s
-    except:
+    except Exception as e:
         return or_val
 
 
@@ -203,6 +203,7 @@ def str_truncate_middle(s, n=50):
 
 def inc2str(inc):
     """Convert a WGS84 geographic increment to a string identifier."""
+    import fractions
 
     return str(fractions.Fraction(str(inc * 3600)).limit_denominator(10)).replace(
         "/", ""
@@ -282,6 +283,43 @@ def parse_fmod_argparse(fmod):
     mod_args = {k: v for k, v in opts.items() if k != "_module"}
     mod_args = [f"--{k}={v}" for k, v in opts.items() if k != "_module"]
     return opts, mod, mod_args
+
+
+def fmod2dict(fmod: str, dict_args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Convert factory module string to a dict.
+
+    Args:
+      fmod (str): A factory module string.
+      dict_args (dict, optional): A dict to append to.
+
+    Returns:
+      dict: A dictionary of the key/values.
+    """
+    
+    if dict_args is None:
+        dict_args = {}
+
+    ## Split by colon, ignoring colons inside quotes
+    args_list = re.split(r':(?=(?:[^"]*"[^"]*")*[^"]*$)', fmod)
+    
+    for arg in args_list:
+        ## Split by equals, ignoring equals inside quotes
+        p_arg = re.split(r'=(?=(?:[^"]*"[^"]*")*[^"]*$)', arg)
+        
+        if len(p_arg) == 1:
+            if '_module' not in dict_args:
+                dict_args['_module'] = p_arg[0]
+        elif len(p_arg) > 1:
+            key = p_arg[0]
+            val_str = p_arg[1]
+            
+            ## If there are multiple '=' parts, rejoin the rest
+            if len(p_arg) > 2:
+                dict_args[key] = '='.join(p_arg[1:])
+            else:
+                dict_args[key] = _parse_value_string(val_str)
+        
+    return dict_args
 
 
 def range_pairs(lst):

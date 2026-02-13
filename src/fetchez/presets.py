@@ -49,8 +49,8 @@ def load_user_presets():
         # }
         data = config.load_user_config()
         return data.get("presets", {})
-    except:
-        logger.warning(f"Could not load user presets: {e}")
+    except Exception as exception:
+        logger.warning(f"Could not load user presets: {exception}")
         return {}
 
 
@@ -69,8 +69,8 @@ def hook_list_from_preset(preset_def):
         if hook_cls:
             try:
                 hooks.append(hook_cls(**kwargs))
-            except Exception as e:
-                logger.error(f"Failed to init preset hook '{name}': {e}")
+            except Exception as exception:
+                logger.error(f"Failed to init preset hook '{name}': {exception}")
         else:
             logger.warning(f"Preset hook '{name}' not found.")
 
@@ -162,8 +162,8 @@ def init_current_presets():
         print(f"  2. Move it to: {utils.CYAN}~/.fetchez/presets.json{utils.RESET}")
         print("     (Or merge it into your existing config.json)")
 
-    except Exception as e:
-        logger.error(f"Failed to export presets: {e}")
+    except Exception as exception:
+        logger.error(f"Failed to export presets: {exception}")
 
 
 def init_presets():

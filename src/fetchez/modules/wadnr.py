@@ -153,7 +153,7 @@ class WADNR(core.FetchModule):
                     try:
                         resp_json = r.json()
                         final_url = resp_json.get("url")
-                    except:
+                    except Exception as exception:
                         final_url = r.url  # If it was a redirect
 
                     if final_url:
