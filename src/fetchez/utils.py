@@ -135,7 +135,7 @@ def int_or(val, or_val=None):
 
     try:
         return int(float_or(val))
-    except Excetion as e:
+    except Exception as e:
         return or_val
 
 
