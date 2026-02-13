@@ -21,6 +21,8 @@ import zipfile
 import shutil
 import tempfile
 import tqdm
+import re
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +250,24 @@ def remove_glob(pathname: str):
                 logger.error(f"Could not remove {p}: {e}")
 
 
+def _parse_value_string(val_str: str) -> Any:
+    """Helper to parse string values into Python types (bool, None, list)."""
+    
+    val_lower = val_str.lower()
+    # if utils.str2bool(val_str) is not None:
+    #     return utils.str2bool(val_str)
+    if val_lower == 'false':
+        return False
+    elif val_lower == 'true':
+        return True
+    elif val_lower == 'none':
+        return None
+    elif ';' in val_str:
+        return val_str.strip('"').split(';')
+    else:
+        return val_str.strip('"')
+
+                
 def make_temp_fn(basename, temp_dir=None):
     """Generate a temporary filename."""
 
