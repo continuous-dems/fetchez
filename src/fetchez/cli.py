@@ -485,8 +485,6 @@ CUDEM home page: <http://cudem.colorado.edu>
     fixed_argv = spatial.fix_argparse_region(sys.argv[1:])
     global_args, remaining_argv = parser.parse_known_args(fixed_argv)
 
-    check_size = not global_args.no_check_size
-
     # I like sending logging to stderr, and anyway we want this with --pipe-path
     # logging.basicConfig(level=level, format='[ %(levelname)s ] %(name)s: %(message)s', stream=sys.stderr)
     setup_logging(
