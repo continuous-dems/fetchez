@@ -47,7 +47,6 @@ def cli_opts(help_text: str = None, **arg_help):
 
 
 def print_banner_orbit():
-    C, B, G, R = "\033[36m", "\033[34m", "\033[32m", "\033[0m"
     print("""
     [ F E T C H E Z ]
     """)
