@@ -393,12 +393,12 @@ class Fetch:
     """Fetch class to fetch ftp/http data files"""
 
     def __init__(
-        self,
-        url: Optional[str] = None,
-        callback=fetches_callback,
-        headers: Dict = R_HEADERS,
-        verify: bool = True,
-        allow_redirects: bool = True,
+            self,
+            url: str,
+            callback=fetches_callback,
+            headers: Dict = R_HEADERS,
+            verify: bool = True,
+            allow_redirects: bool = True,
     ):
         self.url = url
         self.callback = callback
