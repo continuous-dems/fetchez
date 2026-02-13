@@ -5,7 +5,7 @@
 fetchez.modules.wsf
 ~~~~~~~~~~~~~~~~~~~~
 
-Fetch World Settlement Footprint (WSF) 2019 data from the 
+Fetch World Settlement Footprint (WSF) 2019 data from the
 German Aerospace Center (DLR).
 
 Data is organized in 2x2 degree GeoTIFF tiles.
@@ -37,8 +37,8 @@ WSF_BASE_URL = 'https://download.geoservice.dlr.de/WSF2019/files/'
 
 class WSF(core.FetchModule):
     """Fetch World Settlement Footprint (WSF) 2019 data.
-    
-    The WSF 2019 is a 10m resolution binary mask outlining the 
+
+    The WSF 2019 is a 10m resolution binary mask outlining the
     extent of human settlements globally.
     """
 
@@ -48,20 +48,20 @@ class WSF(core.FetchModule):
 
         # Initialize FRED (Local Index)
         self.fred = fred.FRED(name='wsf')
-        
+
         # Check if we need to populate/update the index
         if self.force_update or len(self.fred.features) == 0:
             self.update_index()
 
-            
+
     def update_index(self):
         """Crawl the DLR directory and update the FRED index."""
-        
+
         logger.info("Updating WSF Index from DLR (this may take a moment)...")
-        
+
         # Fetch the HTML directory listing
         page = core.Fetch(WSF_BASE_URL).fetch_html()
-        
+
         if page is None:
             logger.error("Failed to fetch WSF directory listing.")
             return
@@ -73,12 +73,12 @@ class WSF(core.FetchModule):
         # Filename format: WSF2019_v1_{minx}_{miny}.tif
         # Example: WSF2019_v1_-74_40.tif
         rows = page.xpath('//a[contains(@href, ".tif")]/@href')
-        
+
         count = 0
         for row in rows:
             filename = row.split('/')[-1]
             sid = filename.replace('.tif', '')
-            
+
             # Skip overview COGs if present
             if 'cog' in sid.lower(): continue
 
@@ -89,11 +89,11 @@ class WSF(core.FetchModule):
                 # x and y are the lower-left corner
                 x = int(parts[-2])
                 y = int(parts[-1])
-                
+
                 # Tiles are 2x2 degrees
                 w, e = x, x + 2
                 s, n = y, y + 2
-                
+
                 # Create GeoJSON Polygon
                 geom = {
                     "type": "Polygon",
@@ -101,7 +101,7 @@ class WSF(core.FetchModule):
                         [w, s], [e, s], [e, n], [w, n], [w, s]
                     ]]
                 }
-                
+
                 self.fred.add_survey(
                     geom=geom,
                     Name=sid,
@@ -113,7 +113,7 @@ class WSF(core.FetchModule):
                     Info='World Settlement Footprint 2019 (10m)'
                 )
                 count += 1
-                
+
             except (IndexError, ValueError):
                 logger.debug(f"Skipping unparseable file: {filename}")
                 continue
@@ -129,7 +129,7 @@ class WSF(core.FetchModule):
 
         # Query FRED
         results = self.fred.search(region=self.region)
-        
+
         if not results:
             logger.info("No WSF tiles found in this region.")
             return
@@ -137,7 +137,7 @@ class WSF(core.FetchModule):
         for item in results:
             url = item.get('DataLink')
             name = item.get('Name')
-            
+
             if url:
                 self.add_entry_to_results(
                     url=url,
@@ -147,5 +147,5 @@ class WSF(core.FetchModule):
                     title=name,
                     license='CC-BY 4.0'
                 )
-                
+
         return self

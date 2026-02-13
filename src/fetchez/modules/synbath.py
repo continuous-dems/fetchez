@@ -26,24 +26,24 @@ SYNBATH_URL = 'https://topex.ucsd.edu/pub/synbath/SYNBATH_V2.0.nc'
 class SynBath(core.FetchModule):
     """Fetch the UCSD SynBath (Synthetic Bathymetry) dataset.
 
-    SynBath is a global bathymetry grid that merges satellite gravity with 
-    geological models (seafloor age, spreading rate, sediment thickness) to 
-    create realistic "synthetic" textures for unmapped abyssal hills and 
+    SynBath is a global bathymetry grid that merges satellite gravity with
+    geological models (seafloor age, spreading rate, sediment thickness) to
+    create realistic "synthetic" textures for unmapped abyssal hills and
     seamounts.
 
-    **Note:** This module downloads the full global grid (~6.2 GB). 
+    **Note:** This module downloads the full global grid (~6.2 GB).
     There is currently no regional subsetting service available for SynBath.
 
     References:
       - https://topex.ucsd.edu/pub/synbath/SYNBATH_publication.pdf
     """
-    
+
     def __init__(self, **kwargs):
         super().__init__(name='synbath', **kwargs)
 
     def run(self):
         """Run the SynBath fetching logic."""
-        
+
         # We always fetch the full file.
         self.add_entry_to_results(
             url=SYNBATH_URL,
@@ -52,5 +52,5 @@ class SynBath(core.FetchModule):
             agency='SIO / UCSD',
             title='SynBath Global V2.0'
         )
-        
+
         return self

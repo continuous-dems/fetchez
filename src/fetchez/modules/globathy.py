@@ -25,24 +25,24 @@ GLOBATHY_URL = 'https://springernature.figshare.com/ndownloader/files/28919991'
 )
 class GLOBathy(core.FetchModule):
     """Fetch GLOBathy (Global Lakes Bathymetry).
-    
-    GLOBathy provides bathymetric estimates (depth, volume) for the 1.4 million 
-    lakes in HydroLAKES. It uses the same 'Hylak_id' identifier, allowing 
+
+    GLOBathy provides bathymetric estimates (depth, volume) for the 1.4 million
+    lakes in HydroLAKES. It uses the same 'Hylak_id' identifier, allowing
     easy joining with the HydroLAKES polygons.
-    
+
     **Note:** This module downloads the global parameter dataset (~250MB).
-    
+
     References:
       - https://figshare.com/articles/dataset/GLOBathy_Bathymetric_Data/13353392
     """
-    
+
     def __init__(self, **kwargs):
         super().__init__(name='globathy', **kwargs)
 
-        
+
     def run(self):
         """Run the GLOBathy fetching logic."""
-        
+
         self.add_entry_to_results(
             url=GLOBATHY_URL,
             dst_fn='GLOBathy_basic_parameters.zip',
@@ -50,5 +50,5 @@ class GLOBathy(core.FetchModule):
             agency='Khazaei et al.',
             title='GLOBathy Parameters'
         )
-        
+
         return self

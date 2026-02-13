@@ -18,7 +18,7 @@ env/
 .idea/
 
 # Fetchez specific
-# Ignore the "FRED" index if it's generated locally during runs, 
+# Ignore the "FRED" index if it's generated locally during runs,
 # src/fetchez/fred/data/*.geojson
 
 # Sphinx documentation

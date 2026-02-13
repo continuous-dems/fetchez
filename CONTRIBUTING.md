@@ -66,7 +66,7 @@ class CheckPoints3DEP(core.FetchModule):
     def __init__(self, **kwargs):
     	# `name` here becomes the name of fetchez module in the cli
         super().__init__(name='my_checkpoints', **kwargs)
-        
+
     def run(self):
         # Use self.region if spatial filtering is needed
         if self.region:
@@ -74,12 +74,12 @@ class CheckPoints3DEP(core.FetchModule):
 
     	# This is where you'd normally hit an API, or parse some
         # data, etc.
-	
+
         self.add_entry_to_results(
             url=f'{checkpoints_url}{checkpoints_link}',
             dst_fn='USGS_CheckPoints.zip',
             data_type='checkpoints',
-        )            
+        )
 ```
 
 ### Testing Your Plugin
@@ -125,11 +125,11 @@ class AuditLog(FetchHook):
             url = entry.get('url')
             path = entry.get('dst_fn')
             status = entry.get('status')
-            
+
             if status == 0:
                 with open("audit.txt", "a") as f:
                     f.write(f"DOWNLOADED: {path} FROM {url}\n")
-        
+
         # Always return the entries so the pipeline continues!
         return entries
 ```
@@ -242,8 +242,8 @@ Open src/fetchez/registry.py and add your module to the _modules dictionary. Ple
 ```python
 
 'mydata': {
-    'mod': 'fetchez.modules.mydata', 
-    'cls': 'MyData', 
+    'mod': 'fetchez.modules.mydata',
+    'cls': 'MyData',
     'category': 'Topography',
     'desc': 'Short summary of the dataset (e.g. Global Lidar Synthesis)',
     'agency': 'Provider Name (e.g. USGS, NOAA)',
@@ -289,12 +289,12 @@ class MyS3Fetcher(core.FetchModule):
     This module requires `boto3`.
     Install via: `pip install "fetchez[aws]"`
     """
-    
+
     def run(self):
         if not HAS_BOTO:
             logger.error("Missing dependency 'boto3'. Please run: pip install 'fetchez[aws]'")
             return
-        
+
         # Proceed with fetching...
 ```
 

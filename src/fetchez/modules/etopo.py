@@ -8,13 +8,13 @@ fetchez.modules.etopo
 Fetch ETOPO 2022 Global Relief Model data from NOAA NCEI.
 
 ETOPO 2022 is available in:
-1.  **15 arc-second tiles:** (Approx 450m) Tiled in 15x15 degree chunks. 
+1.  **15 arc-second tiles:** (Approx 450m) Tiled in 15x15 degree chunks.
 2.  **30 & 60 arc-second:** (Approx 900m & 1800m) Global single files.
 
 Note on 'Bed' vs 'Surface':
-In ETOPO 2022, 'Bed' elevation (under ice) is only provided as distinct files 
-over Greenland and Antarctica. For the rest of the world, 'Bed' is identical 
-to 'Surface'. This module automatically falls back to 'Surface' if 'Bed' 
+In ETOPO 2022, 'Bed' elevation (under ice) is only provided as distinct files
+over Greenland and Antarctica. For the rest of the world, 'Bed' is identical
+to 'Surface'. This module automatically falls back to 'Surface' if 'Bed'
 is requested but not found for a specific tile.
 
 :copyright: (c) 2022 - 2026 Regents of the University of Colorado
@@ -72,13 +72,13 @@ NETCDF_BASE_URLS = {
 )
 class ETOPO(core.FetchModule):
     """Fetch ETOPO 2022 data.
-    
+
     Automatically handles fallback from 'bed' to 'surface' for non-ice regions.
     """
-    
-    def __init__(self, 
-                 resolution: str = '15s', 
-                 datatype: str = 'bed', 
+
+    def __init__(self,
+                 resolution: str = '15s',
+                 datatype: str = 'bed',
                  format: str = 'gtif',
                  update: bool = False,
                  **kwargs):
@@ -95,22 +95,22 @@ class ETOPO(core.FetchModule):
 
     def update_index(self):
         """Crawl the ETOPO 15s directories and update the FRED index."""
-        
+
         logger.info("Updating ETOPO 15s Index from NOAA...")
-        
+
         self.fred.features = []
         count = 0
-        
+
         for dtype, url in ETOPO_URLS['15s'].items():
             page = core.Fetch(url).fetch_html()
             if page is None: continue
-                
+
             rows = page.xpath('//a[contains(@href, ".tif")]/@href')
-            
+
             for row in rows:
                 filename = row.split('/')[-1]
                 sid = filename.split('.')[0]
-                
+
                 try:
                     # Parse spatial info from filename (e.g. N90W180)
                     parts = sid.split('_')
@@ -119,7 +119,7 @@ class ETOPO(core.FetchModule):
 
                     xsplit = 'E' if 'E' in spat else 'W'
                     ysplit = 'S' if 'S' in spat else 'N'
-                    
+
                     parts_geo = spat.split(xsplit)
                     y = int(parts_geo[0].split(ysplit)[-1])
                     x = int(parts_geo[-1])
@@ -129,7 +129,7 @@ class ETOPO(core.FetchModule):
 
                     w, e = float(x), float(x + 15)
                     n, s = float(y), float(y - 15)
-                    
+
                     geom = {
                         "type": "Polygon",
                         "coordinates": [[
@@ -142,7 +142,7 @@ class ETOPO(core.FetchModule):
                         DataLink=f"{url}{row}", DataType=dtype, DataFormat='gtif',
                         Date='2022', Info='ETOPO 2022 (15s GeoTIFF)'
                     )
-                    
+
                     nc_base = NETCDF_BASE_URLS.get(dtype)
                     if nc_base:
                         self.fred.add_survey(
@@ -157,10 +157,10 @@ class ETOPO(core.FetchModule):
         logger.info(f"Indexed {count} ETOPO 15s datasets.")
         self.fred.save()
 
-        
+
     def run(self):
         """Run the ETOPO fetching module."""
-        
+
         # --- Global Files ---
         if self.resolution in ['30s', '60s']:
             url = ETOPO_URLS[self.resolution].get(self.datatype)
@@ -182,12 +182,12 @@ class ETOPO(core.FetchModule):
             region=self.region,
             where=[f"DataType = '{self.datatype}'", f"DataFormat = '{self.file_format}'"]
         )
-        
+
         # 'bed' == 'surface' where no ice exists
         if not results and 'bed' in self.datatype:
             fallback_type = self.datatype.replace('bed', 'surface')
             logger.info(f"No '{self.datatype}' tiles found. Falling back to '{fallback_type}' (identical for non-ice regions).")
-            
+
             results = self.fred.search(
                 region=self.region,
                 where=[f"DataType = '{fallback_type}'", f"DataFormat = '{self.file_format}'"]
@@ -202,5 +202,5 @@ class ETOPO(core.FetchModule):
                 title=item['Name'],
                 license='Public Domain'
             )
-            
+
         return self

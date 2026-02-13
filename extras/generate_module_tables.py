@@ -19,15 +19,15 @@ from fetchez.registry import FetchezRegistry
 
 def generate_markdown_table(modules):
     """Generate a standard Markdown table."""
-    
+
     # Header
     md = []
     md.append("| Module | Category | Description | Agency | Region | License |")
     md.append("| :--- | :--- | :--- | :--- | :--- | :--- |")
-    
+
     for key in sorted(modules.keys()):
         meta = FetchezRegistry.get_info(key)
-        
+
         if meta.get('category') == 'Generic' and key not in ['earthdata', 'http']:
             continue
 
@@ -42,25 +42,25 @@ def generate_markdown_table(modules):
         cat = meta.get('category', '-')
         region = meta.get('region', 'Global')
         license = meta.get('license', '-')
-        
+
         desc = desc.replace('|', '/')
         license = license.replace('|', '/')
 
         row = f"| {name} | {cat} | {desc} | {agency} | {region} | {license} |"
         md.append(row)
-    
+
     return "\n".join(md)
 
 
 def generate_html_table(modules, fragment=True):
     """Generate an HTML table with DataTables (sortable/searchable)."""
-    
+
     rows = []
     for key in sorted(modules.keys()):
         meta = FetchezRegistry.get_info(key)
-        
+
         home_url = meta.get('urls', {}).get('home', '#')
-        
+
         rows.append(f"""
         <tr>
             <td><code>{key}</code></td>
@@ -111,12 +111,12 @@ def generate_html_table(modules, fragment=True):
                 $('#moduleTable').DataTable({{
                     "pageLength": 25,
                     "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-                    "order": [[ 0, "asc" ]] 
+                    "order": [[ 0, "asc" ]]
                 }});
             }});
         </script>
         """
-    else:       
+    else:
         html = f"""
     <!DOCTYPE html>
     <html>
@@ -164,7 +164,7 @@ def generate_html_table(modules, fragment=True):
     </body>
     </html>
         """
-        
+
     return html
 
 if __name__ == "__main__":
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     all_modules = FetchezRegistry._modules
-    
+
     if args.html or args.html_fragment:
         print(generate_html_table(all_modules, fragment=args.html_fragment))
     else:

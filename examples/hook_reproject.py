@@ -5,7 +5,7 @@
 hook_reproject.py
 ~~~~~~~~~~~~~~~~~
 
-A Fetchez User Hook to automatically reproject downloaded raster data 
+A Fetchez User Hook to automatically reproject downloaded raster data
 using GDAL.
 
 Installation:
@@ -16,8 +16,8 @@ Usage:
   fetchez copernicus --hook reproject:crs=EPSG:3857
 
 Description:
-  This hook inspects the 'entry' dictionary for a 'crs' key (which indicates 
-  the source projection). If found, it uses that as the source srs in GDAL to warp the file to the 
+  This hook inspects the 'entry' dictionary for a 'crs' key (which indicates
+  the source projection). If found, it uses that as the source srs in GDAL to warp the file to the
   target CRS.
 """
 
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 class Reproject(FetchHook):
     """Reproject rasters using GDAL."""
-    
+
     name = "reproject"
     desc = "Warp rasters to a target CRS. Usage: --hook reproject:crs=EPSG:3857"
     stage = 'file'  # Runs immediately after download (in the thread)
@@ -47,12 +47,12 @@ class Reproject(FetchHook):
             crs (str): Target CRS (e.g., 'EPSG:4326', 'EPSG:3857').
             suffix (str): Suffix to append to the reprojected filename.
         """
-        
+
         super().__init__(**kwargs)
         self.target_crs = crs
         self.suffix = suffix
 
-        
+
     def run(self, entries):
         # If GDAL is missing, log a warning once and pass data through untouched
         if not HAS_GDAL:
@@ -66,7 +66,7 @@ class Reproject(FetchHook):
             src_path = entry.get('dst_fn')
             status = entry.get('status')
             source_crs = entry.get('crs') # context check (this may have been added by the module)
-            
+
             # Skip if download failed, source CRS is unknown, or we already matched the target
             if status != 0 or not source_crs or source_crs == self.target_crs:
                 processed_entries.append(entry)
@@ -87,19 +87,19 @@ class Reproject(FetchHook):
 
             try:
                 # Perform Reprojection
-                # We use gdal.Warp 
+                # We use gdal.Warp
                 logger.info(f"Reprojecting {os.path.basename(src_path)} to {self.target_crs}...")
-                
+
                 warp_opts = gdal.WarpOptions(
                     dstSRS=self.target_crs,
                     srcSRS=source_crs,
                     format='GTiff'
                 )
-                
+
                 # Run the warp
                 ds = gdal.Warp(dst_path, src_path, options=warp_opts)
                 ds = None # Flush to disk
-                
+
                 # We return the NEW path so subsequent hooks (like --pipe-path) use the warped file
                 processed_entries.append({
                     'url': url,
@@ -108,7 +108,7 @@ class Reproject(FetchHook):
                     'status': 0,
                     'crs': self.target_crs # Update context for downstream hooks
                 })
-                
+
             except Exception as e:
                 logger.error(f"Reprojection failed for {src_path}: {e}")
                 # On failure, pass the original file through

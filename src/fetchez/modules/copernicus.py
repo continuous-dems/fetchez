@@ -45,37 +45,37 @@ HEADERS = {
 )
 
 class CopernicusDEM(core.FetchModule):
-    """The Copernicus DEM is a Digital Surface Model (DSM) which 
-    represents the surface of the Earth including buildings, 
+    """The Copernicus DEM is a Digital Surface Model (DSM) which
+    represents the surface of the Earth including buildings,
     infrastructure and vegetation.
 
     Datatypes:
       '1' = COP-30 (Global ~30m)
       '3' = COP-10 (Europe ~10m)
-    
-    The module relies on a local index (FRED) which it will attempt to 
+
+    The module relies on a local index (FRED) which it will attempt to
     auto-update on first run.
     """
-    
+
     def __init__(self, datatype: Optional[str] = None, update: bool = False, **kwargs):
         super().__init__(name='copernicus', **kwargs)
         self.datatype = datatype
         self.force_update = update
         self.where = []
-        
+
         self.headers = HEADERS
 
         # Initialize FRED (Local Index)
         self.FRED = fred.FRED(name=self.name)
-        
+
         # Check if we need to update the index
         if self.force_update or len(self.FRED.features) == 0:
             self.update_fred()
 
-            
+
     def _create_geojson_box(self, xmin, xmax, ymin, ymax):
         """Helper to create a GeoJSON Polygon dict."""
-        
+
         return {
             "type": "Polygon",
             "coordinates": [[
@@ -87,26 +87,26 @@ class CopernicusDEM(core.FetchModule):
             ]]
         }
 
-    
+
     def _update_cop10(self):
         """Scrape and parse COP-10 (European 10m) datasets."""
-        
+
         logger.info("Scanning COP-10 (European) datasets...")
         page = core.Fetch(COP10_URL).fetch_html()
         if page is None:
             return
 
         rows = page.xpath('//a[contains(@href, ".zip")]/@href')
-        
+
         # Build set of existing IDs to skip duplicates
         existing_ids = {f['properties']['ID'] for f in self.FRED.features if f['properties'].get('ID')}
         count = 0
-        
+
         with tqdm(total=len(rows), desc='Parsing COP-10', disable=self.silent) as pbar:
             for row in rows:
                 pbar.update()
                 sid = row.split('.')[0]
-                
+
                 if sid in existing_ids:
                     continue
 
@@ -118,7 +118,7 @@ class CopernicusDEM(core.FetchModule):
                     y_str = spat.split('x')[0].split('y')[-1]
                     x = int(x_str)
                     y = int(y_str)
-                    
+
                     # COP-10 tiles are typically 10x10 degrees
                     geom = self._create_geojson_box(x, x + 10, y, y + 10)
 
@@ -136,30 +136,30 @@ class CopernicusDEM(core.FetchModule):
                     count += 1
                 except Exception as e:
                     logger.warning(f"Failed to parse COP-10 file {row}: {e}")
-        
+
         if count > 0:
             logger.info(f"Added {count} new COP-10 datasets.")
 
-            
+
     def _update_cop30(self):
         """Parse COP-30 (Global 30m) datasets from VRT."""
-        
+
         logger.info("Scanning COP-30 (Global) datasets...")
         f = core.Fetch(COP30_VRT_URL, headers=self.headers)
         page = f.fetch_xml()
-        
+
         if page is None:
             return
 
         fns = page.findall('.//SourceFilename')
-        
+
         existing_ids = {f['properties']['ID'] for f in self.FRED.features if f['properties'].get('ID')}
         count = 0
-        
+
         with tqdm(total=len(fns), desc='Parsing COP-30', disable=self.silent) as pbar:
             for fn in fns:
                 pbar.update()
-                
+
                 # Filename example: COP30_hh_10_N30_00_W120_00_DEM.tif
                 raw_fn = fn.text
                 sid = raw_fn.split('/')[-1].split('.')[0]
@@ -171,14 +171,14 @@ class CopernicusDEM(core.FetchModule):
                     # Parse Spatial Info
                     # Format: ..._10_Nxx_00_Wxxx_00_DEM
                     spat = raw_fn.split('_10_')[-1].split('_DEM')[0]
-                    
+
                     xsplit = '_E' if 'E' in spat else '_W'
                     ysplit = 'S' if 'S' in spat else 'N'
-                    
+
                     parts = spat.split(xsplit)
                     y_part = parts[0].split(ysplit)[-1].split('_')[0]
                     x_part = parts[-1].split('_')[0]
-                    
+
                     y = int(y_part)
                     x = int(x_part)
 
@@ -189,7 +189,7 @@ class CopernicusDEM(core.FetchModule):
 
                     # COP-30 tiles are 1x1 degree
                     geom = self._create_geojson_box(x, x + 1, y, y + 1)
-                    
+
                     self.FRED.add_survey(
                         geom=geom,
                         Name=sid,
@@ -208,10 +208,10 @@ class CopernicusDEM(core.FetchModule):
         if count > 0:
             logger.info(f"Added {count} new COP-30 datasets.")
 
-            
+
     def update_fred(self):
         """Run the scrapers and save to FRED."""
-        
+
         try:
             self._update_cop10()
             self._update_cop30()
@@ -220,21 +220,21 @@ class CopernicusDEM(core.FetchModule):
         except Exception as e:
             logger.error(f"Error updating Copernicus FRED: {e}")
 
-            
+
     def run(self):
         """Run the COPERNICUS DEM fetching module."""
-        
+
         search_where = self.where.copy()
         if self.datatype is not None:
             search_where.append(f"DataType = '{self.datatype}'")
 
         # Search FRED
         results = self.FRED.search(
-            region=self.region, 
-            where=search_where, 
+            region=self.region,
+            where=search_where,
             layer='copernicus'
         )
-        
+
         if not results:
             logger.info("No matching datasets found in FRED index.")
             return
@@ -242,17 +242,17 @@ class CopernicusDEM(core.FetchModule):
         with tqdm(total=len(results), desc='Processing Results', disable=self.silent) as pbar:
             for surv in results:
                 pbar.update()
-                
+
                 links = surv.get('DataLink', '').split(',')
                 dtype = surv.get('DataType', '1')
                 res = surv.get('Resolution', '30m')
-                
+
                 for link in links:
                     if not link: continue
-                    
+
                     # Clean URL (remove query params for filename)
                     clean_name = link.split('/')[-1].split('?')[0]
-                    
+
                     # Enriched Metadata
                     self.add_entry_to_results(
                         url=link,

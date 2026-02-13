@@ -5,7 +5,7 @@
 fetchez.modules.gedtm30
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Fetch Global 1-Arc-Second Digital Terrain Model (GEDTM30) data 
+Fetch Global 1-Arc-Second Digital Terrain Model (GEDTM30) data
 from OpenLandMap.
 
 :copyright: (c) 2010 - 2026 Regents of the University of Colorado
@@ -39,19 +39,19 @@ HEADERS = {
 )
 class GEDTM30(core.FetchModule):
     """Fetch Global 1-Arc-Second (30m) Digital Terrain Models.
-    
-    This module queries the OpenLandMap GEDTM30 repository to find 
+
+    This module queries the OpenLandMap GEDTM30 repository to find
     Cloud Optimized GeoTIFFs (COGs) matching the requested product name.
-    
+
     Common Products:
       - 'Ensemble Digital Terrain Model' (Default)
       - 'dtm_downscaled'
       - 'dtm_bareearth'
-    
+
     References:
       - https://codeberg.org/openlandmap/GEDTM30
     """
-    
+
     def __init__(self, product: str = 'Ensemble Digital Terrain Model', **kwargs):
         super().__init__(name='gedtm30', **kwargs)
         self.product = product
@@ -59,10 +59,10 @@ class GEDTM30(core.FetchModule):
 
     def run(self):
         """Run the GEDTM30 fetching logic."""
-        
+
         logger.info("Fetching GEDTM30 file list...")
         req = core.Fetch(GEDTM30_COG_LIST_URL).fetch_req()
-        
+
         if not req or req.status_code != 200:
             logger.error("Failed to retrieve GEDTM30 metadata list.")
             return self
@@ -71,21 +71,21 @@ class GEDTM30(core.FetchModule):
             #f = StringIO(CONTENT)
             f = StringIO(req.text)
             reader = csv.reader(f)
-            
+
             header = next(reader, None)
-            
+
             matches = 0
             for row in reader:
                 if not row: continue
-                
+
                 # Column 0 is the Product Name
                 # Column 6 is the Download URL
                 prod_name = row[0]
                 url = row[6]
-                
+
                 if self.product.lower() in prod_name.lower():
                     fname = os.path.basename(url)
-                    
+
                     self.add_entry_to_results(
                         url=url,
                         dst_fn=fname,
@@ -95,7 +95,7 @@ class GEDTM30(core.FetchModule):
                         cog=True,
                     )
                     matches += 1
-            
+
             if matches == 0:
                 logger.warning(f"No products found matching '{self.product}'.")
             else:

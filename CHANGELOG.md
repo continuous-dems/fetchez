@@ -62,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - bluetopo module
 - user plugins
 - add emodnet
-	
+
 ### Changed
 - Renamed project from `fetches` to `fetchez`.
 - Refactored some old cudem.fetches modules to inherit from `fetchez	.core.FetchModule`.

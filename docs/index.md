@@ -14,7 +14,7 @@ title: The Generic Geospatial Data Acquisition and Registry Engine
 [![PyPI version](https://badge.fury.io/py/fetchez.svg)](https://badge.fury.io/py/fetchez)
 [![project chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://cudem.zulip.org)
 
-Fetchez is a lightweight, open-source command-line tool and Python library designed to discover and download geospatial data from a wide variety of public repositories. 
+Fetchez is a lightweight, open-source command-line tool and Python library designed to discover and download geospatial data from a wide variety of public repositories.
 
 It unifies over **40 different data sources** (and counting), such as NASA, USGS, NOAA, and ESA, into a single, standard interface.
 

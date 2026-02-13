@@ -27,42 +27,42 @@ NGS_SEARCH_URL = 'https://geodesy.noaa.gov/api/nde/bounds?'
 
 class NGS(core.FetchModule):
     """Fetch NGS Survey Monuments (Datasheets).
-    
-    The National Geodetic Survey (NGS) provides information about survey marks 
+
+    The National Geodetic Survey (NGS) provides information about survey marks
     (bench marks) including precise latitude, longitude, and elevation.
-    
-    This module queries the NGS Data Explorer API to find all monuments 
+
+    This module queries the NGS Data Explorer API to find all monuments
     within the requested bounding box.
-    
+
     References:
       - https://geodesy.noaa.gov/
     """
-    
+
     def __init__(self, datum: str = 'geoidHt', **kwargs):
         super().__init__(name='ngs', **kwargs)
         self.datum = datum
 
-        
+
     def run(self):
         """Run the NGS fetching logic."""
-        
+
         if self.region is None:
             return []
-        
+
         w, e, s, n = self.region
-        
+
         params = {
             'minlon': w,
             'maxlon': e,
             'minlat': s,
             'maxlat': n
         }
-        
+
         full_url = f"{NGS_SEARCH_URL}{urlencode(params)}"
-        
+
         r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
         out_fn = f"ngs_monuments_{r_str}.json"
-        
+
         self.add_entry_to_results(
             url=full_url,
             dst_fn=out_fn,
@@ -70,5 +70,5 @@ class NGS(core.FetchModule):
             agency='NOAA NGS',
             title='NGS Survey Monuments'
         )
-            
+
         return self

@@ -43,6 +43,7 @@ full = ["fetchez[aws,vector]"]
 
 [dependency-groups]
 dev = [
+  "pre-commit",
   "mypy",
   "types-requests>=2.31.0.6",
   "types-tqdm>=4.67.0.20241221",
@@ -62,7 +63,7 @@ Issues = "https://github.com/ciresdem/fetchez/issues"
 where = ["src"]  # Look for packages inside the 'src' folder
 include = ["fetchez*"]  # Include the package named 'fetchez'
 exclude = ["tests*", "docs*", "scripts*", "examples*"]
-namespaces = false 
+namespaces = false
 
 [tool.setuptools.package-data]
 # Keys are package names. Values are globs relative to that package root.

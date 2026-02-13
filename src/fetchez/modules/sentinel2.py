@@ -50,26 +50,26 @@ OPENEO_API_HUB = 'https://apihub.copernicus.eu/apihub'
 
 class Sentinel2(core.FetchModule):
     """Fetch Sentinel-2 optical satellite imagery.
-    
+
     This module queries the Copernicus Data Space Ecosystem (CDSE).
     It requires a CDSE account (email/password) stored in your ~/.netrc file.
-    
+
     Machine: identity.dataspace.copernicus.eu
     Login: <your_email>
     Password: <your_password>
-    
+
     **Dependencies:**
     - `sentinelsat`: Required for query parsing (`pip install sentinelsat`)
-    
+
     References:
       - https://dataspace.copernicus.eu/
     """
-    
-    def __init__(self, 
-                 start_date: str = None, 
-                 end_date: str = None, 
-                 cloud_cover: int = 20, 
-                 product_type: str = 'S2MSI2A', 
+
+    def __init__(self,
+                 start_date: str = None,
+                 end_date: str = None,
+                 cloud_cover: int = 20,
+                 product_type: str = 'S2MSI2A',
                  **kwargs):
         super().__init__(name='sentinel2', **kwargs)
         self.start_date = start_date
@@ -77,10 +77,10 @@ class Sentinel2(core.FetchModule):
         self.cloud_cover = int(cloud_cover)
         self.product_type = product_type
 
-        
+
     def _get_token(self, username, password):
         """Generate an OAuth2 Access Token from CDSE Keycloak."""
-        
+
         try:
             payload = {
                 'client_id': 'cdse-public',
@@ -97,7 +97,7 @@ class Sentinel2(core.FetchModule):
 
     def run(self):
         """Run the Sentinel-2 fetching logic."""
-        
+
         if self.region is None:
             return []
 
@@ -115,17 +115,17 @@ class Sentinel2(core.FetchModule):
         token = self._get_token(username, password)
         if not token:
             return self
-            
+
         self.headers['Authorization'] = f"Bearer {token}"
 
         try:
             api = SentinelAPI(username, password, CDSE_RESTO_URL)
-            
+
             if not self.start_date:
                 self.start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
             else:
                 self.start_date = self.start_date.replace('-', '')
-                
+
             if not self.end_date:
                 self.end_date = datetime.now().strftime('%Y%m%d')
             else:
@@ -135,7 +135,7 @@ class Sentinel2(core.FetchModule):
             footprint = f"POLYGON(({w} {s}, {e} {s}, {e} {n}, {w} {n}, {w} {s}))"
 
             logger.info(f"Querying Sentinel-2 ({self.product_type})...")
-            
+
             products = api.query(
                 footprint,
                 date=(self.start_date, self.end_date),
@@ -143,15 +143,15 @@ class Sentinel2(core.FetchModule):
                 producttype=self.product_type,
                 cloudcoverpercentage=(0, self.cloud_cover)
             )
-            
+
             df = api.to_dataframe(products)
             logger.info(f"Found {len(df)} scenes.")
-            
+
             for uuid, row in df.iterrows():
                 title = row['title']
-                
+
                 download_url = f"{CDSE_ODATA_URL}/Products({uuid})/$value"
-                
+
                 self.add_entry_to_results(
                     url=download_url,
                     dst_fn=f"{title}.zip",
@@ -163,18 +163,18 @@ class Sentinel2(core.FetchModule):
         except Exception as e:
             logger.error(f"Sentinel-2 Query Error: {e}")
 
-        return self    
+        return self
 
-    
+
     def run_openeo(self):
         """Run the OpenEO fetching module"""
 
         username, password = fetches.get_userpass(OPENEO_AUTH_URL)
         api = SentinelAPI(username, password, OPENEO_API_HUB)
-        
+
         # Define your area of interest (e.g., from a GeoJSON file)
         #footprint = geojson_to_wkt(read_geojson('/path/to/your/area_of_interest.geojson'))
-        
+
         w, e, s, n = self.region
         footprint = f"POLYGON(({w} {s}, {e} {s}, {e} {n}, {w} {n}, {w} {s}))"
 

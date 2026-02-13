@@ -30,11 +30,11 @@ HEADERS = {
 )
 class NASADEM(core.FetchModule):
     """Fetch NASADEM Global Elevation data.
-    
-    NASADEM is a modernization of the SRTM data, featuring improved 
-    height accuracy and void filling. The data is distributed in 
+
+    NASADEM is a modernization of the SRTM data, featuring improved
+    height accuracy and void filling. The data is distributed in
     1x1 degree tiles (SRTM HGT format) at 1 arc-second (~30m) resolution.
-    
+
     This module mathematically generates tile URLs for the requested region,
     avoiding the need to query a catalog server.
 
@@ -42,36 +42,36 @@ class NASADEM(core.FetchModule):
       - https://www.earthdata.nasa.gov/esds/competitive-programs/measures/nasadem
       - https://opentopography.org/
     """
-    
+
     def __init__(self, **kwargs):
         super().__init__(name='nasadem', **kwargs)
         self.headers = HEADERS
 
-        
+
     def _format_tile_name(self, lat, lon):
         """Generate NASADEM filename from lat/lon integers.
         Format: NASADEM_HGT_nXXeYYY.hgt
         """
-        
+
         # Latitude: n/s + 2 digits
         ns = 'n' if lat >= 0 else 's'
         lat_str = f"{abs(lat):02d}"
-        
+
         # Longitude: e/w + 3 digits
         ew = 'e' if lon >= 0 else 'w'
         lon_str = f"{abs(lon):03d}"
-        
+
         return f"NASADEM_HGT_{ns}{lat_str}{ew}{lon_str}.tif"
 
-    
+
     def run(self):
         """Run the NASADEM fetching logic."""
-        
+
         if self.region is None:
             return []
 
         w, e, s, n = self.region
-        
+
         # We need every 1x1 degree tile that touches the region.
         # Floor the mins, Ceil the maxes.
         x_min = int(math.floor(w))
@@ -84,10 +84,10 @@ class NASADEM(core.FetchModule):
 
                 # Note: SRTM/NASADEM tiles are named by their lower-left corner.
                 fname = self._format_tile_name(y, x)
-                
+
                 # Construct URL
                 url = f"{NASADEM_BASE_URL}/{fname}?token="
-                
+
                 # Add to results
                 self.add_entry_to_results(
                     url=url,

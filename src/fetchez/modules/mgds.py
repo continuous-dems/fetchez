@@ -35,8 +35,8 @@ MGDS_NAMESPACE = 'https://www.marine-geo.org/services/xml/mgdsDataService'
 class MGDS(core.FetchModule):
     """
     Fetch marine data from MGDS.
-    
-    MGDS is a trusted data repository that provides free public access 
+
+    MGDS is a trusted data repository that provides free public access
     to a curated collection of marine geophysical data products.
 
     Common Data Types:
@@ -49,12 +49,12 @@ class MGDS(core.FetchModule):
     References:
       - https://www.marine-geo.org
     """
-    
+
     def __init__(self, datatype: str = 'Bathymetry', **kwargs):
         super().__init__(name='mgds', **kwargs)
         self.datatype = datatype.replace(',', ':')
 
-        
+
     def run(self):
         """Run the MGDS fetching logic."""
 
@@ -84,13 +84,13 @@ class MGDS(core.FetchModule):
 
             ns_tag = f"{{{MGDS_NAMESPACE}}}file"
             results = tree.findall(f".//{ns_tag}")
-            
+
             logger.info(f"Found {len(results)} potential files.")
 
             for res in results:
                 name = res.attrib.get('name')
                 link = res.attrib.get('download')
-                
+
                 if name and link:
                     self.add_entry_to_results(
                         url=link,

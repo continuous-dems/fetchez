@@ -28,24 +28,24 @@ GBA_WFS_URL = 'https://tubvsig-so2sat-vm1.srv.mwn.de/geoserver/ows'
 
 class GBA(core.FetchModule):
     """Fetch building footprints from the Global Building Atlas.
-    
-    The GBA provides Level of Detail 1 (LOD1) 3D building models (footprint + height) 
+
+    The GBA provides Level of Detail 1 (LOD1) 3D building models (footprint + height)
     derived from satellite imagery. Data is fetched via a Web Feature Service (WFS).
-    
+
     Common Layers:
       - lod1_global (Default)
       - lod1_europe
-    
+
     References:
       - https://www.wk.bgu.tum.de/en/global-building-atlas/
     """
-    
+
     def __init__(self, layer: str = 'lod1_global', fmt: str = 'json', **kwargs):
         super().__init__(name='gba', **kwargs)
         self.layer = layer
         self.fmt = fmt
 
-        
+
     def run(self):
         """Run the GBA fetching logic."""
 
@@ -77,14 +77,14 @@ class GBA(core.FetchModule):
         }
 
         full_url = f"{GBA_WFS_URL}?{urlencode(params)}"
-        
+
         r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
         safe_layer = self.layer.replace(':', '_')
         out_fn = f"gba_{safe_layer}_{r_str}.{ext}"
-        
+
         self.add_entry_to_results(
-            url=full_url, 
-            dst_fn=out_fn, 
+            url=full_url,
+            dst_fn=out_fn,
             data_type='vector',
             agency='TUM / DLR',
             title=f"GBA {self.layer}"

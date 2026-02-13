@@ -40,13 +40,13 @@ GMRT_HEADERS = {
 # =============================================================================
 def gmrt_fetch_point(latitude: float, longitude: float) -> Optional[str]:
     """Fetch a single point elevation from GMRT."""
-    
+
     data = {'longitude': longitude, 'latitude': latitude}
-    
+
     req = core.Fetch(GMRT_POINT_URL, headers=GMRT_HEADERS).fetch_req(
         params=data, tries=10, timeout=2
     )
-    
+
     if req is not None:
         return req.text
     return None
@@ -61,11 +61,11 @@ def gmrt_fetch_point(latitude: float, longitude: float) -> Optional[str]:
 )
 class GMRT(core.FetchModule):
     """The Global Multi-Resolution Topography synthesis.
-    
-    The Global Multi-Resolution Topography (GMRT) synthesis is a multi-resolutional 
-    compilation of edited multibeam sonar data collected by scientists and 
-    institutions worldwide, that is reviewed, processed and gridded by the GMRT 
-    Team and merged into a single continuously updated compilation of global elevation 
+
+    The Global Multi-Resolution Topography (GMRT) synthesis is a multi-resolutional
+    compilation of edited multibeam sonar data collected by scientists and
+    institutions worldwide, that is reviewed, processed and gridded by the GMRT
+    Team and merged into a single continuously updated compilation of global elevation
     data.
 
     Data Formats:
@@ -75,10 +75,10 @@ class GMRT(core.FetchModule):
       - GeoTIFF
 
     Layers: 'topo' or 'topo-mask'
-    
+
     Data is assumed instantaneous MSL.
     """
-    
+
     def __init__(
             self,
             res: str = 'default',
@@ -88,11 +88,11 @@ class GMRT(core.FetchModule):
             **kwargs
     ):
         super().__init__(name='gmrt', **kwargs)
-        
-        self.res = res 
-        self.fmt = fmt 
+
+        self.res = res
+        self.fmt = fmt
         self.want_swath = want_swath
-        
+
         # Validate layer
         self.layer = layer if layer in ['topo', 'topo-mask'] else 'topo'
 
@@ -118,15 +118,15 @@ class GMRT(core.FetchModule):
         self.url = GMRT_URL
         self.headers = GMRT_HEADERS
 
-        
+
     def run(self):
         """Run the GMRT fetching module."""
-        
+
         if self.region is None or self.gmrt_region is None:
             return []
 
         w, e, s, n = self.gmrt_region
-        
+
         self.data = {
             'north': n,
             'west': w,
@@ -139,19 +139,19 @@ class GMRT(core.FetchModule):
         }
 
         req = core.Fetch(
-            GMRT_GRID_URL, 
+            GMRT_GRID_URL,
             headers=self.headers
         ).fetch_req(
-            params=self.data, 
-            tries=10, 
+            params=self.data,
+            tries=10,
             timeout=2
         )
 
         if req is not None:
             ext = 'tif' if self.fmt == 'geotiff' else 'grd'
-            
+
             # Construct filename
-            r_str = f'w{w:.2f}_s{s:.2f}' 
+            r_str = f'w{w:.2f}_s{s:.2f}'
             outf = f'gmrt_{self.layer}_{self.res}_{r_str}.{ext}'
 
             # Populate `self.results`
@@ -167,5 +167,5 @@ class GMRT(core.FetchModule):
                 remote_size=req.headers.get('Content-Length'), # Useful for progress bars
                 layer=self.layer            # 'topo' vs 'topo-mask'
             )
-                
+
         return self

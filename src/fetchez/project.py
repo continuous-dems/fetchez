@@ -28,16 +28,16 @@ class ProjectRun:
         self.base_dir = os.path.dirname(os.path.abspath(config_file))
         self.config = self._load_config()
 
-        
+
     def _load_config(self):
         """Load configuration from JSON or YAML."""
-        
+
         if not os.path.exists(self.config_file):
             logger.error(f"Project file not found: {self.config_file}")
             return {}
 
         ext = os.path.splitext(self.config_file)[1].lower()
-        
+
         try:
             with open(self.config_file, 'r') as f:
                 if ext in ['.yaml', '.yml']:
@@ -53,17 +53,17 @@ class ProjectRun:
             logger.error(f"Failed to parse project file: {e}")
             return {}
 
-        
+
     def _init_hooks(self, hook_defs):
         """Instantiate hooks from list of dicts."""
-        
+
         if not hook_defs: return []
-        
+
         active_hooks = []
         for h in hook_defs:
             name = h.get('name')
             kwargs = h.get('args', {})
-            
+
             for k, v in kwargs.items():
                 if isinstance(v, str):# and k in ['file', 'output', 'output_grid', 'mask_fn', 'dem']:
                     if not os.path.isabs(v) and not v.startswith(('http', 's3://', 'gs://', 'ftp://')):
@@ -80,21 +80,21 @@ class ProjectRun:
                 logger.warning(f"Hook '{name}' not found.")
         return active_hooks
 
-    
+
     def run(self):
         """Build and execute the pipeline."""
-        
+
         if not self.config: return
 
         # Global Settings
         project_meta = self.config.get('project', {})
         run_opts = self.config.get('execution', {})
-        
+
         threads = run_opts.get('threads', 1)
         verbose = run_opts.get('verbose', True)
-        
+
         logger.info(f"Starting Project: {project_meta.get('name', 'Untitled')}")
-        
+
         # Global Hooks
         global_hooks = self._init_hooks(self.config.get('global_hooks', []))
 
@@ -104,12 +104,12 @@ class ProjectRun:
 
         # Build Module Instances
         modules_to_run = []
-        
+
         for mod_def in self.config.get('modules', []):
             mod_key = mod_def.get('module')
             mod_args = mod_def.get('args', {})
             mod_hooks = self._init_hooks(mod_def.get('hooks', []))
-            
+
             # Module Region overrides Global
             mod_region_def = mod_def.get('region')
             if mod_region_def:
@@ -143,8 +143,8 @@ class ProjectRun:
             return
 
         logger.info(f"Queued {len(modules_to_run)} jobs. Running...")
-        
+
         for mod in modules_to_run:
             mod.run()
-            
+
         run_fetchez(modules_to_run, threads=threads, global_hooks=global_hooks)

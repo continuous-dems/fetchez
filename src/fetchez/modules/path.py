@@ -23,19 +23,19 @@ from fetchez import cli
 )
 class LocalDataset(core.FetchModule):
     """Register local files into the fetchez pipeline."""
-    
+
     def __init__(self, paths=None, path=None, **kwargs):
         """
         Args:
             paths (list): A list of file paths.
             path (str): A single file path (optional) (can be sep by commas).
         """
-        
+
         super().__init__(**kwargs)
-        
+
         # 1. Normalize inputs into a single list
         self.file_list = []
-        
+
         if paths:
             if isinstance(paths, list):
                 self.file_list.extend(paths)
@@ -43,7 +43,7 @@ class LocalDataset(core.FetchModule):
                 for this_path in paths.split(','):
                     if os.path.isfile(this_path):
                         self.file_list.append(this_path)
-                
+
         if path:
             for this_path in path.split(','):
                 if os.path.isfile(this_path):
@@ -53,7 +53,7 @@ class LocalDataset(core.FetchModule):
         for p in self.file_list:
             self._add_file_entry(p)
 
-            
+
     def _add_file_entry(self, p):
         """Helper to format and register a single file."""
         if not p: return
@@ -66,24 +66,24 @@ class LocalDataset(core.FetchModule):
         else:
             abs_path = os.path.abspath(p)
             url = f'file://{abs_path}'
-            
+
         # Determine a "destination filename" (just the basename)
         # This is what hooks will see as 'dst_fn'
         filename = os.path.basename(abs_path)
-    
+
         # We set status=0 so Fetchez Core thinks it's "Already Downloaded"
         # and proceeds immediately to the hooks.
         self.add_entry_to_results(
             url=url,
             dst_fn=abs_path, # Point directly to the absolute local path
             data_type='local',
-            status=0 
+            status=0
         )
 
     def run(self):
         # No 'fetching' logic needed; files are local.
         pass
-    
+
 # #!/usr/bin/env python
 # # -*- coding: utf-8 -*-
 
@@ -104,7 +104,7 @@ class LocalDataset(core.FetchModule):
 # @cli.cli_opts(help_text="Process a local file (e.g. for piping/hooks)")
 # class LocalDataset(core.FetchModule):
 #     """Register a local file into the fetchez pipeline."""
-    
+
 #     def __init__(self, path=None, **kwargs):
 #         super().__init__(**kwargs)
 #         self.path = path
@@ -115,9 +115,9 @@ class LocalDataset(core.FetchModule):
 #                 self.url = f'file://{abs_path}'
 #             else:
 #                 self.url = self.path
-            
+
 #             filename = os.path.basename(self.url.replace('file://', ''))
-        
+
 #             self.add_entry_to_results(
 #                 url=self.url,
 #                 dst_fn=filename,

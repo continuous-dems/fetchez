@@ -36,19 +36,19 @@ EHYDRO_BASE_URL = 'https://services7.arcgis.com/n1YM8pTrFmm7L4hs/arcgis/rest/ser
 
 class eHydro(core.FetchModule):
     """Fetch USACE eHydro bathymetric data.
-    
-    The eHydro dataset supports the USACE navigation mission by providing 
+
+    The eHydro dataset supports the USACE navigation mission by providing
     bathymetric survey data for navigation channels and harbors.
-    
-    The module queries the ArcGIS REST API to find survey extents that 
-    intersect the given region and downloads the associated data files 
+
+    The module queries the ArcGIS REST API to find survey extents that
+    intersect the given region and downloads the associated data files
     (often ZIPs containing XYZ/GeoTIFFs).
 
     References:
       - https://navigation.usace.army.mil/Survey/Hydro
     """
 
-    def __init__(self, where: str = '1=1', survey: str = None, 
+    def __init__(self, where: str = '1=1', survey: str = None,
                  min_year: str = None, max_year: str = None, **kwargs):
         super().__init__(name='ehydro', **kwargs)
         self.where = where
@@ -56,12 +56,12 @@ class eHydro(core.FetchModule):
         self.min_year = int(min_year) if min_year else None
         self.max_year = int(max_year) if max_year else None
 
-        
+
     def _parse_year(self, timestamp):
         """Safely parse ESRI timestamp (milliseconds) to year."""
-        
+
         try:
-            if timestamp is None: 
+            if timestamp is None:
                 return None
             # Handle milliseconds
             seconds = int(str(timestamp)[:10])
@@ -70,15 +70,15 @@ class eHydro(core.FetchModule):
         except (ValueError, TypeError):
             return None
 
-        
+
     def run(self):
         """Run the eHydro fetching logic."""
-        
+
         if self.region is None:
             return []
-        
+
         w, e, s, n = self.region
-        
+
         params = {
             'where': self.where,
             'outFields': '*',
@@ -90,10 +90,10 @@ class eHydro(core.FetchModule):
             'f': 'json',
             'returnGeometry': 'false'
         }
-        
+
         query_url = f"{EHYDRO_BASE_URL}?{urlencode(params)}"
         logger.info("Querying USACE eHydro API...")
-        
+
         req = core.Fetch(query_url).fetch_req()
         if not req or req.status_code != 200:
             logger.error("Failed to query eHydro API.")
@@ -109,18 +109,18 @@ class eHydro(core.FetchModule):
         if not features:
             logger.warning("No eHydro surveys found in this region.")
             return self
-            
+
         logger.info(f"Scanning {len(features)} potential surveys...")
 
         matches = 0
         for feature in features:
             attrs = feature.get('attributes', {})
-            
+
             # Attributes of interest
             sid = attrs.get('sdsmetadataid', 'Unknown')
             url = attrs.get('sourcedatalocation')
             survey_date_ts = attrs.get('surveydatestart')
-            
+
             if not url:
                 continue
 
@@ -129,14 +129,14 @@ class eHydro(core.FetchModule):
                 continue
             if self.max_year and year and year > self.max_year:
                 continue
-                
+
             if self.survey_filter:
                 if self.survey_filter.lower() not in sid.lower():
                     continue
 
             fname = url.split('/')[-1]
             if '?' in fname: fname = fname.split('?')[0]
-            
+
             self.add_entry_to_results(
                 url=url,
                 dst_fn=fname,

@@ -5,7 +5,7 @@
 fetchez.registry
 ~~~~~~~~~~~~~
 
-This module contains the Module Registry for the Fetchez library. 
+This module contains the Module Registry for the Fetchez library.
 
 :copyright: (c) 2010-2026 Regents of the University of Colorado
 :license: MIT, see LICENSE for more details.
@@ -37,14 +37,14 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 class FetchezRegistry:
     """Fetchez Module Registry with expanded metadata for discovery."""
-            
+
     _modules = {
-        
+
         # Generic https module to send an argument to FetchModule.results
         'https': {'mod': 'fetchez.core', 'cls': 'HttpDataset', 'category': 'Generic'},
 
         'file': {
-            'mod': 'fetchez.modules.path', 
+            'mod': 'fetchez.modules.path',
             'cls': 'LocalDataset',
             'category': 'Generic',
             'desc': 'Process a local file path through the pipeline.',
@@ -52,22 +52,22 @@ class FetchezRegistry:
             'tags': ['local', 'file', 'system', 'path'],
             'region': 'Global'
         },
-        
+
         # Local module - query a local fred geojson
         'local': {
-            'mod': 'fetchez.modules.local', 
-            'cls': 'Local', 
+            'mod': 'fetchez.modules.local',
+            'cls': 'Local',
             'category': 'User Data',
             'desc': 'Query local or custom FRED indices',
             'tags': ['local', 'custom', 'index'],
             'region': 'Custom',
             'resolution': 'N/A',
         },
-        
+
         # GMRT
         'gmrt': {
-            'mod': 'fetchez.modules.gmrt', 
-            'cls': 'GMRT', 
+            'mod': 'fetchez.modules.gmrt',
+            'cls': 'GMRT',
             'category': 'Bathymetry',
             'desc': 'Global Multi-Resolution Topography Synthesis',
             'agency': 'Lamont-Doherty Earth Observatory',
@@ -82,8 +82,8 @@ class FetchezRegistry:
         },
 
         'gebco': {
-            'mod': 'fetchez.modules.gebco', 
-            'cls': 'GEBCO', 
+            'mod': 'fetchez.modules.gebco',
+            'cls': 'GEBCO',
             'category': 'Bathymetry',
             'desc': 'General Bathymetric Chart of the Oceans (GEBCO)',
             'agency': 'GEBCO / IHO / IOC',
@@ -93,11 +93,11 @@ class FetchezRegistry:
             'license': 'Public Domain / Attribution',
             'urls': {'home': 'https://www.gebco.net/'}
         },
-        
+
         # Copernicus DEMs
         'copernicus': {
-            'mod': 'fetchez.modules.copernicus', 
-            'cls': 'CopernicusDEM', 
+            'mod': 'fetchez.modules.copernicus',
+            'cls': 'CopernicusDEM',
             'category': 'Topography',
             'desc': 'Copernicus Global/European Digital Elevation Models (COP-30/10)',
             'agency': 'ESA/Eurostat',
@@ -112,8 +112,8 @@ class FetchezRegistry:
         },
 
         'fabdem': {
-            'mod': 'fetchez.modules.fabdem', 
-            'cls': 'FABDEM', 
+            'mod': 'fetchez.modules.fabdem',
+            'cls': 'FABDEM',
             'category': 'Topography',
             'desc': 'FABDEM (Forest And Buildings removed Copernicus DEM)',
             'agency': 'University of Bristol',
@@ -125,8 +125,8 @@ class FetchezRegistry:
         },
 
         'sentinel2': {
-            'mod': 'fetchez.modules.sentinel2', 
-            'cls': 'Sentinel2', 
+            'mod': 'fetchez.modules.sentinel2',
+            'cls': 'Sentinel2',
             'category': 'Imagery',
             'desc': 'Copernicus Sentinel-2 (Optical Imagery)',
             'agency': 'ESA',
@@ -139,10 +139,10 @@ class FetchezRegistry:
                 'auth': 'https://identity.dataspace.copernicus.eu/auth/realms/CDSE/account/'
             }
         },
-        
+
         # Digital Coast (DAV) and shortcuts (slr, cudem, coned)
         'dav': {
-            'mod': 'fetchez.modules.dav', 
+            'mod': 'fetchez.modules.dav',
             'cls': 'DAV',
             'aliases': ['digital_coast'],
             'category': 'Multidisciplinary',
@@ -155,8 +155,8 @@ class FetchezRegistry:
             'urls': {'home': 'https://coast.noaa.gov/dataviewer/'}
         },
         'slr': {
-            'mod': 'fetchez.modules.dav', 
-            'cls': 'SLR', 
+            'mod': 'fetchez.modules.dav',
+            'cls': 'SLR',
             'category': 'Topography',
             'desc': 'NOAA Sea Level Rise DEMs',
             'agency': 'NOAA',
@@ -167,8 +167,8 @@ class FetchezRegistry:
             'urls': {'home': 'https://coast.noaa.gov/slr/'}
         },
         'coned': {
-            'mod': 'fetchez.modules.dav', 
-            'cls': 'CoNED', 
+            'mod': 'fetchez.modules.dav',
+            'cls': 'CoNED',
             'category': 'Topography',
             'desc': 'Coastal National Elevation Database (CoNED)',
             'agency': 'USGS / NOAA',
@@ -179,8 +179,8 @@ class FetchezRegistry:
             'urls': {'home': 'https://www.usgs.gov/core-science-systems/ngp/coned'}
         },
         'cudem': {
-            'mod': 'fetchez.modules.dav', 
-            'cls': 'CUDEM', 
+            'mod': 'fetchez.modules.dav',
+            'cls': 'CUDEM',
             'category': 'Bathymetry',
             'desc': 'Continuously Updated DEM (CUDEM)',
             'agency': 'NOAA',
@@ -190,11 +190,11 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://coast.noaa.gov/digitalcoast/data/cudem.html'}
         },
-        
+
         # NOAA ETOPO-2022
         'etopo': {
-            'mod': 'fetchez.modules.etopo', 
-            'cls': 'ETOPO', 
+            'mod': 'fetchez.modules.etopo',
+            'cls': 'ETOPO',
             'category': 'Topography',
             'desc': 'ETOPO 2022 Global Relief Model (15s, 30s, 60s)',
             'agency': 'NOAA NCEI',
@@ -204,11 +204,11 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://www.ncei.noaa.gov/products/etopo-global-relief-model'}
         },
-        
+
         # The National Map (TNM) / USGS and Shortcuts (ned/3dep/etc)
         'tnm': {
-            'mod': 'fetchez.modules.tnm', 
-            'cls': 'TheNationalMap', 
+            'mod': 'fetchez.modules.tnm',
+            'cls': 'TheNationalMap',
             'category': 'Topography',
             'desc': 'USGS 3DEP Products (NED, Lidar, Hydro) via The National Map',
             'agency': 'USGS',
@@ -223,25 +223,25 @@ class FetchezRegistry:
         },
         'ned': {
             'inherits': 'tnm',
-            'mod': 'fetchez.modules.tnm', 
-            'cls': 'NED', 
-            'category': 'Topography', 
+            'mod': 'fetchez.modules.tnm',
+            'cls': 'NED',
+            'category': 'Topography',
             'desc': 'USGS Seamless DEMs (1m, 1/3", 1")',
             'aliases': ['3dep_dem', 'NED']
         },
         '3dep': {
             'inherits': 'tnm',
-            'mod': 'fetchez.modules.tnm', 
-            'cls': 'TNM_LAZ', 
-            'category': 'Topography', 
+            'mod': 'fetchez.modules.tnm',
+            'cls': 'TNM_LAZ',
+            'category': 'Topography',
             'desc': 'USGS 3DEP Lidar Point Clouds (LAZ)',
             'aliases': ['3dep_lidar']
         },
 
         # USGS Checkpoints
         '3dep_cp': {
-            'mod': 'fetchez.modules.checkpoints_3dep', 
-            'cls': 'CheckPoints3DEP', 
+            'mod': 'fetchez.modules.checkpoints_3dep',
+            'cls': 'CheckPoints3DEP',
             'category': 'Reference',
             'desc': 'USGS 3DEP Elevation Validation Checkpoints',
             'agency': 'USGS',
@@ -257,8 +257,8 @@ class FetchezRegistry:
 
         # USGS Waterservices
         'waterservices': {
-            'mod': 'fetchez.modules.waterservices', 
-            'cls': 'WaterServices', 
+            'mod': 'fetchez.modules.waterservices',
+            'cls': 'WaterServices',
             'category': 'Hydrography',
             'desc': 'USGS Water Services (Streamflow/River Data)',
             'agency': 'USGS',
@@ -268,11 +268,11 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://waterservices.usgs.gov/'}
         },
-        
+
         # NASA EarthData
         'earthdata': {
-            'mod': 'fetchez.modules.earthdata', 
-            'cls': 'EarthData', 
+            'mod': 'fetchez.modules.earthdata',
+            'cls': 'EarthData',
             'category': 'Generic',
             'desc': 'NASA Earth Science Data via CMR & Harmony',
             'agency': 'NASA',
@@ -293,14 +293,14 @@ class FetchezRegistry:
             'desc': 'NASA IceSat-2 Laser Altimetry (ATL03/ATL08)',
             'tags': ['lidar', 'icesat2', 'atl03', 'atl08', 'elevation', 'photon'],
             'resolution': 'Photon / 100m'
-        },        
+        },
         'swot': {
             'inherits': 'earthdata',
             'cls': 'SWOT',
             'category': 'Oceanography',
             'desc': 'Surface Water and Ocean Topography (SWOT) Ka-band Radar',
             'tags': ['swot', 'hydrology', 'oceanography', 'water-height', 'karin']
-        },        
+        },
         'mur_sst': {
             'inherits': 'earthdata',
             'cls': 'MUR_SST',
@@ -312,8 +312,8 @@ class FetchezRegistry:
 
         # Multibeam (NOAA)
         'multibeam': {
-            'mod': 'fetchez.modules.multibeam', 
-            'cls': 'Multibeam', 
+            'mod': 'fetchez.modules.multibeam',
+            'cls': 'Multibeam',
             'category': 'Bathymetry',
             'desc': 'NOAA NCEI Multibeam Bathymetry (Global)',
             'agency': 'NOAA NCEI',
@@ -322,10 +322,10 @@ class FetchezRegistry:
             'resolution': 'Varies (10m - 100m)',
             'license': 'Public Domain',
             'urls': {'home': 'https://www.ngdc.noaa.gov/mgg/bathymetry/multibeam.html'}
-        },        
+        },
         'mbdb': {
-            'mod': 'fetchez.modules.multibeam', 
-            'cls': 'MBDB', 
+            'mod': 'fetchez.modules.multibeam',
+            'cls': 'MBDB',
             'category': 'Bathymetry',
             'desc': 'NOAA Multibeam via ArcGIS Feature Server',
             'agency': 'NOAA NCEI',
@@ -333,8 +333,8 @@ class FetchezRegistry:
             'inherits': 'multibeam'
         },
         'r2r': {
-            'mod': 'fetchez.modules.multibeam', 
-            'cls': 'R2R', 
+            'mod': 'fetchez.modules.multibeam',
+            'cls': 'R2R',
             'category': 'Bathymetry',
             'desc': 'Rolling Deck to Repository (R2R) Multibeam',
             'agency': 'NSF / R2R',
@@ -347,8 +347,8 @@ class FetchezRegistry:
 
         # HydroNOS
         'nos_hydro': {
-            'mod': 'fetchez.modules.hydronos', 
-            'cls': 'HydroNOS', 
+            'mod': 'fetchez.modules.hydronos',
+            'cls': 'HydroNOS',
             'category': 'Bathymetry',
             'desc': 'NOAA NOS Hydrographic Surveys (BAG & XYZ)',
             'agency': 'NOAA NOS',
@@ -357,11 +357,11 @@ class FetchezRegistry:
             'resolution': 'Varies (0.5m - 30m)',
             'license': 'Public Domain',
             'urls': {'home': 'https://www.ngdc.noaa.gov/mgg/bathymetry/hydro.html'}
-        },        
+        },
         # Shortcut for just BAGs
         'bag': {
-            'mod': 'fetchez.modules.hydronos', 
-            'cls': 'HydroNOS', 
+            'mod': 'fetchez.modules.hydronos',
+            'cls': 'HydroNOS',
             'category': 'Bathymetry',
             'desc': 'NOAA NOS Bathymetric Attributed Grids (BAG)',
             'inherits': 'nos_hydro'
@@ -369,8 +369,8 @@ class FetchezRegistry:
 
         # Coast Survey's BlueTopo
         'bluetopo': {
-            'mod': 'fetchez.modules.bluetopo', 
-            'cls': 'BlueTopo', 
+            'mod': 'fetchez.modules.bluetopo',
+            'cls': 'BlueTopo',
             'category': 'Bathymetry',
             'desc': 'NOAA BlueTopo (National Bathymetric Source)',
             'agency': 'NOAA OCS',
@@ -382,8 +382,8 @@ class FetchezRegistry:
         },
 
         'ehydro': {
-            'mod': 'fetchez.modules.ehydro', 
-            'cls': 'eHydro', 
+            'mod': 'fetchez.modules.ehydro',
+            'cls': 'eHydro',
             'category': 'Bathymetry',
             'desc': 'USACE eHydro Navigation Surveys',
             'agency': 'USACE',
@@ -393,10 +393,10 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://navigation.usace.army.mil/Survey/Hydro'}
         },
-        
+
         'mgds': {
-            'mod': 'fetchez.modules.mgds', 
-            'cls': 'MGDS', 
+            'mod': 'fetchez.modules.mgds',
+            'cls': 'MGDS',
             'category': 'Bathymetry',
             'desc': 'Marine Geoscience Data System (MGDS)',
             'agency': 'IEDA / NSF',
@@ -406,10 +406,10 @@ class FetchezRegistry:
             'license': 'Public / Academic',
             'urls': {'home': 'https://www.marine-geo.org/'}
         },
-        
+
         'margrav': {
-            'mod': 'fetchez.modules.margrav', 
-            'cls': 'MarGrav', 
+            'mod': 'fetchez.modules.margrav',
+            'cls': 'MarGrav',
             'category': 'Bathymetry',
             'desc': 'Marine Gravity (Scripps/UCSD)',
             'agency': 'SIO',
@@ -421,8 +421,8 @@ class FetchezRegistry:
         },
 
         'srtm_plus': {
-            'mod': 'fetchez.modules.srtmplus', 
-            'cls': 'SRTMPlus', 
+            'mod': 'fetchez.modules.srtmplus',
+            'cls': 'SRTMPlus',
             'category': 'Topography',
             'desc': 'SRTM15+ Global Bathymetry/Topography (Scripps/UCSD)',
             'agency': 'SIO / UCSD',
@@ -432,10 +432,10 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://topex.ucsd.edu/WWW_html/srtm15_plus.html'}
         },
-        
+
         'synbath': {
-            'mod': 'fetchez.modules.synbath', 
-            'cls': 'SynBath', 
+            'mod': 'fetchez.modules.synbath',
+            'cls': 'SynBath',
             'category': 'Bathymetry',
             'desc': 'UCSD SynBath Global Synthetic Bathymetry',
             'agency': 'SIO / UCSD',
@@ -447,8 +447,8 @@ class FetchezRegistry:
         },
 
         'vgg': {
-            'mod': 'fetchez.modules.vgg', 
-            'cls': 'VGG', 
+            'mod': 'fetchez.modules.vgg',
+            'cls': 'VGG',
             'category': 'Bathymetry',
             'desc': 'Vertical Gravity Gradient (VGG)',
             'agency': 'SIO / UCSD',
@@ -458,11 +458,11 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://topex.ucsd.edu/WWW_html/mar_grav.html'}
         },
-        
+
         # Nautical Charts (NOAA)
         'charts': {
-            'mod': 'fetchez.modules.charts', 
-            'cls': 'NOAACharts', 
+            'mod': 'fetchez.modules.charts',
+            'cls': 'NOAACharts',
             'category': 'Reference',
             'desc': 'NOAA Nautical Charts (ENC)',
             'agency': 'NOAA NOS',
@@ -471,12 +471,12 @@ class FetchezRegistry:
             'resolution': 'Varies',
             'license': 'Public Domain',
             'urls': {'home': 'https://www.charts.noaa.gov/'}
-        },        
+        },
 
         # World Settlement Footprint
         'wsf': {
-            'mod': 'fetchez.modules.wsf', 
-            'cls': 'WSF', 
+            'mod': 'fetchez.modules.wsf',
+            'cls': 'WSF',
             'category': 'Land Cover',
             'desc': 'World Settlement Footprint 2019 (10m)',
             'agency': 'DLR',
@@ -489,8 +489,8 @@ class FetchezRegistry:
 
         ## Crowd-Sourced Bathymetry
         'csb': {
-            'mod': 'fetchez.modules.csb', 
-            'cls': 'CSB', 
+            'mod': 'fetchez.modules.csb',
+            'cls': 'CSB',
             'category': 'Bathymetry',
             'desc': 'NOAA Crowd Sourced Bathymetry (CSB)',
             'agency': 'NOAA NCEI',
@@ -503,8 +503,8 @@ class FetchezRegistry:
 
         # NOAA Buoys
         'buoys': {
-            'mod': 'fetchez.modules.buoys', 
-            'cls': 'Buoys', 
+            'mod': 'fetchez.modules.buoys',
+            'cls': 'Buoys',
             'category': 'Oceanography',
             'desc': 'NOAA NDBC Buoy Data (Realtime & Historical)',
             'agency': 'NOAA NDBC',
@@ -516,8 +516,8 @@ class FetchezRegistry:
         },
 
         'tides': {
-            'mod': 'fetchez.modules.tides', 
-            'cls': 'Tides', 
+            'mod': 'fetchez.modules.tides',
+            'cls': 'Tides',
             'category': 'Oceanography',
             'desc': 'NOAA Tides & Currents (CO-OPS)',
             'agency': 'NOAA',
@@ -527,10 +527,10 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://tidesandcurrents.noaa.gov/'}
         },
-        
+
         'bing': {
-            'mod': 'fetchez.modules.bing', 
-            'cls': 'Bing', 
+            'mod': 'fetchez.modules.bing',
+            'cls': 'Bing',
             'category': 'Reference',
             'desc': 'Microsoft Global ML Building Footprints',
             'agency': 'Microsoft',
@@ -542,8 +542,8 @@ class FetchezRegistry:
         },
 
         'gba': {
-            'mod': 'fetchez.modules.gba', 
-            'cls': 'GBA', 
+            'mod': 'fetchez.modules.gba',
+            'cls': 'GBA',
             'category': 'Reference',
             'desc': 'Global Building Atlas (LOD1 Footprints)',
             'agency': 'TUM / DLR',
@@ -553,11 +553,11 @@ class FetchezRegistry:
             'license': 'Academic / Research',
             'urls': {'home': 'https://www.wk.bgu.tum.de/en/global-building-atlas/'}
         },
-        
+
         # CHS NONNA from Canada
         'chs': {
-            'mod': 'fetchez.modules.chs', 
-            'cls': 'CHS', 
+            'mod': 'fetchez.modules.chs',
+            'cls': 'CHS',
             'category': 'Bathymetry',
             'desc': 'Canadian Hydrographic Service NONNA (10m & 100m)',
             'agency': 'CHS',
@@ -569,8 +569,8 @@ class FetchezRegistry:
         },
 
         'hrdem': {
-            'mod': 'fetchez.modules.hrdem', 
-            'cls': 'HRDEM', 
+            'mod': 'fetchez.modules.hrdem',
+            'cls': 'HRDEM',
             'category': 'Topography',
             'desc': 'Canada HRDEM (Mosaic STAC & Legacy)',
             'agency': 'NRCAN',
@@ -580,10 +580,10 @@ class FetchezRegistry:
             'license': 'Open Government Licence - Canada',
             'urls': {'home': 'https://open.canada.ca/data/en/dataset/957782bf-847c-4644-a757-e383c0057995'}
         },
-    
+
         'wadnr': {
-            'mod': 'fetchez.modules.wadnr', 
-            'cls': 'WADNR', 
+            'mod': 'fetchez.modules.wadnr',
+            'cls': 'WADNR',
             'category': 'Topography',
             'desc': 'Washington State DNR LiDAR',
             'agency': 'WA DNR',
@@ -593,10 +593,10 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://lidarportal.dnr.wa.gov/'}
         },
-        
+
         'nswtb': {
-            'mod': 'fetchez.modules.nswtb', 
-            'cls': 'NSWTB', 
+            'mod': 'fetchez.modules.nswtb',
+            'cls': 'NSWTB',
             'category': 'Bathymetry',
             'desc': 'NSW Marine LiDAR Topo-Bathy (Contours/DEM)',
             'agency': 'NSW Government',
@@ -606,10 +606,10 @@ class FetchezRegistry:
             'license': 'Creative Commons Attribution',
             'urls': {'home': 'https://datasets.seed.nsw.gov.au/dataset/marine-lidar-topo-bathy-2018'}
         },
-        
+
         'emodnet': {
-            'mod': 'fetchez.modules.emodnet', 
-            'cls': 'EMODNet', 
+            'mod': 'fetchez.modules.emodnet',
+            'cls': 'EMODNet',
             'category': 'Bathymetry',
             'desc': 'EMODnet Bathymetry (Europe)',
             'agency': 'EU / EMODnet',
@@ -621,8 +621,8 @@ class FetchezRegistry:
         },
 
         'gedtm30': {
-            'mod': 'fetchez.modules.gedtm30', 
-            'cls': 'GEDTM30', 
+            'mod': 'fetchez.modules.gedtm30',
+            'cls': 'GEDTM30',
             'category': 'Topography',
             'desc': 'Global 1-Arc-Second DTM (OpenLandMap)',
             'agency': 'OpenLandMap',
@@ -634,8 +634,8 @@ class FetchezRegistry:
         },
 
         'nasadem': {
-            'mod': 'fetchez.modules.nasadem', 
-            'cls': 'NASADEM', 
+            'mod': 'fetchez.modules.nasadem',
+            'cls': 'NASADEM',
             'category': 'Topography',
             'desc': 'NASADEM (Modernized SRTM)',
             'agency': 'NASA',
@@ -645,10 +645,10 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://earthdata.nasa.gov/'}
         },
-        
+
         'arcticdem': {
-            'mod': 'fetchez.modules.arcticdem', 
-            'cls': 'ArcticDEM', 
+            'mod': 'fetchez.modules.arcticdem',
+            'cls': 'ArcticDEM',
             'category': 'Topography',
             'desc': 'ArcticDEM (Polar Geospatial Center)',
             'agency': 'PGC / NGA',
@@ -658,10 +658,10 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://www.pgc.umn.edu/data/arcticdem/'}
         },
-        
+
         'tiger': {
-            'mod': 'fetchez.modules.tiger', 
-            'cls': 'Tiger', 
+            'mod': 'fetchez.modules.tiger',
+            'cls': 'Tiger',
             'category': 'Reference',
             'desc': 'US Census Bureau TIGER (Boundaries)',
             'agency': 'US Census Bureau',
@@ -673,8 +673,8 @@ class FetchezRegistry:
         },
 
         'ngs': {
-            'mod': 'fetchez.modules.ngs', 
-            'cls': 'NGS', 
+            'mod': 'fetchez.modules.ngs',
+            'cls': 'NGS',
             'category': 'Geodesy',
             'desc': 'National Geodetic Survey (NGS) Monuments',
             'agency': 'NOAA',
@@ -686,8 +686,8 @@ class FetchezRegistry:
         },
 
         'hydrolakes': {
-            'mod': 'fetchez.modules.hydrolakes', 
-            'cls': 'HydroLAKES', 
+            'mod': 'fetchez.modules.hydrolakes',
+            'cls': 'HydroLAKES',
             'category': 'Hydrography',
             'desc': 'HydroLAKES Global Shoreline Polygons',
             'agency': 'HydroSHEDS',
@@ -699,8 +699,8 @@ class FetchezRegistry:
         },
 
         'globathy': {
-            'mod': 'fetchez.modules.globathy', 
-            'cls': 'GLOBathy', 
+            'mod': 'fetchez.modules.globathy',
+            'cls': 'GLOBathy',
             'category': 'Bathymetry',
             'desc': 'GLOBathy (Global Lake Bathymetry Parameters)',
             'agency': 'HydroSHEDS / Figshare',
@@ -712,8 +712,8 @@ class FetchezRegistry:
         },
 
         'usiei': {
-            'mod': 'fetchez.modules.usiei', 
-            'cls': 'USIEI', 
+            'mod': 'fetchez.modules.usiei',
+            'cls': 'USIEI',
             'category': 'Reference',
             'desc': 'US Interagency Elevation Inventory (Metadata Only)',
             'agency': 'NOAA / USGS / FEMA',
@@ -723,11 +723,11 @@ class FetchezRegistry:
             'license': 'Public Domain',
             'urls': {'home': 'https://coast.noaa.gov/inventory/'}
         },
-        
+
         # Proj CDN
         'proj': {
-            'mod': 'fetchez.modules.proj', 
-            'cls': 'PROJ', 
+            'mod': 'fetchez.modules.proj',
+            'cls': 'PROJ',
             'category': 'Geodesy',
             'desc': 'PROJ CDN Transformation Grids (Geoids, Shift Grids)',
             'agency': 'PROJ / NOAA / NGA',
@@ -741,8 +741,8 @@ class FetchezRegistry:
 
         # NOAA VDATUM Tidal Transformations
         'vdatum': {
-            'mod': 'fetchez.modules.vdatum', 
-            'cls': 'VDatum', 
+            'mod': 'fetchez.modules.vdatum',
+            'cls': 'VDatum',
             'category': 'Geodesy',
             'desc': 'NOAA VDatum Tidal Grids (MLLW, MHHW)',
             'agency': 'NOAA',
@@ -770,10 +770,10 @@ class FetchezRegistry:
                 'data': 'https://ftp.space.dtu.dk/pub/'
             }
         },
-        
+
         'osm': {
-            'mod': 'fetchez.modules.osm', 
-            'cls': 'OSM', 
+            'mod': 'fetchez.modules.osm',
+            'cls': 'OSM',
             'category': 'Vector',
             'desc': 'OpenStreetMap (Coastlines, Water, Buildings)',
             'agency': 'OpenStreetMap Foundation',
@@ -783,14 +783,14 @@ class FetchezRegistry:
             'license': 'ODbL (Open Data Commons Open Database License)',
             'urls': {'home': 'https://www.openstreetmap.org/'}
         },
-        
+
         # The following modules don't need a `region`,
         # they populate `FetchModule.results` in some other way.
-        
+
         # Cpt-City
         'cpt_city': {
-            'mod': 'fetchez.modules.cptcity', 
-            'cls': 'CPTCity', 
+            'mod': 'fetchez.modules.cptcity',
+            'cls': 'CPTCity',
             'category': 'Visualization',
             'desc': 'Color Palette Tables (CPT) from CPT City',
             'agency': 'SeaView Sensing / CPT City',
@@ -800,11 +800,11 @@ class FetchezRegistry:
             'license': 'Varies (Mostly Public/Open)',
             'urls': {'home': 'http://soliton.vm.bytemark.co.uk/pub/cpt-city/'}
         },
-        
+
         # Nominatum
         'nominatim': {
-            'mod': 'fetchez.modules.nominatim', 
-            'cls': 'Nominatim', 
+            'mod': 'fetchez.modules.nominatim',
+            'cls': 'Nominatim',
             'category': 'Reference',
             'desc': 'Geocoding service using OpenStreetMap data',
             'agency': 'OpenStreetMap Foundation',
@@ -816,32 +816,32 @@ class FetchezRegistry:
                 'home': 'https://nominatim.org/',
                 'policy': 'https://operations.osmfoundation.org/policies/nominatim/'
             }
-        },        
+        },
     }
-    
+
     @classmethod
     def get_info(cls, mod_key: str) -> dict:
-        """Retrieve the full metadata dictionary for a module, 
+        """Retrieve the full metadata dictionary for a module,
         resolving metadta inheritance.
         """
-        
+
         if mod_key not in cls._modules:
             for k, v in cast(Dict[Any, Any], cls._modules.items()):
                 if mod_key in v.get('aliases', []):
                     mod_key = k
                     break
-        
+
         if mod_key not in cls._modules:
             return {}
 
         entry: Dict[Any, Any] = cast(Dict[Any, Any], cls._modules[mod_key])
-        
+
         if 'inherits' in entry:
             parent_key = entry['inherits']
             parent = cls.get_info(parent_key)
-            
+
             merged = copy.deepcopy(parent)
-            
+
             for k, v in entry.items():
                 if k == 'tags' and 'tags' in merged:
                     merged['tags'] = list(set(merged['tags'] + v))
@@ -849,26 +849,26 @@ class FetchezRegistry:
                     merged['urls'].update(v)
                 else:
                     merged[k] = v
-            
+
             return merged
-            
+
         return entry
 
 
     @classmethod
     def load_module(cls, mod_key):
-        """Import and return the (module or user-plugin) class using `importlib`."""    
-            
+        """Import and return the (module or user-plugin) class using `importlib`."""
+
         meta = cls._modules[mod_key]
-        
+
         # User Plugin
         if '_class_obj' in meta:
             return meta['_class_obj']
-            
+
         # Standard Module
         if mod_key not in cls._modules:
             return None
-        
+
         info = cls.get_info(mod_key)
         if not info:
             return None
@@ -881,7 +881,7 @@ class FetchezRegistry:
             logger.error(f'Failed to load {mod_key}: {e}')
             return None
 
-        
+
     @classmethod
     def load_user_plugins(cls):
         """Scan ~/.fetchez/plugins/ and .fetchez/plugins for external modules and register them."""
@@ -890,7 +890,7 @@ class FetchezRegistry:
         import inspect
         import importlib.util
         from . import core
-        
+
         home_dir = os.path.expanduser('~')
         home_plugin_dir = os.path.join(home_dir, '.fetchez', 'plugins')
         cwd_plugin_dir = os.path.join('.fetchez', 'plugins')
@@ -926,7 +926,7 @@ class FetchezRegistry:
                                         'category': 'User Plugin',
                                         'desc': getattr(obj, '__doc__', 'User defined module').strip().split('\n')[0],
                                         'agency': 'External',
-                                        '_class_obj': obj 
+                                        '_class_obj': obj
                                     }
 
                     except Exception as e:
@@ -934,12 +934,12 @@ class FetchezRegistry:
 
             # Remove the plugin_dir from the system path
             sys.path.pop(0)
-        
+
 
     @classmethod
     def load_installed_plugins(cls):
         """Load plugins installed via Pip (entry_points)."""
-        
+
         # Look for any installed package that registered a 'fetchez.plugins' entry point
         entry_points = importlib.metadata.entry_points(group='fetchez.plugins')
         for entry_point in entry_points:
@@ -951,20 +951,20 @@ class FetchezRegistry:
                     logger.info(f"Loaded extension: {entry_point.name}")
             except Exception as e:
                 logger.error(f"Failed to load extension {entry_point.name}: {e}")
-            
-            
+
+
     @classmethod
     def search_modules(cls, query: str) -> list:
         """Search modules by matching the query string against:
         Name, Description, Agency, Tags, License, Category, and Aliases.
         """
-        
+
         query = query.lower()
         matches = []
-        
+
         for key in cls._modules.keys():
             meta = cls.get_info(key)
-            
+
             searchable_text = [
                 key,
                 meta.get('desc', ''),
@@ -972,28 +972,28 @@ class FetchezRegistry:
                 meta.get('category', ''),
                 meta.get('license', '')
             ]
-            
+
             searchable_text.extend(meta.get('tags', []))
             searchable_text.extend(meta.get('aliases', []))
-            
+
             if any(query in s.lower() for s in searchable_text):
                 matches.append(key)
-                
+
         return sorted(matches)
 
     @classmethod
     def register_module(cls, mod_key, mod_cls, metadata=None):
         """Register a new module dynamically (e.g., from a plugin).
-        
+
         Args:
             mod_key (str): The CLI command name (e.g., 'datum_grids').
             mod_cls (class): The actual Python class (inheriting from FetchModule).
             metadata (dict): Optional metadata for discovery (desc, tags, etc.).
         """
-        
+
         if metadata is None:
             metadata = {}
-            
+
         # Build the registry entry
         entry = {
             'mod': mod_cls.__module__,   # The python path (e.g. 'transformez.modules')
@@ -1007,4 +1007,4 @@ class FetchezRegistry:
         }
 
         cls._modules[mod_key] = entry
-        logger.debug(f"Registered external module: {mod_key}")    
+        logger.debug(f"Registered external module: {mod_key}")

@@ -25,16 +25,16 @@ class HookRegistry:
     @classmethod
     def load_builtins(cls):
         """Load hooks shipped with fetchez (e.g., fetchez.hooks.basic)."""
-        
+
         from . import basic, utils
         cls._register_from_module(basic)
         cls._register_from_module(utils)
 
-        
+
     @classmethod
     def load_user_plugins(cls):
         """Scan ~/.fetchez/hooks/ and .fetchez/hooks for python files."""
-        
+
         home = os.path.expanduser("~")
         home_hook_dir = os.path.join(home, ".fetchez", "hooks")
         cwd_hook_dir = os.path.join(home, ".fetchez", "hooks")
@@ -56,7 +56,7 @@ class HookRegistry:
 
     @classmethod
     def register_hook(cls, hook_cls):
-        """Register a hook class. 
+        """Register a hook class.
 
         The hook must have a 'name' attribute (e.g. name='unzip').
         """
@@ -67,15 +67,15 @@ class HookRegistry:
             return
 
         key = hook_cls.name
-        if inspect.isclass(hook_cls) and issubclass(hook_cls, FetchHook) and hook_cls is not FetchHook:            
+        if inspect.isclass(hook_cls) and issubclass(hook_cls, FetchHook) and hook_cls is not FetchHook:
             cls._hooks[key] = hook_cls
             logger.debug(f"Registered external hook: {key}")
 
-        
+
     @classmethod
     def _register_from_module(cls, module):
         """Inspect a module for classes inheriting from FetchHook."""
-        
+
         import inspect
         for name, obj in inspect.getmembers(module):
             if inspect.isclass(obj) and issubclass(obj, FetchHook) and obj is not FetchHook:
@@ -83,16 +83,16 @@ class HookRegistry:
                 cls._hooks[key] = obj
                 logger.debug(f"Registered hook from module: {key}")
 
-                
+
     @classmethod
     def get_hook(cls, name):
         """Retrieve a hook class by name."""
-        
+
         return cls._hooks.get(name)
 
-    
+
     @classmethod
     def list_hooks(cls):
         """Return a dict of all registered hooks."""
-        
+
         return cls._hooks

@@ -19,7 +19,7 @@ from fetchez import cli
 EMODNET_WCS_URL = 'https://ows.emodnet-bathymetry.eu/wcs?'
 EMODNET_ERDDAP_BASE = 'https://erddap.emodnet.eu/erddap/griddap/dtm_2020_v2_e0bf_e7e4_5b8f'
 
-RES_115M = 0.00104166666666667 
+RES_115M = 0.00104166666666667
 
 # =============================================================================
 # EMODNet Module
@@ -34,22 +34,22 @@ RES_115M = 0.00104166666666667
 
 class EMODNet(core.FetchModule):
     """Fetch Digital Terrain Model data from EMODnet Bathymetry.
-    
+
     EMODnet Bathymetry provides a high-resolution bathymetry for European sea basins.
-    
+
     Supported Layers:
       - mean    : Average depth (Best for general use)
       - std     : Standard deviation (Uncertainty)
       - source  : Source Identifier (Which survey did this pixel come from?)
       - quality : Quality Index
-    
+
     References:
       - Portal: https://portal.emodnet-bathymetry.eu/
     """
 
-    def __init__(self, 
-                 want_erddap: bool = False, 
-                 erddap_format: str = 'nc', 
+    def __init__(self,
+                 want_erddap: bool = False,
+                 erddap_format: str = 'nc',
                  layer: str = 'mean',
                  resolution: float = None,
                  **kwargs):
@@ -59,15 +59,15 @@ class EMODNet(core.FetchModule):
         self.layer = layer.lower()
         self.resolution = float(resolution) if resolution else RES_115M
 
-        
+
     def run(self):
         """Run the EMODnet fetching logic."""
-        
+
         if self.region is None:
             return []
 
         w, e, s, n = self.region
-        
+
         layer_map = {
             'mean':   ('emodnet:mean', 'elevation'),
             'depth':  ('emodnet:mean', 'elevation'),
@@ -77,18 +77,18 @@ class EMODNet(core.FetchModule):
             'id':     ('emodnet:source', 'source_id'),
             'quality':('emodnet:qa', 'quality_index')
         }
-        
+
         wcs_cov, erddap_var = layer_map.get(self.layer, ('emodnet:mean', 'elevation'))
 
         if self.want_erddap:
             query = f"{erddap_var}[({s}):1:({n})][({w}):1:({e})]"
-            
+
             erddap_url = f"{EMODNET_ERDDAP_BASE}.{self.erddap_format}?{query}"
-            
+
             r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
             # Include layer name in filename so they don't overwrite each other
             out_fn = f"emodnet_{self.layer}_{r_str}.{self.erddap_format}"
-            
+
             self.add_entry_to_results(
                 url=erddap_url,
                 dst_fn=out_fn,
@@ -96,10 +96,10 @@ class EMODNet(core.FetchModule):
                 agency='EMODnet',
                 title=f'EMODnet DTM {self.layer.title()} (ERDDAP)'
             )
-            
+
         else:
             bbox_str = f"{w},{s},{e},{n}"
-            
+
             wcs_params = {
                 'service': 'WCS',
                 'request': 'GetCoverage',
@@ -108,21 +108,21 @@ class EMODNet(core.FetchModule):
                 'crs': 'EPSG:4326',
                 'bbox': bbox_str,
                 'format': 'GeoTIFF',
-                'resx': self.resolution, 
+                'resx': self.resolution,
                 'resy': self.resolution,
             }
 
             full_url = f"{EMODNET_WCS_URL}{urlencode(wcs_params)}"
-            
+
             r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
             out_fn = f"emodnet_{self.layer}_{r_str}.tif"
-            
+
             self.add_entry_to_results(
-                url=full_url, 
-                dst_fn=out_fn, 
+                url=full_url,
+                dst_fn=out_fn,
                 data_type='emodnet_wcs',
                 agency='EMODnet',
                 title=f'EMODnet DTM {self.layer.title()}'
             )
-            
+
         return self

@@ -37,16 +37,16 @@ WATER_SERVICES_IV_URL = 'https://waterservices.usgs.gov/nwis/iv/?'
 )
 class WaterServices(core.FetchModule):
     """Fetch USGS Water Services data.
-    
-    Retrieves "Instantaneous Values" (IV) such as streamflow, gage height, 
+
+    Retrieves "Instantaneous Values" (IV) such as streamflow, gage height,
     and precipitation in JSON format.
     """
-    
-    def __init__(self, 
-                 period: str = 'P1D', 
-                 parameter: Optional[str] = None, 
+
+    def __init__(self,
+                 period: str = 'P1D',
+                 parameter: Optional[str] = None,
                  sites: Optional[str] = None,
-                 printout: bool = False, 
+                 printout: bool = False,
                  **kwargs):
         super().__init__(name='waterservices', **kwargs)
         self.period = period
@@ -54,14 +54,14 @@ class WaterServices(core.FetchModule):
         self.sites = sites
         self.printout = printout
 
-        
+
     def run(self):
         """Run the WaterServices fetch module."""
-        
+
         # We need either a Region OR a list of Sites
         if self.region is None and self.sites is None:
             return []
-        
+
         params = {
             'format': 'json',
             'siteStatus': 'active'
@@ -85,9 +85,9 @@ class WaterServices(core.FetchModule):
 
         query_string = urlencode(params)
         full_url = f"{WATER_SERVICES_IV_URL}{query_string}"
-        
+
         out_fn = f"usgs_iv_{region_tag}.json"
-        
+
         self.add_entry_to_results(
             url=full_url,
             dst_fn=out_fn,
@@ -101,15 +101,15 @@ class WaterServices(core.FetchModule):
         # Useful for quick inspections without opening the JSON file.
         if self.printout:
             self._print_station_info(full_url)
-            
+
         return self
 
-    
+
     def _print_station_info(self, url: str):
         """Fetch and print summary information for found stations."""
-        
+
         logger.info(f"Querying USGS for summary: {url}")
-        
+
         try:
             req = core.Fetch(url).fetch_req()
             if req is None or req.status_code != 200:
@@ -118,7 +118,7 @@ class WaterServices(core.FetchModule):
 
             data = req.json()
             time_series = data.get('value', {}).get('timeSeries', [])
-            
+
             if not time_series:
                 logger.info("No stations found matching criteria.")
                 return
@@ -130,10 +130,10 @@ class WaterServices(core.FetchModule):
                 try:
                     source = item.get('sourceInfo', {})
                     site_name = source.get('siteName', 'Unknown')[:28] # Truncate for display
-                    
+
                     variable = item.get('variable', {})
                     var_name = variable.get('variableName', 'Unknown').split(',')[0][:18]
-                    
+
                     values_list = item.get('values', [])
                     if values_list and values_list[0].get('value'):
                         latest_reading = values_list[0]['value'][-1] # Get last reading

@@ -23,14 +23,14 @@ logger = logging.getLogger(__name__)
 def load_user_config():
     """Load the user's config file."""
 
-    config_json = os.path.join(CONFIG_PATH, 'presets.json')    
+    config_json = os.path.join(CONFIG_PATH, 'presets.json')
     if not os.path.exists(config_json):
         return {}
-        
+
     try:
         with open(config_json, 'r') as f:
             data = json.load(f)
             return data
     except Exception as e:
-        logger.warning(f'Could not load config file: {e}') 
+        logger.warning(f'Could not load config file: {e}')
         return {}

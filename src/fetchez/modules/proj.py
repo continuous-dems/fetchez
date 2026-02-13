@@ -23,7 +23,7 @@ try:
     HAS_SHAPELY = True
 except ImportError:
     HAS_SHAPELY = False
-    
+
 logger = logging.getLogger(__name__)
 
 PROJ_CDN_INDEX_URL = 'https://cdn.proj.org/files.geojson'
@@ -36,14 +36,14 @@ PROJ_CDN_INDEX_URL = 'https://cdn.proj.org/files.geojson'
 
 class PROJ(core.FetchModule):
     """Fetch vertical and horizontal transformation grids from PROJ.org.
-    
+
     This module is the 'fast path' for standard grids like:
       - Geoids (GEOID18, EGM2008)
       - Shift Grids (VERTCON, NADCON)
-      
+
     For NOAA Tidal Grids (MLLW, MHHW), use the 'vdatum' module.
     """
-    
+
     def __init__(self, query: str = None, epsg: str = None, **kwargs):
         super().__init__(name='proj', **kwargs)
         self.query = query.lower() if query else None
@@ -53,7 +53,7 @@ class PROJ(core.FetchModule):
 
     def _intersects(self, grid_geom, grid_bbox=None):
         """Check intersection using Shapely (precise) or BBox (fast fallback)."""
-        
+
         if not self.region:
             return True
 
@@ -62,7 +62,7 @@ class PROJ(core.FetchModule):
             try:
                 user_poly = spatial.region_to_shapely(self.region)
                 grid_poly = shape(grid_geom)
-                
+
                 return user_poly.intersects(grid_poly)
             except Exception as e:
                 logger.debug(f'Shapely intersection failed: {e}, falling back to bbox.')
@@ -76,7 +76,7 @@ class PROJ(core.FetchModule):
 
         return True
 
-    
+
     # def _intersects(self, grid_bbox):
     #     """Check intersection: [w, s, e, n] vs region [w, e, s, n]"""
 
@@ -87,7 +87,7 @@ class PROJ(core.FetchModule):
     #     rw, re, rs, rn = self.region
     #     return not (rw > ge or re < gw or rs > gn or rn < gs)
 
-    
+
     def run(self):
         idx_file = os.path.join(self._outdir, 'proj_files.geojson')
 
@@ -96,7 +96,7 @@ class PROJ(core.FetchModule):
             if core.Fetch(PROJ_CDN_INDEX_URL).fetch_file(idx_file) != 0:
                 logger.error('Failed to fetch PROJ index.')
                 return self
-        
+
         try:
             with open(idx_file, 'r') as f:
                 features = json.load(f).get('features', [])
@@ -113,7 +113,7 @@ class PROJ(core.FetchModule):
                 if self.query:
                     text = f'{props.get("name")} {props.get("source_crs_name")} {props.get("target_crs_name")} {props.get("url")}'.lower()
                     if self.query not in text: continue
-                
+
                 if self.epsg:
                     s, t = str(props.get('source_crs_code')), str(props.get('target_crs_code'))
                     if self.epsg not in s and self.epsg not in t: continue
@@ -128,11 +128,11 @@ class PROJ(core.FetchModule):
                     target_code=props.get('target_crs_code')
                 )
                 matches += 1
-            
+
             if matches == 0:
                 logger.warning('No grids found in PROJ CDN.')
 
         except Exception as e:
             logger.error(f'Error reading index: {e}')
-            
+
         return self

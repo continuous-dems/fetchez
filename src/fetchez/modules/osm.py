@@ -65,27 +65,27 @@ PRESETS = {
 )
 class OSM(core.FetchModule):
     """Fetch raw OpenStreetMap data using the Overpass API.
-    
-    This module handles the complexity of querying Overpass, including 
-    automatic bounding box formatting and region chunking (to avoid 
+
+    This module handles the complexity of querying Overpass, including
+    automatic bounding box formatting and region chunking (to avoid
     server timeouts on large areas).
-    
+
     **Presets:**
       - coastline: 'natural=coastline' (High-res shorelines)
       - water: 'natural=water' (Lakes, ponds)
       - buildings: 'building=*' (Footprints)
       - highways: 'highway=*' (Roads)
-      
+
     **Raw Queries:**
-      You can pass raw Overpass QL. Use `{bbox}` as a placeholder for 
+      You can pass raw Overpass QL. Use `{bbox}` as a placeholder for
       the bounding box (e.g., `node["amenity"="pub"]({bbox}); out;`).
     """
-    
+
     def __init__(self, query: str = 'coastline', chunk_size: str = None, **kwargs):
         super().__init__(name='osm', **kwargs)
         self.query_type = query
         self.chunk_size = float(chunk_size) if chunk_size else None
-        
+
         if query in PRESETS:
             self.ql_template = PRESETS[query]
             self.file_tag = query
@@ -93,26 +93,26 @@ class OSM(core.FetchModule):
             self.ql_template = query
             self.file_tag = 'custom'
 
-            
+
     def _build_query(self, region):
         """Inject bbox into the QL template."""
 
         w, e, s, n = region
         bbox_str = f"{s},{w},{n},{e}"
-        
+
         header = "[timeout:180][maxsize:1073741824];"
-        
+
         body = self.ql_template.replace('{bbox}', bbox_str)
-        
+
         return f"{header}{body}"
 
-    
+
     def run(self):
         """Run the OSM fetch"""
-        
+
         if self.region is None:
             return []
-            
+
         if self.chunk_size:
             chunks = spatial.chunk_region(self.region, self.chunk_size)
         else:
@@ -120,16 +120,16 @@ class OSM(core.FetchModule):
 
         for i, chunk in enumerate(chunks):
             w, e, s, n = chunk
-            
+
             ql = self._build_query(chunk)
 
             # swithc to POST?
             params = {'data': ql}
             full_url = f"{OVERPASS_API}?{urlencode(params)}"
-            
+
             r_str = f"w{w:.2f}_e{e:.2f}_s{s:.2f}_n{n:.2f}".replace('.', 'p').replace('-', 'm')
             out_fn = f"osm_{self.file_tag}_{r_str}.osm"
-            
+
             self.add_entry_to_results(
                 url=full_url,
                 dst_fn=out_fn,
@@ -137,5 +137,5 @@ class OSM(core.FetchModule):
                 agency='OpenStreetMap',
                 title=f"OSM {self.file_tag.title()} (Chunk {i+1})"
             )
-            
+
         return self

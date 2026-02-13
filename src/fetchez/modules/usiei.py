@@ -31,12 +31,12 @@ USIEI_MAP_SERVER_URL = (
 
 class USIEI(core.FetchModule):
     """Query the US Interagency Elevation Inventory (USIEI).
-    
-    The USIEI is a comprehensive inventory of known high-accuracy topographic 
+
+    The USIEI is a comprehensive inventory of known high-accuracy topographic
     and bathymetric data for the United States.
-    
-    This module downloads the **inventory metadata** (footprints, dates, quality) 
-    as a GeoJSON file for the requested region. It does not download the actual 
+
+    This module downloads the **inventory metadata** (footprints, dates, quality)
+    as a GeoJSON file for the requested region. It does not download the actual
     DEMs/Lidar (use 'dav' or 'tnm' for that).
 
     **Layers:**
@@ -45,20 +45,20 @@ class USIEI(core.FetchModule):
       - 2: Lidar - Topography
       - 3: IfSAR / InSAR
       - 4: Other Bathymetry
-    
+
     References:
       - https://coast.noaa.gov/inventory/
     """
-    
+
     def __init__(self, layer: str = '0', where: str = '1=1', **kwargs):
         super().__init__(name='usiei', **kwargs)
         self.layer = int(layer)
         self.where = where
 
-        
+
     def run(self):
         """Run the USIEI fetching logic."""
-        
+
         if self.region is None:
             return []
 
@@ -75,15 +75,15 @@ class USIEI(core.FetchModule):
             'f': 'geojson',
             'returnGeometry': 'true'
         }
-        
+
         query_url = f"{USIEI_MAP_SERVER_URL}/{self.layer}/query"
         full_url = f"{query_url}?{urlencode(params)}"
-        
+
         r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
-        
+
         layer_names = {0: 'topobathy', 1: 'bathy', 2: 'topo', 3: 'ifsar', 4: 'other'}
         l_name = layer_names.get(self.layer, f'layer{self.layer}')
-        
+
         out_fn = f"usiei_{l_name}_{r_str}.geojson"
 
         self.add_entry_to_results(
@@ -93,5 +93,5 @@ class USIEI(core.FetchModule):
             agency='NOAA / USGS',
             title=f"USIEI Inventory ({l_name})"
         )
-            
+
         return self

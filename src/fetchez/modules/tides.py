@@ -42,22 +42,22 @@ DATA_API_URL = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?'
 
 class Tides(core.FetchModule):
     """Fetch NOAA Tides & Currents data.
-    
+
     Mode: Station Discovery (Default if -R provided, --station omitted)
       Searches the provided region for active tide stations and saves a GeoJSON list.
-      
+
     Mode: Data Retrieval (Default if --station provided)
       Downloads time-series data for the specific station.
-      
+
     References:
       - https://tidesandcurrents.noaa.gov/
       - https://api.tidesandcurrents.noaa.gov/api/prod/
     """
-    
-    def __init__(self, 
-                 station: str = None, 
-                 start_date: str = None, 
-                 end_date: str = None, 
+
+    def __init__(self,
+                 station: str = None,
+                 start_date: str = None,
+                 end_date: str = None,
                  datum: str = 'MLLW',
                  product: str = 'water_level',
                  interval: str = None,
@@ -70,15 +70,15 @@ class Tides(core.FetchModule):
         self.product = product
         self.interval = interval
 
-        
+
     def _run_station_search(self):
         """ Search for stations in the region."""
-        
+
         if self.region is None:
             return
 
         w, e, s, n = self.region
-        
+
         params = {
             'outFields': '*',
             'units': 'esriSRUnit_Meter',
@@ -89,12 +89,12 @@ class Tides(core.FetchModule):
             'outSR': 4326,
             'f': 'geojson',
         }
-        
+
         full_url = f"{STATION_SEARCH_URL}{urlencode(params)}"
-        
+
         r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
         out_fn = f"tides_stations_{r_str}.geojson"
-        
+
         self.add_entry_to_results(
             url=full_url,
             dst_fn=out_fn,
@@ -103,7 +103,7 @@ class Tides(core.FetchModule):
             title='Tide Stations List'
         )
 
-        
+
     def _run_data_fetch(self):
         """Fetch time-series data for a station."""
         if not self.start_date or not self.end_date:
@@ -125,16 +125,16 @@ class Tides(core.FetchModule):
             'application': 'Fetchez',
             'format': 'csv',
         }
-        
+
         # Interval handling (Standard is 6-min, 'h' is hourly)
         if self.interval:
             params['interval'] = self.interval
 
         full_url = f"{DATA_API_URL}{urlencode(params)}"
-        
+
         # Output: tides_8518750_water_level_20230101_20230107.csv
         out_fn = f"tides_{self.station}_{self.product}_{self.start_date}_{self.end_date}.csv"
-        
+
         self.add_entry_to_results(
             url=full_url,
             dst_fn=out_fn,
@@ -145,10 +145,10 @@ class Tides(core.FetchModule):
 
     def run(self):
         """Run the TIDES fetching module."""
-        
+
         if self.station:
             self._run_data_fetch()
         elif self.region:
             self._run_station_search()
-        
+
         return self

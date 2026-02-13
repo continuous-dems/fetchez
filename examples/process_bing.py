@@ -5,8 +5,8 @@
 process_bing.py
 ~~~~~~~~~~~~~~~
 
-A standalone workflow script that uses 'fetchez' to download 
-Microsoft Bing Building Footprints and merges them into a single 
+A standalone workflow script that uses 'fetchez' to download
+Microsoft Bing Building Footprints and merges them into a single
 GeoPackage (GPKG) using GDAL/OGR.
 
 Usage:
@@ -48,34 +48,34 @@ class BingProcessor:
         self.out_fn = out_fn
         self.threads = threads
         self.keep_raw = keep_raw
-        
+
         # Determine cache dir
         self.cache_dir = os.path.join(os.getcwd(), 'bing_cache')
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
 
-            
+
     def fetch(self):
         """Use fetchez to discover and download data."""
-        
+
         logger.info("Initializing Fetchez...")
 
         # Load the Bing module dynamically from registry
         # This ensures we are using the installed fetchez module
         BingModule = registry.FetchezRegistry.load_module('bing')
-        
+
         if not BingModule:
             logger.error("Could not load 'bing' module from fetchez. Is it registered?")
             sys.exit(1)
 
-        # Initialize and Run the Module 
+        # Initialize and Run the Module
         # We pass the cache directory so files land there
         fetcher = BingModule(src_region=self.region, outdir=os.path.dirname(self.cache_dir))
         self.cache_dir = os.path.join(self.cache_dir, fetcher._outdir)
-        
+
         logger.info("Querying Microsoft API for tiles...")
         fetcher.run()
-        
+
         if not fetcher.results:
             logger.warning("No building footprint tiles found for this region.")
             return []
@@ -83,13 +83,13 @@ class BingProcessor:
         # Run the Parallel Downloader
         logger.info(f"Downloading {len(fetcher.results)} tiles...")
         core.run_fetchez([fetcher], threads=self.threads)
-        
+
         return fetcher.results
 
-    
+
     def process(self, results):
         """Merge downloaded GeoJSONs into one GeoPackage."""
-        
+
         if not results:
             return
 
@@ -99,22 +99,22 @@ class BingProcessor:
         driver = ogr.GetDriverByName("GPKG")
         if os.path.exists(self.out_fn):
             driver.DeleteDataSource(self.out_fn)
-            
+
         ds_out = driver.CreateDataSource(self.out_fn)
         srs = osr.SpatialReference()
         srs.ImportFromEPSG(4326) # Microsoft data is WGS84
-        
+
         layer_out = ds_out.CreateLayer("buildings", srs, ogr.wkbPolygon)
-        
+
         # We'll create the schema based on the first feature we find
         schema_defined = False
-        
+
         total_feats = 0
-        
+
         for entry in results:
             #local_path = os.path.join(self.cache_dir, entry['dst_fn'])
             local_path = entry['dst_fn']
-            
+
             if not os.path.exists(local_path):
                 logger.warning(f"File missing: {local_path}")
                 continue
@@ -133,9 +133,9 @@ class BingProcessor:
             ds_in = ogr.Open(json_path)
             if not ds_in:
                 continue
-                
+
             layer_in = ds_in.GetLayer()
-            
+
             # Define Schema (Once)
             if not schema_defined:
                 layer_defn = layer_in.GetLayerDefn()
@@ -143,7 +143,7 @@ class BingProcessor:
                     field_defn = layer_defn.GetFieldDefn(i)
                     layer_out.CreateField(field_defn)
                 schema_defined = True
-            
+
             # Copy Features
             # Optional: Apply Spatial Filter again to clip tightly to region
             # (The tiles are loose QuadKeys, so they might overshoot the bbox)
@@ -160,26 +160,26 @@ class BingProcessor:
                 # create new feature
                 out_feat = ogr.Feature(layer_defn)
                 out_feat.SetGeometry(feat.GetGeometryRef())
-                
+
                 # copy attrs
                 for i in range(layer_defn.GetFieldCount()):
                     out_feat.SetField(i, feat.GetField(i))
-                    
+
                 layer_out.CreateFeature(out_feat)
                 out_feat = None
                 total_feats += 1
-            
+
             ds_in = None # Close input
-            
+
             # Cleanup
             if not self.keep_raw:
                 if os.path.exists(json_path): os.remove(json_path)
                 if os.path.exists(local_path): os.remove(local_path)
-        
+
         logger.info(f"Finished. Wrote {total_feats} buildings to {self.out_fn}")
         ds_out = None # Close output
 
-        
+
 def main():
     parser = argparse.ArgumentParser(
         description="Download and Merge Bing Building Footprints via Fetchez"
@@ -215,16 +215,16 @@ def main():
         sys.exit(1)
 
     processor = BingProcessor(
-        region=region, 
+        region=region,
         out_fn=args.output,
         threads=args.threads,
         keep_raw=args.keep_raw
     )
-    
+
     # Run Workflow
     results = processor.fetch()
     processor.process(results)
 
-    
+
 if __name__ == '__main__':
     main()

@@ -31,9 +31,9 @@ GEBCO_GLOBAL_URLS = {
 
 class GEBCO(FetchModule):
     """Fetch GEBCO global bathymetry data.
-    
+
     GEBCO provides a global terrain model at ~15 arc-seconds (~500m).
-    
+
     Layers:
       - grid: Standard bathymetry/topography (Ice Surface). Default.
       - sub_ice: Bedrock elevation (Ice removed).
@@ -42,34 +42,34 @@ class GEBCO(FetchModule):
     Examples:
       fetchez gebco -R -90/-89/25/26
       fetchez gebco --layer tid -R ...
-      fetchez gebco --layer sub_ice 
+      fetchez gebco --layer sub_ice
     """
-    
+
     def __init__(self, layer='grid', **kwargs):
         """
         Args:
             layer (str): 'grid', 'tid', or 'sub_ice'.
             global_grid (bool): Legacy flag, forces source='global'.
         """
-        
+
         super().__init__(name='gebco', **kwargs)
-        
+
         self.layer = layer.lower()
-        
+
         if self.layer not in GEBCO_GLOBAL_URLS:
             valid = ", ".join(GEBCO_GLOBAL_URLS.keys())
             logger.warning(f"Unknown GEBCO layer '{self.layer}'. Defaulting to 'grid'. Valid: {valid}")
             self.layer = 'grid'
 
-            
+
     def run(self):
         """Setup for Official Global Download."""
-        
+
         url = GEBCO_GLOBAL_URLS.get(self.layer)
         if not url:
             logger.error(f"No Global URL available for layer '{self.layer}'.")
             return
-            
+
         dst_fn = f"gebco_2024_{self.layer}_global.zip"
         self.add_entry_to_results(
             url=url,

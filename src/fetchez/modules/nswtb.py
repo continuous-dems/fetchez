@@ -31,30 +31,30 @@ NSW_MAP_SERVER = (
 
 class NSWTB(core.FetchModule):
     """Fetch New South Wales (NSW) Marine LiDAR Topo-Bathy data.
-    
-    This dataset covers the NSW coast using Airborne LiDAR Bathymetry (ALB) 
+
+    This dataset covers the NSW coast using Airborne LiDAR Bathymetry (ALB)
     collected in 2018. It provides high-resolution nearshore data.
 
     **Layers:**
       - 0: Isobaths (Contours) at 5m depth intervals
       - 1: Slope (Degrees)
       - 2: Bathymetry DEM (Metrs)
-      
+
     Data is fetched via the NSW Environment ArcGIS REST API.
-    
+
     References:
       - https://datasets.seed.nsw.gov.au/dataset/marine-lidar-topo-bathy-2018
     """
-    
+
     def __init__(self, layer: str = '0', where: str = '1=1', **kwargs):
         super().__init__(name='nswtb', **kwargs)
         self.layer = int(layer)
         self.where = where
 
-        
+
     def run(self):
         """Run the NSW_TB fetching logic."""
-        
+
         if self.region is None:
             return []
 
@@ -72,15 +72,15 @@ class NSWTB(core.FetchModule):
             'f': 'geojson',
             'returnGeometry': 'true'
         }
-        
+
         base_query_url = f"{NSW_MAP_SERVER}/{self.layer}/query"
         full_url = f"{base_query_url}?{urlencode(params)}"
 
         r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
         layer_name = {0: 'contours', 1: 'slope', 2: 'dem'}.get(self.layer, f'layer{self.layer}')
-        
+
         out_fn = f"nswtb_{layer_name}_{r_str}.geojson"
-        
+
         self.add_entry_to_results(
             url=full_url,
             dst_fn=out_fn,

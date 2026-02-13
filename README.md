@@ -1,4 +1,4 @@
-# 🌍 Fetchez 🐄 
+# 🌍 Fetchez 🐄
 
 **Fetch geospatial data with ease.**
 
@@ -157,7 +157,7 @@ print(f"License: {meta.get('license')}")
 ```
 
 For modules that rely on file lists (like Copernicus or NCEI), you can interact directly with the local index.
- 
+
 ```python
 from fetchez import fred
 

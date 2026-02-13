@@ -8,7 +8,7 @@ fetchez.modules.buoys
 Fetch NOAA National Data Buoy Center (NDBC) data.
 
 This module searches for buoys within a given region (using a radial search
-from the center) or by specific station ID. It can fetch both realtime 
+from the center) or by specific station ID. It can fetch both realtime
 standard meteorological data and historical archives.
 
 :copyright: (c) 2010 - 2026 Regents of the University of Colorado
@@ -45,14 +45,14 @@ BUOY_HISTORICAL_URL = 'https://www.ndbc.noaa.gov/data/historical/stdmet/'
 )
 class Buoys(core.FetchModule):
     """Fetch NOAA Buoy Data (NDBC).
-    
+
     Can fetch "Realtime" (txt) or "Historical" (gz) standard meteorological data.
-    If no station_id is provided, it performs a radial search from the 
+    If no station_id is provided, it performs a radial search from the
     center of the input region.
     """
-    
-    def __init__(self, 
-                 station_id: Optional[str] = None, 
+
+    def __init__(self,
+                 station_id: Optional[str] = None,
                  radius: int = 100,
                  datatype: str = 'realtime',
                  min_year: int = 2010,
@@ -65,30 +65,30 @@ class Buoys(core.FetchModule):
         self.min_year = min_year
         self.max_year = max_year if max_year else datetime.datetime.now().year
 
-        
+
     def _get_stations_from_region(self) -> Set[str]:
         """Perform radial search to find stations in the region."""
-        
+
         if not self.region:
             return set()
 
         # Calculate center
         center_lon, center_lat = spatial.region_center(self.region)
-        
+
         # NDBC Params
         # uom=E (English/Nautical Miles), uom=M (Metric/km)
         # ot=A (Observation Time: All)
         params = {
             'lat1': center_lat,
             'lon1': center_lon,
-            'uom': 'E',    
-            'ot': 'A',     
+            'uom': 'E',
+            'ot': 'A',
             'dist': self.radius,
             'time': 0,
         }
-        
+
         logger.info(f"Searching for buoys within {self.radius}nm of ({center_lat:.2f}, {center_lon:.2f})...")
-        
+
         req = core.Fetch(BUOY_RADIAL_SEARCH_URL).fetch_req(params=params)
         if req is None or req.status_code != 200:
             logger.error("Failed to query NDBC search.")
@@ -99,12 +99,12 @@ class Buoys(core.FetchModule):
             doc = lxml.html.fromstring(req.content)
             # Links to stations should look like station_page.php?station=44008
             links = doc.xpath('//a[contains(@href, "station=")]/@href')
-            
+
             for href in links:
                 if 'station=' in href:
                     sid = href.split('station=')[-1].split('&')[0].upper()
                     stations.add(sid)
-                    
+
         except Exception as e:
             logger.error(f"Failed to parse buoy search results: {e}")
 
@@ -112,9 +112,9 @@ class Buoys(core.FetchModule):
 
     def run(self):
         """Run the Buoys fetcher."""
-        
+
         target_stations = set()
-        
+
         # Determine Target Stations
         if self.station_id:
             # User provided explicit IDs
@@ -134,7 +134,7 @@ class Buoys(core.FetchModule):
 
         # Generate URLs
         for sid in target_stations:
-            
+
             # --- Realtime Data ---
             if 'realtime' in self.datatype:
                 # Standard Meteorological Data
@@ -153,12 +153,12 @@ class Buoys(core.FetchModule):
             if 'historical' in self.datatype:
                 # Historical Standard Met Data
                 # URL: https://www.ndbc.noaa.gov/data/historical/stdmet/44008h2021.txt.gz
-                
+
                 for yr in range(self.min_year, self.max_year + 1):
                     # Filename format: {sid}h{year}.txt.gz
                     filename = f"{sid.lower()}h{yr}.txt.gz"
                     url = f"{BUOY_HISTORICAL_URL}{filename}"
-                    
+
                     self.add_entry_to_results(
                         url=url,
                         dst_fn=filename,

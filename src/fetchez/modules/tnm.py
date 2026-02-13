@@ -71,9 +71,9 @@ DATASET_CODES = [
 
 class TheNationalMap(core.FetchModule):
     """Fetch elevation data from The National Map.
-    
+
     Default behavior fetches 'NED 1 arc-second' if no dataset is specified.
-    
+
     Dataset Codes (indices for --datasets):
       1: NED 1 arc-second
       2: DEM 1 meter
@@ -84,14 +84,14 @@ class TheNationalMap(core.FetchModule):
     """
 
     def __init__(
-            self, 
-            datasets: Optional[str] = None, 
-            formats: Optional[str] = None, 
-            extents: Optional[str] = None, 
+            self,
+            datasets: Optional[str] = None,
+            formats: Optional[str] = None,
+            extents: Optional[str] = None,
             q: Optional[str] = None,
-            date_type: Optional[str] = 'dateCreated', 
-            date_start: Optional[str] = None, 
-            date_end: Optional[str] = None, 
+            date_type: Optional[str] = 'dateCreated',
+            date_start: Optional[str] = None,
+            date_end: Optional[str] = None,
             **kwargs
     ):
         super().__init__(name='tnm', **kwargs)
@@ -103,10 +103,10 @@ class TheNationalMap(core.FetchModule):
         self.date_start = date_start
         self.date_end = date_end
 
-        
+
     def run(self):
         """Run the TNM fetching module."""
-        
+
         if self.region is None or not spatial.region_valid_p(self.region):
             return []
 
@@ -117,7 +117,7 @@ class TheNationalMap(core.FetchModule):
 
         offset = 0
         total = 0
-        
+
         # Determine Datasets to query
         dataset_names = []
         if self.datasets is not None:
@@ -126,7 +126,7 @@ class TheNationalMap(core.FetchModule):
                 dataset_names = [DATASET_CODES[i] for i in ds_indices if 0 <= i < len(DATASET_CODES)]
             except (ValueError, IndexError):
                 logger.warning(f"Could not parse datasets '{self.datasets}'. Using default.")
-        
+
         # Default to NED 1 arc-second if nothing valid selected
         if not dataset_names:
             dataset_names = ["National Elevation Dataset (NED) 1 arc-second"]
@@ -149,7 +149,7 @@ class TheNationalMap(core.FetchModule):
                 params['dateType'] = self.date_type
 
             req = core.Fetch(TNM_API_PRODUCTS_URL).fetch_req(params=params, timeout=60, read_timeout=60)
-            
+
             if req is None or req.status_code != 200:
                 logger.error(f"TNM API Failed: {req.status_code if req else 'No Response'}")
                 break
@@ -157,7 +157,7 @@ class TheNationalMap(core.FetchModule):
             if req.text.strip().startswith("{errorMessage"):
                 logger.error(f"TNM API Error: {req.text}")
                 break
-            
+
             try:
                 data = req.json()
                 total = data.get('total', 0)
@@ -166,7 +166,7 @@ class TheNationalMap(core.FetchModule):
                 for item in items:
                     url = item.get('downloadURL')
                     if not url: continue
-                    
+
                     filename = url.split('/')[-1]
                     fmt = item.get('format', 'Unknown')
 
@@ -198,10 +198,10 @@ class TheNationalMap(core.FetchModule):
             offset += 100
             if offset >= total:
                 break
-        
+
         return self
 
-    
+
 # =============================================================================
 # Shortcuts (Subclasses)
 # =============================================================================
@@ -220,13 +220,13 @@ class NED(TheNationalMap):
       1     : Fetch 1 arc-second only
       all   : Fetch 1 arc-sec, 1/3 arc-sec, AND 1-meter
     """
-    
+
     def __init__(self, res: str = '13', **kwargs):
         # Map resolution strings to TNM Dataset Indices
         # 1 = NED 1 arc-sec
         # 2 = DEM 1 meter
         # 3 = NED 1/3 arc-sec
-        
+
         mapping = {
             '13': '1/3',      # Standard seamless (Old Default)
             '1m': '2',        # High res
@@ -234,17 +234,16 @@ class NED(TheNationalMap):
             '1/3': '3',       # Standard
             'all': '1/2/3'    # Everything
         }
-        
+
         selected_datasets = mapping.get(res, '1/3')
-        
+
         super().__init__(datasets=selected_datasets, **kwargs)
 
-        
+
 @cli.cli_opts(help_text="USGS 3DEP Lidar Point Clouds (LAZ)")
 class TNM_LAZ(TheNationalMap):
     """Shortcut for fetching Lidar Point Clouds (LAZ)."""
-    
+
     def __init__(self, **kwargs):
         # Index 11 (LPC) + Format Filter
         super().__init__(datasets='11', formats="LAZ", **kwargs)
-        

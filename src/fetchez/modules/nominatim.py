@@ -26,18 +26,18 @@ NOMINATUM_URL = 'https://nominatim.openstreetmap.org/search'
 )
 class Nominatim(core.FetchModule):
     """Fetch coordinates from OpenStreetMap's Nominatim service."""
-    
+
     def __init__(self, query='boulder', **kwargs):
         super().__init__(name='nominatim', **kwargs)
         self.query = query
-        
+
         ## Nominatim usage policy requires a custom User-Agent and Referer.
         self.headers = {
             'User-Agent': 'CUDEM/Fetches 1.0 (cudem.colorado.edu)',
             'Referer': 'https://cudem.colorado.edu'
         }
 
-        
+
     def run(self):
         if utils.str_or(self.query) is not None:
             ## Construct parameters using the module's urlencode helper
@@ -51,7 +51,7 @@ class Nominatim(core.FetchModule):
             q_url = f'{NOMINATUM_URL}?{query_str}'
 
             _req = core.Fetch(q_url, headers=self.headers).fetch_req()
-            
+
             if _req is not None and _req.status_code == 200:
                 try:
                     results = _req.json()
@@ -59,14 +59,14 @@ class Nominatim(core.FetchModule):
                         ## Parse coordinates
                         x = utils.float_or(results[0].get("lon"))
                         y = utils.float_or(results[0].get("lat"))
-                        
+
                         ## Print the display name found (helpful for debugging vague queries)
                         disp_name = results[0].get("display_name", "Unknown Location")
                         logger.info(f"Resolved '{self.query}' to: {disp_name}")
-                            
+
                         # Standard output for CLI piping: "lon, lat"
                         #print(f'{x}, {y}')
-                        
+
                         self.add_entry_to_results(
                             url=q_url,
                             dst_fn=None,
@@ -89,5 +89,4 @@ class Nominatim(core.FetchModule):
                     logger.error(f"Nominatim parse error")
             else:
                 status = _req.status_code if _req else "Connection Failed"
-                logger.error(f"Nominatim request failed: {status}")                
-
+                logger.error(f"Nominatim request failed: {status}")

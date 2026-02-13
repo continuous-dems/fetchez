@@ -32,7 +32,7 @@ from . import utils
 #     },
 # }
 
-logger = logging.getLogger(__name__)    
+logger = logging.getLogger(__name__)
 
 _GLOBAL_PRESETS = {}
 _MODULE_PRESETS = {}
@@ -42,27 +42,27 @@ def load_user_presets():
 
     try:
         # Expected config structure:
-        # { 
+        # {
         #   "presets": { "name": {...} },
         #   "modules": { "mod_name": { "presets": { "name": {...} } } }
         # }
         data = config.load_user_config()
         return data.get('presets', {})
     except:
-        logger.warning(f'Could not load user presets: {e}') 
+        logger.warning(f'Could not load user presets: {e}')
         return {}
 
-    
+
 def hook_list_from_preset(preset_def):
     """Convert JSON definition to list of Hook Objects."""
-    
+
     from fetchez.hooks.registry import HookRegistry
-    
+
     hooks = []
     for h_def in preset_def.get('hooks', []):
         name = h_def.get('name')
         kwargs = h_def.get('args', {})
-        
+
         # Instantiate using the Registry
         hook_cls = HookRegistry.get_hook(name)
         if hook_cls:
@@ -72,7 +72,7 @@ def hook_list_from_preset(preset_def):
                 logger.error(f"Failed to init preset hook '{name}': {e}")
         else:
             logger.warning(f"Preset hook '{name}' not found.")
-            
+
     return hooks
 
 
@@ -80,31 +80,31 @@ def register_global_preset(name, help_text, hooks):
     """Register a global CLI preset (e.g., --audit).
     These are available for ALL modules.
     """
-    
+
     if name in _GLOBAL_PRESETS:
         logger.warning(f"Overwriting global preset '{name}'")
-        
+
     _GLOBAL_PRESETS[name] = {
         'help': help_text,
         'hooks': hooks
     }
     logger.debug(f"Registered global preset: --{name}")
 
-    
+
 def register_module_preset(module, name, help_text, hooks):
     """Register a module-specific preset (e.g., --extract for multibeam).
     These only appear when running that specific module.
-    
+
     Args:
         module (str): The module key (e.g., 'multibeam').
         name (str): The flag name (e.g., 'extract').
         help_text (str): Description.
         hooks (list): List of hook configurations.
     """
-    
+
     if module not in _MODULE_PRESETS:
         _MODULE_PRESETS[module] = {}
-        
+
     if name in _MODULE_PRESETS[module]:
         logger.warning(f"Overwriting preset '{name}' for module '{module}'")
 
@@ -114,39 +114,39 @@ def register_module_preset(module, name, help_text, hooks):
     }
     logger.debug(f"Registered preset --{name} for module {module}")
 
-    
+
 def get_module_presets(module_name):
-    """Return presets registered for a specific module, 
+    """Return presets registered for a specific module,
      PLUS any global presets that don't conflict.
     """
-    
+
     # Start with global
     available = _GLOBAL_PRESETS.copy()
-    
+
     # Overlay module specific ones (they take precedence)
     if module_name in _MODULE_PRESETS:
         mod_specific = _MODULE_PRESETS[module_name]
         available.update(mod_specific)
-        
+
     return available
 
-    
+
 def get_global_presets():
     """Return combined user presets AND plugin presets."""
     all_presets = _GLOBAL_PRESETS.copy()
     user_presets = load_user_presets()
     all_presets.update(user_presets)
-    
+
     return all_presets
 
 
 # maybe we have it init actual presets?
 def init_current_presets():
     """Export the CURRENT active presets (built-ins + loaded plugins) to a JSON file."""
-    
+
     output_filename = 'fetchez_presets_template.json'
     output_path = os.path.abspath(output_filename)
-    
+
     if os.path.exists(output_path):
         logger.warning(f"File already exists: {output_path}")
         logger.warning("Please remove or rename it to generate a fresh template.")
@@ -156,7 +156,7 @@ def init_current_presets():
         "presets": copy.deepcopy(_GLOBAL_PRESETS),
         "modules": {}
     }
-    
+
     for mod_name, presets_dict in _MODULE_PRESETS.items():
         export_data["modules"][mod_name] = {
             "presets": copy.deepcopy(presets_dict)
@@ -165,23 +165,23 @@ def init_current_presets():
     try:
         with open(output_path, 'w') as f:
             json.dump(export_data, f, indent=4)
-            
+
         print(f"{utils.GREEN}✅ Exported active presets to: {utils.RESET}{output_path}")
         print("\nTo use these as your personal defaults:")
         print(f"  1. Edit the file to customize your workflows.")
         print(f"  2. Move it to: {utils.CYAN}~/.fetchez/presets.json{utils.RESET}")
         print(f"     (Or merge it into your existing config.json)")
-        
+
     except Exception as e:
         logger.error(f"Failed to export presets: {e}")
 
-        
+
 def init_presets():
     """Generate a default presets.json file."""
-    
+
     config_dir = config.CONFIG_PATH
     config_file = os.path.join(config_dir, 'presets.json')
-    
+
     if os.path.exists(config_file):
         print(f'Config file already exists at: {config_file}')
         return
@@ -227,4 +227,3 @@ def init_presets():
         logger.info('Edit this file to add your own workflow presets.')
     except Exception as e:
         logger.error(f'Could not create presets config: {e}')
-

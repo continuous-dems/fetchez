@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class Unzip(FetchHook):
     """Automatically unzip files after download."""
-    
+
     # Registry Metadata
     name = "unzip"
     desc = "Extract .zip archives. Usage: --hook unzip:remove=true:overwrite=false"
@@ -38,7 +38,7 @@ class Unzip(FetchHook):
         self.remove = remove
         self.overwrite = overwrite
 
-        
+
     def run(self, entries):
         out_entries = []
         for mod, entry in entries:
@@ -80,4 +80,3 @@ class Unzip(FetchHook):
                 out_entries.append((mod, entry))
 
         return out_entries
-        

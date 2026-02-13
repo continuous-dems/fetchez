@@ -23,7 +23,7 @@ class DTU(core.FetchModule):
     """Fetch global grids from the Technical University of Denmark (DTU).
 
     * This module is in development and may contain bugs *
-    
+
     Examples:
         fetchez dtu --version 13 --product mss
         fetchez dtu --version 10 --product tide --format ascii
@@ -35,13 +35,13 @@ class DTU(core.FetchModule):
         self.product = product.lower()
         self.format_pref = format.lower()
 
-        
+
     def run(self):
         ver_str = f"DTU{self.version}"
         prod_map = {
             'mss': 'MSS', 'lat': 'LAT', 'mdt': 'MDT', 'grav': 'GRAVITY', 'err': 'err', 'bat': 'bat', 'gra': 'gra'
         }
-        
+
         if self.product not in prod_map and self.product != 'tide':
             logger.error(f"Unknown product: {self.product}")
             return self
@@ -54,7 +54,7 @@ class DTU(core.FetchModule):
         res_map = []
 
         prod = prod_map[self.product]
-        url = f"{DTU_BASE_URL}/{ver_str}/1_MIN/{ver_str}{prod.upper()}_1min.{prod.lower()}.gz"        
+        url = f"{DTU_BASE_URL}/{ver_str}/1_MIN/{ver_str}{prod.upper()}_1min.{prod.lower()}.gz"
         self.add_entry_to_results(
             url=url,
             dst_fn=os.path.basename(url),
@@ -62,5 +62,5 @@ class DTU(core.FetchModule):
             agency='DTU Space',
             title=f"DTU {self.version} {self.product.upper()}"
         )
-            
+
         return self

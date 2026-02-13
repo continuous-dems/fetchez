@@ -30,31 +30,31 @@ MARGRAV_GLOBAL_NC = 'https://topex.ucsd.edu/pub/global_grav_1min/grav_33.1.nc'
 )
 class MarGrav(core.FetchModule):
     """Fetch Marine Gravity Satellite Altimetry Topography.
-    
-    Data is sourced from the Scripps Institution of Oceanography (UCSD) 
-    Topex project. 
-    
+
+    Data is sourced from the Scripps Institution of Oceanography (UCSD)
+    Topex project.
+
     Modes:
-      Regional (Default): Queries the CGI interface to generate an XYZ 
+      Regional (Default): Queries the CGI interface to generate an XYZ
         text file for the specific requested bounding box.
-    
-      Global (--global-grid): Downloads the full 'topo_27.1.img' binary 
+
+      Global (--global-grid): Downloads the full 'topo_27.1.img' binary
         grid file (~GBs).
 
     References:
       - https://topex.ucsd.edu/WWW_html/mar_grav.html
     """
-    
+
     def __init__(self, mag: float = 1.0, global_grid: bool = False, **kwargs):
         super().__init__(name='margrav', **kwargs)
         # SIO 'mag' parameter controls sampling. 1.0 is full resolution.
         self.mag = float(mag)
         self.global_grid = global_grid
 
-        
+
     def run(self):
         """Run the MarGrav fetching logic."""
-        
+
         # Global Grid Download
         if self.global_grid:
             self.add_entry_to_results(
@@ -70,7 +70,7 @@ class MarGrav(core.FetchModule):
         # Regional CGI Query
         if self.region is None:
             return []
-        
+
         w, e, s, n = self.region
 
         data = {
@@ -82,10 +82,10 @@ class MarGrav(core.FetchModule):
         }
 
         full_url = f"{MARGRAV_CGI_URL}?{urlencode(data)}"
-        
+
         r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
         out_fn = f"margrav_{r_str}.xyz"
-        
+
         self.add_entry_to_results(
             url=full_url,
             dst_fn=out_fn,

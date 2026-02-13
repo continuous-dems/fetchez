@@ -31,7 +31,7 @@ class CheckPoints3DEP(core.FetchModule):
     def __init__(self, **kwargs):
         super().__init__(name='3dep_cp', **kwargs)
         self.headers = HEADERS
-        
+
     def run(self):
         self.add_entry_to_results(
             url=CHECKPOINTS_3DEP_URL,
@@ -42,4 +42,4 @@ class CheckPoints3DEP(core.FetchModule):
             region='USA',
             format='Shapefile (zipped)',
             license='Public Domain'
-        )        
+        )

@@ -30,25 +30,25 @@ VGG_URL = 'https://topex.ucsd.edu/pub/global_grav_1min/curv_33.1.nc'
 class VGG(core.FetchModule):
     """
     Fetch the Vertical Gravity Gradient (VGG) global grid.
-    
-    The VGG (often labeled as 'curvature') is the second vertical derivative 
-    of the geopotential. It highlights high-frequency features like seamounts, 
-    fracture zones, and abyssal hill fabric that are often smoothed out in 
+
+    The VGG (often labeled as 'curvature') is the second vertical derivative
+    of the geopotential. It highlights high-frequency features like seamounts,
+    fracture zones, and abyssal hill fabric that are often smoothed out in
     standard gravity anomaly maps.
 
     **Note:** This module downloads the full global grid (~640 MB).
-    
+
     References:
       - https://topex.ucsd.edu/WWW_html/mar_grav.html
       - https://topex.ucsd.edu/sandwell/publications/154_Science_gravity.pdf
     """
-    
+
     def __init__(self, **kwargs):
         super().__init__(name='vgg', **kwargs)
 
     def run(self):
         """Run the VGG fetching logic."""
-        
+
         # Download the global NetCDF
         self.add_entry_to_results(
             url=VGG_URL,
@@ -57,5 +57,5 @@ class VGG(core.FetchModule):
             agency='SIO / UCSD',
             title='Global Vertical Gravity Gradient (VGG)'
         )
-        
+
         return self

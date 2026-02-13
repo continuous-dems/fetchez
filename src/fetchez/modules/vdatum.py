@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 VDATUM_DATA_URL = 'https://vdatum.noaa.gov/download/data/'
 VDATUM_REGIONS = [
-    'TIDAL', 'IGLD85', 'XGEOID16B', 'XGEOID17B', 'XGEOID18B', 
+    'TIDAL', 'IGLD85', 'XGEOID16B', 'XGEOID17B', 'XGEOID18B',
     'XGEOID19B', 'XGEOID20B', 'VERTCON'
 ]
 
@@ -33,28 +33,28 @@ VDATUM_REGIONS = [
 )
 class VDatum(core.FetchModule):
     """Fetch NOAA VDatum grids, specifically Tidal Datums (MLLW, MHHW).
-    
+
     Because these grids are not available in the PROJ CDN, this module
     performs a "heavy" discovery process:
-    
+
     - Downloads regional ZIP files from NOAA.
     - Inspects internal .inf files to determine bounding boxes.
     - Builds a local spatial index (FRED) for future fast lookups.
     """
-    
+
     def __init__(self, datatype: str = None, update: bool = False, **kwargs):
         super().__init__(name='vdatum', **kwargs)
         self.datatype = datatype.lower() if datatype else None
         self.force_update = update
-        
+
         self.fred = fred.FRED('vdatum', local=False)
 
-        
+
     def _scrape_and_index(self):
         """Download zips, parse .inf, update index."""
-        
+
         logger.info('Initializing VDatum Index (This may take a moment)...')
-        
+
         temp_dir = os.path.join(self._outdir, 'temp_idx')
         if not os.path.exists(temp_dir): os.makedirs(temp_dir)
 
@@ -62,10 +62,10 @@ class VDatum(core.FetchModule):
             fname = f'{region}.zip'
             if region == 'TIDAL': fname = "DEVAemb12_8301.zip" # Example mapping, may vary
             elif 'XGEOID' in region: fname = f'vdatum_{region}.zip'
-            
+
             url = f'{VDATUM_DATA_URL}{fname}'
             local_zip = os.path.join(temp_dir, fname)
-            
+
             logger.info(f'Indexing {region}...')
             if core.Fetch(url).fetch_file(local_zip) != 0:
                 continue
@@ -78,7 +78,7 @@ class VDatum(core.FetchModule):
                             with z.open(zf) as inf:
                                 content = inf.read().decode('utf-8', errors='ignore')
                                 meta = self._parse_inf(content)
-                                
+
                                 if meta:
                                     geom = {
                                         'type': 'Polygon',
@@ -88,7 +88,7 @@ class VDatum(core.FetchModule):
                                             [meta['w'], meta['s']]
                                         ]]
                                     }
-                                    
+
                                     self.fred.add_survey(
                                         geom,
                                         Name=zf,
@@ -100,13 +100,13 @@ class VDatum(core.FetchModule):
                                     )
             except Exception as e:
                 logger.warning(f'Failed to parse {fname}: {e}')
-            
+
             if os.path.exists(local_zip): os.remove(local_zip)
 
         self.fred.save()
         logger.info('VDatum Indexing Complete.')
 
-        
+
     def _parse_inf(self, text):
         """Helper to extract bounds from VDatum INF format."""
 
@@ -115,7 +115,7 @@ class VDatum(core.FetchModule):
             if '=' in line:
                 k, v = line.split('=', 1)
                 d[k.strip().lower().split('.')[-1]] = v.strip()
-        
+
         try:
             return {
                 'w': float(d.get('minlon', 0)), 'e': float(d.get('maxlon', 0)),
@@ -124,11 +124,11 @@ class VDatum(core.FetchModule):
         except:
             return None
 
-        
+
     def run(self):
         if self.force_update or not self.fred.features:
             self._scrape_and_index()
-        
+
         if not self.fred.features:
             logger.error('VDatum index is empty. Scrape failed.')
             return self
@@ -138,7 +138,7 @@ class VDatum(core.FetchModule):
         for r in results:
             if self.datatype and self.datatype not in r.get('DataType', ''):
                 continue
-                
+
             self.add_entry_to_results(
                 url=r['DataLink'],
                 dst_fn=os.path.basename(r['DataLink']),
@@ -146,5 +146,5 @@ class VDatum(core.FetchModule):
                 agency='NOAA',
                 title=f'VDatum Grid ({r["ID"]})'
             )
-            
+
         return self
