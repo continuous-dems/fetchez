@@ -138,7 +138,7 @@ def get_userpass(authenticator_url: str) -> Tuple[Optional[str], Optional[str]]:
     try:
         info = netrc.netrc()
         host_auth = urllib.parse.urlparse(authenticator_url).hostname
-        if host_var is not None:
+        if host_auth is not None:
             username, _, password = info.authenticators(host_auth)
         else:
             username = None
