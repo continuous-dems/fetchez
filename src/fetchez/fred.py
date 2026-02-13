@@ -175,8 +175,6 @@ class FRED:
         if region is not None and spatial.region_valid_p(region):
             if HAS_SHAPELY:
                 search_geom = spatial.region_to_shapely(region)
-            else:
-                search_bbox = region
 
         if region:
             r_str = ",".join(f"{x:.2f}" for x in region)
