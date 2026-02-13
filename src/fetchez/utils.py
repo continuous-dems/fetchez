@@ -201,14 +201,6 @@ def str_truncate_middle(s, n=50):
     return f"{s[:n_2]}...{s[-n_2:]}"
 
 
-def inc2str(inc):
-    """Convert a WGS84 geographic increment to a string identifier."""
-
-    return str(fractions.Fraction(str(inc * 3600)).limit_denominator(10)).replace(
-        "/", ""
-    )
-
-
 def str2inc(inc_str):
     """Convert a GMT-style inc_str (e.g. 6s) to geographic units.
 
@@ -255,33 +247,6 @@ def make_temp_fn(basename, temp_dir=None):
     fd, path = tempfile.mkstemp(suffix=suffix, prefix=f"{prefix}_", dir=temp_dir)
     os.close(fd)
     return path
-
-
-def parse_fmod(fmod):
-    """Parse a factory module string.
-
-    Returns:
-        Tuple containing (all_options, module_name, module_arguments)
-    """
-
-    opts = fmod2dict(fmod)
-    mod = opts.get("_module")
-    mod_args = {k: v for k, v in opts.items() if k != "_module"}
-    return opts, mod, mod_args
-
-
-def parse_fmod_argparse(fmod):
-    """Parse a factory module string.
-
-    Returns:
-        Tuple containing (all_options, module_name, module_arguments)
-    """
-
-    opts = fmod2dict(fmod)
-    mod = opts.get("_module")
-    mod_args = {k: v for k, v in opts.items() if k != "_module"}
-    mod_args = [f"--{k}={v}" for k, v in opts.items() if k != "_module"]
-    return opts, mod, mod_args
 
 
 def range_pairs(lst):
