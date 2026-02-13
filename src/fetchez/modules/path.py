@@ -34,7 +34,7 @@ class LocalDataset(core.FetchModule):
 
         super().__init__(**kwargs)
 
-        # 1. Normalize inputs into a single list
+        # Normalize inputs into a single list
         self.file_list = []
 
         if paths:
@@ -50,12 +50,13 @@ class LocalDataset(core.FetchModule):
                 if os.path.isfile(this_path):
                     self.file_list.append(this_path)
 
-        # 2. Register each file
+        # Register each file
         for p in self.file_list:
             self._add_file_entry(p)
 
     def _add_file_entry(self, p):
         """Helper to format and register a single file."""
+        
         if not p:
             return
 
@@ -70,7 +71,7 @@ class LocalDataset(core.FetchModule):
 
         # Determine a "destination filename" (just the basename)
         # This is what hooks will see as 'dst_fn'
-        filename = os.path.basename(abs_path)
+        #filename = os.path.basename(abs_path)
 
         # We set status=0 so Fetchez Core thinks it's "Already Downloaded"
         # and proceeds immediately to the hooks.
@@ -82,49 +83,4 @@ class LocalDataset(core.FetchModule):
         )
 
     def run(self):
-        # No 'fetching' logic needed; files are local.
         pass
-
-
-# #!/usr/bin/env python
-# # -*- coding: utf-8 -*-
-
-# """
-# fetchez.modules.path
-# ~~~~~~~~~~~~~~~~~~~~~
-
-# Generic module to treat a local file like a remote one
-
-# :copyright: (c) 2010 - 2026 Regents of the University of Colorado
-# :license: MIT, see LICENSE for more details.
-# """
-
-# import os
-# from fetchez import core
-# from fetchez import cli
-
-# @cli.cli_opts(help_text="Process a local file (e.g. for piping/hooks)")
-# class LocalDataset(core.FetchModule):
-#     """Register a local file into the fetchez pipeline."""
-
-#     def __init__(self, path=None, **kwargs):
-#         super().__init__(**kwargs)
-#         self.path = path
-
-#         if self.path:
-#             if not self.path.startswith('file://'):
-#                 abs_path = os.path.abspath(self.path)
-#                 self.url = f'file://{abs_path}'
-#             else:
-#                 self.url = self.path
-
-#             filename = os.path.basename(self.url.replace('file://', ''))
-
-#             self.add_entry_to_results(
-#                 url=self.url,
-#                 dst_fn=filename,
-#                 data_type='local'
-#             )
-
-#     def run(self):
-#         pass

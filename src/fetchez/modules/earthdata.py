@@ -25,7 +25,7 @@ from fetchez import spatial
 from fetchez import cli
 
 try:
-    from shapely.geometry import Polygon, box
+    from shapely.geometry import Polygon
 
     HAS_SHAPELY = True
 except ImportError:

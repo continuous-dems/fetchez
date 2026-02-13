@@ -123,7 +123,7 @@ class Multibeam(core.FetchModule):
             if response is not None and response.status_code in [200, 302]:
                 return True
             return False
-        except:
+        except Exception as e:
             return False
 
     def run(self):

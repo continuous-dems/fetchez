@@ -142,7 +142,7 @@ class DAV(core.FetchModule):
             return None
 
         txt_links = page.xpath('//a[contains(@href, ".txt")]/@href')
-        urllist_link = next((l for l in txt_links if "urllist" in l), None)
+        urllist_link = next((link for link in txt_links if "urllist" in link), None)
 
         index_zip_url = None
 
@@ -166,7 +166,7 @@ class DAV(core.FetchModule):
 
         if not index_zip_url:
             zip_links = page.xpath('//a[contains(@href, ".zip")]/@href')
-            tile_zip = next((l for l in zip_links if "tileindex" in l), None)
+            tile_zip = next((link for link in zip_links if "tileindex" in link), None)
             if tile_zip:
                 if not tile_zip.startswith("http"):
                     index_zip_url = urljoin(bulk_url, tile_zip)
@@ -327,7 +327,7 @@ class DAV(core.FetchModule):
 
                     dav_dir = self._outdir.rstrip(os.sep)
                     base_dir = os.path.dirname(dav_dir)
-                    tnm_outdir = os.path.join(base_dir, "tnm")
+                    #tnm_outdir = os.path.join(base_dir, "tnm")
 
                     if self.datatype == "lidar":
                         target_datasets = "11"  # Lidar Point Cloud

@@ -54,7 +54,8 @@ class EarthAccess(FetchModule):
         self.extra_params = kwargs
 
         self.tags = ['nasa', 'earthdata', 'earthaccess', 'cmr']
-        if short_name: self.tags.append(short_name.lower())
+        if short_name:
+            self.tags.append(short_name.lower())
 
     def run(self):
         try:

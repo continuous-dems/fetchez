@@ -117,8 +117,8 @@ class CSB(core.FetchModule):
                         f"Total files available in region: {total_count} items in {total_pages} pages"
                     )
 
-            except Exception as e:
-                logger.error(f"Failed to parse index response: {e}")
+            except Exception as exception:
+                logger.error(f"Failed to parse index response: {exception}")
                 break
 
             if not items:

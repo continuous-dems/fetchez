@@ -57,7 +57,7 @@ class HydroLAKES(core.FetchModule):
 
         self.add_entry_to_results(
             url=url,
-            dst_fn=f"HydroLAKES_polys_v10_{self.format}.zip",
+            dst_fn=f"HydroLAKES_polys_v10_{self.format}.{ext}",
             data_type="vector",
             agency="HydroSHEDS",
             title=f"HydroLAKES v1.0 ({self.format.upper()})",

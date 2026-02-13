@@ -42,9 +42,7 @@ class Unzip(FetchHook):
     def run(self, entries):
         out_entries = []
         for mod, entry in entries:
-            url = entry.get("url")
             zip_path = entry.get("dst_fn")
-            dtype = entry.get("data_type")
             status = entry.get("status")
 
             if status != 0 or not zip_path.lower().endswith(".zip"):

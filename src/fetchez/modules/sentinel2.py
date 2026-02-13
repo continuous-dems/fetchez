@@ -174,7 +174,7 @@ class Sentinel2(core.FetchModule):
     def run_openeo(self):
         """Run the OpenEO fetching module"""
 
-        username, password = fetches.get_userpass(OPENEO_AUTH_URL)
+        username, password = core.get_userpass(OPENEO_AUTH_URL)
         api = SentinelAPI(username, password, OPENEO_API_HUB)
 
         # Define your area of interest (e.g., from a GeoJSON file)
@@ -186,7 +186,7 @@ class Sentinel2(core.FetchModule):
         # Query for Sentinel-2 products
         products = api.query(
             footprint,
-            date=("20230101", date(2023, 1, 31)),
+            date=("20230101", datetime.date(2023, 1, 31)),
             platformname="Sentinel-2",
             cloudcoverpercentage=(0, 20),
         )  # Max 20% cloud cover

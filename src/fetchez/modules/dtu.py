@@ -52,12 +52,12 @@ class DTU(core.FetchModule):
             logger.error(f"Unknown product: {self.product}")
             return self
 
-        if self.product == "tide":
-            base_dir = f"{ver_str}_TIDEMODEL"
-        else:
-            base_dir = f"{ver_str}{prod_map[self.product]}"
+        # if self.product == "tide":
+        #     base_dir = f"{ver_str}_TIDEMODEL"
+        # else:
+        #     base_dir = f"{ver_str}{prod_map[self.product]}"
 
-        res_map = []
+        #res_map = []
 
         prod = prod_map[self.product]
         url = f"{DTU_BASE_URL}/{ver_str}/1_MIN/{ver_str}{prod.upper()}_1min.{prod.lower()}.gz"
