@@ -95,4 +95,5 @@ ignore_missing_imports = true
 ignore = [
     "E722",  # Forbid bare except
     "E731",  # Forbid lambda
+    "E741",  # Forbid ambiguous variable names
 ]
