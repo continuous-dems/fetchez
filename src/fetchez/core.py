@@ -310,7 +310,6 @@ class iso_xml:
             if geom:
                 if HAS_SHAPELY:
                     poly = Polygon(out_poly)
-                    wkt_string = poly.wkt
                     geojson_dict = mapping(poly)
                 else:
                     geojson_dict = {"type": "Polygon", "coordinates": [out_poly]}
@@ -1096,16 +1095,6 @@ class FetchModule:
 
         self.weight = float(weight)
         self.uncertainty = float(uncertainty)
-
-        presets = {}
-
-        # Example structure:
-        # presets = {
-        #    'lidar-clean': [
-        #        {'name': 'unzip'},
-        #        {'name': 'filter', 'args': {'match': '.laz'}}
-        #    ]
-        # }
 
         # For dlim support, we can check these variables for
         # to do the proper processing. Set these to their correct
