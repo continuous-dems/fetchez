@@ -19,7 +19,7 @@ import logging
 from typing import Union, List, Tuple, Optional
 
 try:
-    from shapely.geometry import shape, box, mapping
+    from shapely.geometry import shape, box
 
     HAS_SHAPELY = True
 except ImportError:
