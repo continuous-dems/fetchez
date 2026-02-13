@@ -16,9 +16,10 @@ from fetchez import core
 from fetchez import cli
 
 USIEI_MAP_SERVER_URL = (
-    'https://coast.noaa.gov/arcgis/rest/services/'
-    'USInteragencyElevationInventory/USIEIv2/MapServer'
+    "https://coast.noaa.gov/arcgis/rest/services/"
+    "USInteragencyElevationInventory/USIEIv2/MapServer"
 )
+
 
 # =============================================================================
 # USIEI Module
@@ -26,9 +27,8 @@ USIEI_MAP_SERVER_URL = (
 @cli.cli_opts(
     help_text="US Interagency Elevation Inventory (USIEI)",
     layer="Layer ID: 0=TopoBathy, 1=Bathy, 2=Topo, 3=IfSAR. Default: 0",
-    where="SQL filter clause (default: '1=1')"
+    where="SQL filter clause (default: '1=1')",
 )
-
 class USIEI(core.FetchModule):
     """Query the US Interagency Elevation Inventory (USIEI).
 
@@ -50,11 +50,10 @@ class USIEI(core.FetchModule):
       - https://coast.noaa.gov/inventory/
     """
 
-    def __init__(self, layer: str = '0', where: str = '1=1', **kwargs):
-        super().__init__(name='usiei', **kwargs)
+    def __init__(self, layer: str = "0", where: str = "1=1", **kwargs):
+        super().__init__(name="usiei", **kwargs)
         self.layer = int(layer)
         self.where = where
-
 
     def run(self):
         """Run the USIEI fetching logic."""
@@ -65,33 +64,33 @@ class USIEI(core.FetchModule):
         w, e, s, n = self.region
 
         params = {
-            'where': self.where,
-            'outFields': '*',
-            'geometry': f"{w},{s},{e},{n}",
-            'geometryType': 'esriGeometryEnvelope',
-            'spatialRel': 'esriSpatialRelIntersects',
-            'inSR': '4326',
-            'outSR': '4326',
-            'f': 'geojson',
-            'returnGeometry': 'true'
+            "where": self.where,
+            "outFields": "*",
+            "geometry": f"{w},{s},{e},{n}",
+            "geometryType": "esriGeometryEnvelope",
+            "spatialRel": "esriSpatialRelIntersects",
+            "inSR": "4326",
+            "outSR": "4326",
+            "f": "geojson",
+            "returnGeometry": "true",
         }
 
         query_url = f"{USIEI_MAP_SERVER_URL}/{self.layer}/query"
         full_url = f"{query_url}?{urlencode(params)}"
 
-        r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
+        r_str = f"w{w}_e{e}_s{s}_n{n}".replace(".", "p").replace("-", "m")
 
-        layer_names = {0: 'topobathy', 1: 'bathy', 2: 'topo', 3: 'ifsar', 4: 'other'}
-        l_name = layer_names.get(self.layer, f'layer{self.layer}')
+        layer_names = {0: "topobathy", 1: "bathy", 2: "topo", 3: "ifsar", 4: "other"}
+        l_name = layer_names.get(self.layer, f"layer{self.layer}")
 
         out_fn = f"usiei_{l_name}_{r_str}.geojson"
 
         self.add_entry_to_results(
             url=full_url,
             dst_fn=out_fn,
-            data_type='vector',
-            agency='NOAA / USGS',
-            title=f"USIEI Inventory ({l_name})"
+            data_type="vector",
+            agency="NOAA / USGS",
+            title=f"USIEI Inventory ({l_name})",
         )
 
         return self

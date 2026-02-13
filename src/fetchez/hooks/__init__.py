@@ -11,6 +11,7 @@ This init file also holds the FetchHook super class
 :license: MIT, see LICENSE for more details.
 """
 
+
 class FetchHook:
     """Base class for all Fetchez Hooks."""
 
@@ -24,12 +25,10 @@ class FetchHook:
     # 'pre':  Runs once before any downloads start.
     # 'file': Runs in the worker thread immediately after a file download.
     # 'post': Runs once after all downloads are finished.
-    stage = 'file'
-
+    stage = "file"
 
     def __init__(self, **kwargs):
         self.opts = kwargs
-
 
     def __eq__(self, other):
         """Hooks are 'equal' if they are the same type and have identical dicts."""
@@ -39,7 +38,6 @@ class FetchHook:
 
         return self.__dict__ == other.__dict__
 
-
     def teardown(self):
         """Cleanup.
 
@@ -48,7 +46,6 @@ class FetchHook:
         """
 
         pass
-
 
     def run(self, entry):
         """Execute the hook.

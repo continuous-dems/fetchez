@@ -20,20 +20,21 @@ from fetchez import spatial
 
 try:
     from shapely.geometry import shape
+
     HAS_SHAPELY = True
 except ImportError:
     HAS_SHAPELY = False
 
 logger = logging.getLogger(__name__)
 
-PROJ_CDN_INDEX_URL = 'https://cdn.proj.org/files.geojson'
+PROJ_CDN_INDEX_URL = "https://cdn.proj.org/files.geojson"
+
 
 @cli.cli_opts(
-    help_text='PROJ CDN Transformation Grids',
+    help_text="PROJ CDN Transformation Grids",
     query='Search term (e.g., "geoid18", "vertcon", "nadcon").',
-    epsg='Filter by source or target EPSG code.',
+    epsg="Filter by source or target EPSG code.",
 )
-
 class PROJ(core.FetchModule):
     """Fetch vertical and horizontal transformation grids from PROJ.org.
 
@@ -45,11 +46,10 @@ class PROJ(core.FetchModule):
     """
 
     def __init__(self, query: str = None, epsg: str = None, **kwargs):
-        super().__init__(name='proj', **kwargs)
+        super().__init__(name="proj", **kwargs)
         self.query = query.lower() if query else None
         self.epsg = str(epsg) if epsg else None
-        self.headers = {'User-Agent': 'Fetchez/1.0 (PROJ-Compatible)'}
-
+        self.headers = {"User-Agent": "Fetchez/1.0 (PROJ-Compatible)"}
 
     def _intersects(self, grid_geom, grid_bbox=None):
         """Check intersection using Shapely (precise) or BBox (fast fallback)."""
@@ -65,7 +65,7 @@ class PROJ(core.FetchModule):
 
                 return user_poly.intersects(grid_poly)
             except Exception as e:
-                logger.debug(f'Shapely intersection failed: {e}, falling back to bbox.')
+                logger.debug(f"Shapely intersection failed: {e}, falling back to bbox.")
 
         # BBox Fallback (Fast but rough)
         if grid_bbox:
@@ -75,7 +75,6 @@ class PROJ(core.FetchModule):
             return not (rw > ge or re < gw or rs > gn or rn < gs)
 
         return True
-
 
     # def _intersects(self, grid_bbox):
     #     """Check intersection: [w, s, e, n] vs region [w, e, s, n]"""
@@ -87,52 +86,58 @@ class PROJ(core.FetchModule):
     #     rw, re, rs, rn = self.region
     #     return not (rw > ge or re < gw or rs > gn or rn < gs)
 
-
     def run(self):
-        idx_file = os.path.join(self._outdir, 'proj_files.geojson')
+        idx_file = os.path.join(self._outdir, "proj_files.geojson")
 
         if not os.path.exists(idx_file):
-            logger.info('Fetching PROJ CDN Index...')
+            logger.info("Fetching PROJ CDN Index...")
             if core.Fetch(PROJ_CDN_INDEX_URL).fetch_file(idx_file) != 0:
-                logger.error('Failed to fetch PROJ index.')
+                logger.error("Failed to fetch PROJ index.")
                 return self
 
         try:
-            with open(idx_file, 'r') as f:
-                features = json.load(f).get('features', [])
+            with open(idx_file, "r") as f:
+                features = json.load(f).get("features", [])
 
             matches = 0
             for feat in features:
-                props = feat.get('properties', {})
-                geom = feat.get('geometry')
-                bbox = feat.get('bbox')
+                props = feat.get("properties", {})
+                geom = feat.get("geometry")
+                bbox = feat.get("bbox")
 
-                if geom is None: continue
-                if not self._intersects(geom, bbox): continue
+                if geom is None:
+                    continue
+                if not self._intersects(geom, bbox):
+                    continue
 
                 if self.query:
-                    text = f'{props.get("name")} {props.get("source_crs_name")} {props.get("target_crs_name")} {props.get("url")}'.lower()
-                    if self.query not in text: continue
+                    text = f"{props.get('name')} {props.get('source_crs_name')} {props.get('target_crs_name')} {props.get('url')}".lower()
+                    if self.query not in text:
+                        continue
 
                 if self.epsg:
-                    s, t = str(props.get('source_crs_code')), str(props.get('target_crs_code'))
-                    if self.epsg not in s and self.epsg not in t: continue
+                    s, t = (
+                        str(props.get("source_crs_code")),
+                        str(props.get("target_crs_code")),
+                    )
+                    if self.epsg not in s and self.epsg not in t:
+                        continue
 
                 self.add_entry_to_results(
-                    url=props['url'],
-                    dst_fn=os.path.basename(props['url']),
-                    data_type='grid',
-                    agency='PROJ',
-                    title=props.get('name'),
-                    source_code=props.get('target_crs_code'),
-                    target_code=props.get('target_crs_code')
+                    url=props["url"],
+                    dst_fn=os.path.basename(props["url"]),
+                    data_type="grid",
+                    agency="PROJ",
+                    title=props.get("name"),
+                    source_code=props.get("target_crs_code"),
+                    target_code=props.get("target_crs_code"),
                 )
                 matches += 1
 
             if matches == 0:
-                logger.warning('No grids found in PROJ CDN.')
+                logger.warning("No grids found in PROJ CDN.")
 
         except Exception as e:
-            logger.error(f'Error reading index: {e}')
+            logger.error(f"Error reading index: {e}")
 
         return self

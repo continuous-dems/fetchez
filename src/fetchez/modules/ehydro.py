@@ -21,7 +21,8 @@ from fetchez import cli
 logger = logging.getLogger(__name__)
 
 # USACE eHydro Feature Service
-EHYDRO_BASE_URL = 'https://services7.arcgis.com/n1YM8pTrFmm7L4hs/arcgis/rest/services/eHydro_Survey_Data/FeatureServer/0/query'
+EHYDRO_BASE_URL = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/arcgis/rest/services/eHydro_Survey_Data/FeatureServer/0/query"
+
 
 # =============================================================================
 # eHydro Module
@@ -31,9 +32,8 @@ EHYDRO_BASE_URL = 'https://services7.arcgis.com/n1YM8pTrFmm7L4hs/arcgis/rest/ser
     where="SQL filter clause (default: '1=1')",
     survey="Filter by survey name/ID (substring match)",
     min_year="Filter surveys after this year (YYYY)",
-    max_year="Filter surveys before this year (YYYY)"
+    max_year="Filter surveys before this year (YYYY)",
 )
-
 class eHydro(core.FetchModule):
     """Fetch USACE eHydro bathymetric data.
 
@@ -48,14 +48,19 @@ class eHydro(core.FetchModule):
       - https://navigation.usace.army.mil/Survey/Hydro
     """
 
-    def __init__(self, where: str = '1=1', survey: str = None,
-                 min_year: str = None, max_year: str = None, **kwargs):
-        super().__init__(name='ehydro', **kwargs)
+    def __init__(
+        self,
+        where: str = "1=1",
+        survey: str = None,
+        min_year: str = None,
+        max_year: str = None,
+        **kwargs,
+    ):
+        super().__init__(name="ehydro", **kwargs)
         self.where = where
         self.survey_filter = survey
         self.min_year = int(min_year) if min_year else None
         self.max_year = int(max_year) if max_year else None
-
 
     def _parse_year(self, timestamp):
         """Safely parse ESRI timestamp (milliseconds) to year."""
@@ -70,7 +75,6 @@ class eHydro(core.FetchModule):
         except (ValueError, TypeError):
             return None
 
-
     def run(self):
         """Run the eHydro fetching logic."""
 
@@ -80,15 +84,15 @@ class eHydro(core.FetchModule):
         w, e, s, n = self.region
 
         params = {
-            'where': self.where,
-            'outFields': '*',
-            'geometry': f"{w},{s},{e},{n}",
-            'geometryType': 'esriGeometryEnvelope',
-            'spatialRel': 'esriSpatialRelIntersects',
-            'inSR': '4326',
-            'outSR': '4326',
-            'f': 'json',
-            'returnGeometry': 'false'
+            "where": self.where,
+            "outFields": "*",
+            "geometry": f"{w},{s},{e},{n}",
+            "geometryType": "esriGeometryEnvelope",
+            "spatialRel": "esriSpatialRelIntersects",
+            "inSR": "4326",
+            "outSR": "4326",
+            "f": "json",
+            "returnGeometry": "false",
         }
 
         query_url = f"{EHYDRO_BASE_URL}?{urlencode(params)}"
@@ -105,7 +109,7 @@ class eHydro(core.FetchModule):
             logger.error("Failed to parse eHydro JSON response.")
             return self
 
-        features = response.get('features', [])
+        features = response.get("features", [])
         if not features:
             logger.warning("No eHydro surveys found in this region.")
             return self
@@ -114,12 +118,12 @@ class eHydro(core.FetchModule):
 
         matches = 0
         for feature in features:
-            attrs = feature.get('attributes', {})
+            attrs = feature.get("attributes", {})
 
             # Attributes of interest
-            sid = attrs.get('sdsmetadataid', 'Unknown')
-            url = attrs.get('sourcedatalocation')
-            survey_date_ts = attrs.get('surveydatestart')
+            sid = attrs.get("sdsmetadataid", "Unknown")
+            url = attrs.get("sourcedatalocation")
+            survey_date_ts = attrs.get("surveydatestart")
 
             if not url:
                 continue
@@ -134,15 +138,16 @@ class eHydro(core.FetchModule):
                 if self.survey_filter.lower() not in sid.lower():
                     continue
 
-            fname = url.split('/')[-1]
-            if '?' in fname: fname = fname.split('?')[0]
+            fname = url.split("/")[-1]
+            if "?" in fname:
+                fname = fname.split("?")[0]
 
             self.add_entry_to_results(
                 url=url,
                 dst_fn=fname,
-                data_type='bathymetry',
-                agency='USACE',
-                title=f"Survey {sid} ({year})"
+                data_type="bathymetry",
+                agency="USACE",
+                title=f"Survey {sid} ({year})",
             )
             matches += 1
 

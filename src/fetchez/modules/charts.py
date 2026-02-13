@@ -23,17 +23,17 @@ from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
-ENC_CATALOG_URL = 'https://charts.noaa.gov/ENCs/ENCProdCat_19115.xml'
-#RNC_CATALOG_URL = 'https://charts.noaa.gov/RNCs/RNCProdCat_19115.xml'
+ENC_CATALOG_URL = "https://charts.noaa.gov/ENCs/ENCProdCat_19115.xml"
+# RNC_CATALOG_URL = 'https://charts.noaa.gov/RNCs/RNCProdCat_19115.xml'
+
 
 # =============================================================================
 # NOAA Charts Module
 # =============================================================================
 @cli.cli_opts(
     help_text="NOAA Nautical Charts (ENC)",
-    update="Force update of the local catalog index (FRED)"
+    update="Force update of the local catalog index (FRED)",
 )
-
 class NOAACharts(core.FetchModule):
     """Fetch NOAA Nautical Charts.
 
@@ -43,11 +43,11 @@ class NOAACharts(core.FetchModule):
     """
 
     def __init__(self, update: bool = False, **kwargs):
-        super().__init__(name='charts', **kwargs)
+        super().__init__(name="charts", **kwargs)
         self.force_update = update
 
         # Initialize FRED (Local Index)
-        self.fred = fred.FRED(name='noaa_charts')
+        self.fred = fred.FRED(name="noaa_charts")
 
         # Check if we need to populate/update the index
         if self.force_update or len(self.fred.features) == 0:
@@ -61,9 +61,9 @@ class NOAACharts(core.FetchModule):
         self.fred.features = []
 
         catalogs_to_fetch = []
-        #if self.chart_type in ['ENC', 'ALL']:
-        catalogs_to_fetch.append(('ENC', ENC_CATALOG_URL))
-        #if self.chart_type in ['RNC', 'ALL']:
+        # if self.chart_type in ['ENC', 'ALL']:
+        catalogs_to_fetch.append(("ENC", ENC_CATALOG_URL))
+        # if self.chart_type in ['RNC', 'ALL']:
         #    catalogs_to_fetch.append(('RNC', RNC_CATALOG_URL))
 
         for c_type, url in catalogs_to_fetch:
@@ -79,7 +79,7 @@ class NOAACharts(core.FetchModule):
             # NOAA Catalogs are DS_Series.
             # We look for all 'has' tags (ignoring namespaces using {*})
             # This finds the wrappers around the individual MD_Metadata entries.
-            chart_nodes = catalog_xml.xml_doc.findall('.//{*}has')
+            chart_nodes = catalog_xml.xml_doc.findall(".//{*}has")
 
             logger.info(f"Parsing {len(chart_nodes)} {c_type} entries...")
 
@@ -108,11 +108,11 @@ class NOAACharts(core.FetchModule):
                         Name=chart_id,
                         ID=chart_id,
                         Description=desc,
-                        Agency='NOAA',
+                        Agency="NOAA",
                         DataLink=link,
                         DataType=c_type,
                         Date=date,
-                        DataSource='charts'
+                        DataSource="charts",
                     )
                     count += 1
 
@@ -128,34 +128,31 @@ class NOAACharts(core.FetchModule):
 
         # Filter by chart type
         where_clause = []
-        #if self.chart_type != 'ALL':
+        # if self.chart_type != 'ALL':
         where_clause.append(f"DataType = 'ENC'")
 
         # Query FRED
-        results = self.fred.search(
-            region=self.region,
-            where=where_clause
-        )
+        results = self.fred.search(region=self.region, where=where_clause)
 
         if not results:
             logger.info("No charts found in this region.")
             return
 
         for item in results:
-            url = item.get('DataLink')
-            name = item.get('Name')
-            c_type = item.get('DataType')
-            desc = item.get('Description')
+            url = item.get("DataLink")
+            name = item.get("Name")
+            c_type = item.get("DataType")
+            desc = item.get("Description")
 
             if url:
                 self.add_entry_to_results(
                     url=url,
                     dst_fn=os.path.basename(url),
                     data_type=c_type,
-                    agency='NOAA',
+                    agency="NOAA",
                     title=name,
                     description=desc,
-                    license='Public Domain'
+                    license="Public Domain",
                 )
 
         return self

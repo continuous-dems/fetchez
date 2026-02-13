@@ -15,10 +15,11 @@ from urllib.parse import urlencode
 from fetchez import core
 from fetchez import cli
 
-MARGRAV_CGI_URL = 'https://topex.ucsd.edu/cgi-bin/get_data.cgi'
+MARGRAV_CGI_URL = "https://topex.ucsd.edu/cgi-bin/get_data.cgi"
 # Note: This points to the global predicted topography grid derived from gravity
-MARGRAV_IMG_URL = 'https://topex.ucsd.edu/pub/global_topo_1min/topo_27.1.img'
-MARGRAV_GLOBAL_NC = 'https://topex.ucsd.edu/pub/global_grav_1min/grav_33.1.nc'
+MARGRAV_IMG_URL = "https://topex.ucsd.edu/pub/global_topo_1min/topo_27.1.img"
+MARGRAV_GLOBAL_NC = "https://topex.ucsd.edu/pub/global_grav_1min/grav_33.1.nc"
+
 
 # =============================================================================
 # MarGrav Module
@@ -26,7 +27,7 @@ MARGRAV_GLOBAL_NC = 'https://topex.ucsd.edu/pub/global_grav_1min/grav_33.1.nc'
 @cli.cli_opts(
     help_text="Marine Gravity (Scripps/UCSD)",
     mag="Magnitude/Zoom level (0.0-1.0). Default: 1.0 (Full Res)",
-    global_grid="Fetch the full global grid (IMG format) instead of a regional slice."
+    global_grid="Fetch the full global grid (IMG format) instead of a regional slice.",
 )
 class MarGrav(core.FetchModule):
     """Fetch Marine Gravity Satellite Altimetry Topography.
@@ -46,11 +47,10 @@ class MarGrav(core.FetchModule):
     """
 
     def __init__(self, mag: float = 1.0, global_grid: bool = False, **kwargs):
-        super().__init__(name='margrav', **kwargs)
+        super().__init__(name="margrav", **kwargs)
         # SIO 'mag' parameter controls sampling. 1.0 is full resolution.
         self.mag = float(mag)
         self.global_grid = global_grid
-
 
     def run(self):
         """Run the MarGrav fetching logic."""
@@ -59,13 +59,12 @@ class MarGrav(core.FetchModule):
         if self.global_grid:
             self.add_entry_to_results(
                 url=MARGRAV_IMG_URL,
-                dst_fn='topo_27.1.img',
-                data_type='img',
-                agency='SIO / UCSD',
-                title='Global Predicted Topography (IMG)'
+                dst_fn="topo_27.1.img",
+                data_type="img",
+                agency="SIO / UCSD",
+                title="Global Predicted Topography (IMG)",
             )
             return self
-
 
         # Regional CGI Query
         if self.region is None:
@@ -73,25 +72,19 @@ class MarGrav(core.FetchModule):
 
         w, e, s, n = self.region
 
-        data = {
-            'north': n,
-            'west': w,
-            'south': s,
-            'east': e,
-            'mag': self.mag
-        }
+        data = {"north": n, "west": w, "south": s, "east": e, "mag": self.mag}
 
         full_url = f"{MARGRAV_CGI_URL}?{urlencode(data)}"
 
-        r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
+        r_str = f"w{w}_e{e}_s{s}_n{n}".replace(".", "p").replace("-", "m")
         out_fn = f"margrav_{r_str}.xyz"
 
         self.add_entry_to_results(
             url=full_url,
             dst_fn=out_fn,
-            data_type='xyz',
-            agency='SIO / UCSD',
-            title='Marine Gravity Model (Regional)'
+            data_type="xyz",
+            agency="SIO / UCSD",
+            title="Marine Gravity Model (Regional)",
         )
 
         return self

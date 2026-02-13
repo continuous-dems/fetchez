@@ -18,37 +18,34 @@ from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
-NOMINATUM_URL = 'https://nominatim.openstreetmap.org/search'
+NOMINATUM_URL = "https://nominatim.openstreetmap.org/search"
 
-@cli.cli_opts(
-    help_text='Nominatum place queries',
-    query='Query String'
-)
+
+@cli.cli_opts(help_text="Nominatum place queries", query="Query String")
 class Nominatim(core.FetchModule):
     """Fetch coordinates from OpenStreetMap's Nominatim service."""
 
-    def __init__(self, query='boulder', **kwargs):
-        super().__init__(name='nominatim', **kwargs)
+    def __init__(self, query="boulder", **kwargs):
+        super().__init__(name="nominatim", **kwargs)
         self.query = query
 
         ## Nominatim usage policy requires a custom User-Agent and Referer.
         self.headers = {
-            'User-Agent': 'CUDEM/Fetches 1.0 (cudem.colorado.edu)',
-            'Referer': 'https://cudem.colorado.edu'
+            "User-Agent": "CUDEM/Fetches 1.0 (cudem.colorado.edu)",
+            "Referer": "https://cudem.colorado.edu",
         }
-
 
     def run(self):
         if utils.str_or(self.query) is not None:
             ## Construct parameters using the module's urlencode helper
             params = {
-                'q': self.query,
-                'format': 'jsonv2',
-                'limit': 1,
-                'addressdetails': 1
+                "q": self.query,
+                "format": "jsonv2",
+                "limit": 1,
+                "addressdetails": 1,
             }
             query_str = core.urlencode(params)
-            q_url = f'{NOMINATUM_URL}?{query_str}'
+            q_url = f"{NOMINATUM_URL}?{query_str}"
 
             _req = core.Fetch(q_url, headers=self.headers).fetch_req()
 
@@ -65,26 +62,28 @@ class Nominatim(core.FetchModule):
                         logger.info(f"Resolved '{self.query}' to: {disp_name}")
 
                         # Standard output for CLI piping: "lon, lat"
-                        #print(f'{x}, {y}')
+                        # print(f'{x}, {y}')
 
                         self.add_entry_to_results(
                             url=q_url,
                             dst_fn=None,
-                            data_type='coords',
+                            data_type="coords",
                             metadata=results[0],
                             x=x,
-                            y=y
+                            y=y,
                         )
-                            # self.results.append({
-                            #     'url': q_url,
-                            #     'dst_fn': None,
-                            #     'data_type': 'coords',
-                            #     'metadata': results[0],
-                            #     'x': x,
-                            #     'y': y
-                            # })
+                        # self.results.append({
+                        #     'url': q_url,
+                        #     'dst_fn': None,
+                        #     'data_type': 'coords',
+                        #     'metadata': results[0],
+                        #     'x': x,
+                        #     'y': y
+                        # })
                     else:
-                        logger.warning(f"Nominatim: No results found for query '{self.query}'")
+                        logger.warning(
+                            f"Nominatim: No results found for query '{self.query}'"
+                        )
                 except Exception as e:
                     logger.error(f"Nominatim parse error")
             else:

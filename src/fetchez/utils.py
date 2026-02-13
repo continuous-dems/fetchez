@@ -26,19 +26,20 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # ANSI Color Codes
 # =============================================================================
-BLACK   = '\033[30m'
-RED     = '\033[31m'
-GREEN   = '\033[32m'
-YELLOW  = '\033[33m'
-BLUE    = '\033[34m'
-MAGENTA = '\033[35m'
-CYAN    = '\033[36m'
-WHITE   = '\033[37m'
-RESET   = '\033[0m'
+BLACK = "\033[30m"
+RED = "\033[31m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+BLUE = "\033[34m"
+MAGENTA = "\033[35m"
+CYAN = "\033[36m"
+WHITE = "\033[37m"
+RESET = "\033[0m"
 
-BOLD      = '\033[1m'
-UNDERLINE = '\033[4m'
-REVERSE   = '\033[7m'
+BOLD = "\033[1m"
+UNDERLINE = "\033[4m"
+REVERSE = "\033[7m"
+
 
 # =============================================================================
 # Terminal Printing Helpers
@@ -51,14 +52,14 @@ REVERSE   = '\033[7m'
 def colorize(text: str, color: str) -> str:
     """Wrap text in ANSI color codes."""
 
-    return f'{color}{text}{RESET}'
+    return f"{color}{text}{RESET}"
 
 
 def echo_msg(msg: str, leading_line: bool = False):
     """Print a standard message (alias for print, compatible with scripts)."""
 
     if leading_line:
-        print('')
+        print("")
     print(msg)
 
 
@@ -71,19 +72,19 @@ def echo_error_msg(msg: str, prefix: str = "[ ERROR ]"):
 def echo_warning_msg(msg: str, prefix: str = "[ WARNING ]"):
     """Print a standardized warning message."""
 
-    print(f'{YELLOW}{BOLD}{prefix}{RESET} {msg}')
+    print(f"{YELLOW}{BOLD}{prefix}{RESET} {msg}")
 
 
 def echo_success_msg(msg: str, prefix: str = "[ OK ]"):
     """Print a standardized success message."""
 
-    print(f'{GREEN}{BOLD}{prefix}{RESET} {msg}')
+    print(f"{GREEN}{BOLD}{prefix}{RESET} {msg}")
 
 
 def echo_highlight(msg: str):
     """Print a bold/highlighted message."""
 
-    print(f'{BOLD}{msg}{RESET}')
+    print(f"{BOLD}{msg}{RESET}")
 
 
 class TqdmLoggingHandler(logging.Handler):
@@ -93,7 +94,6 @@ class TqdmLoggingHandler(logging.Handler):
 
     def __init__(self, level=logging.NOTSET):
         super().__init__(level)
-
 
     def emit(self, record):
         try:
@@ -111,21 +111,23 @@ def this_date():
     """Get current date."""
 
     import datetime
-    return datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+
+    return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
 
 def get_username():
-    username = ''
+    username = ""
     while not username:
-        username = input('username: ')
+        username = input("username: ")
     return username
 
 
 def get_password():
     import getpass
-    password = ''
+
+    password = ""
     while not password:
-        password = getpass.getpass('password: ')
+        password = getpass.getpass("password: ")
     return password
 
 
@@ -154,7 +156,7 @@ def str_or(instr, or_val=None, replace_quote=True):
         return or_val
     try:
         s = str(instr)
-        return s.replace('"', '') if replace_quote else s
+        return s.replace('"', "") if replace_quote else s
     except:
         return or_val
 
@@ -184,9 +186,9 @@ def str2bool(v):
 
     v_str = str(v).lower().strip()
 
-    if v_str in ('yes', 'true', 't', 'y', '1'):
+    if v_str in ("yes", "true", "t", "y", "1"):
         return True
-    elif v_str in ('no', 'false', 'f', 'n', '0'):
+    elif v_str in ("no", "false", "f", "n", "0"):
         return False
     else:
         return None
@@ -199,13 +201,15 @@ def str_truncate_middle(s, n=50):
         return s
 
     n_2 = int(n) // 2 - 2
-    return f'{s[:n_2]}...{s[-n_2:]}'
+    return f"{s[:n_2]}...{s[-n_2:]}"
 
 
 def inc2str(inc):
     """Convert a WGS84 geographic increment to a string identifier."""
 
-    return str(fractions.Fraction(str(inc * 3600)).limit_denominator(10)).replace('/', '')
+    return str(fractions.Fraction(str(inc * 3600)).limit_denominator(10)).replace(
+        "/", ""
+    )
 
 
 def str2inc(inc_str):
@@ -217,21 +221,21 @@ def str2inc(inc_str):
 
     import fractions
 
-    if inc_str is None or str(inc_str).lower() == 'none' or len(str(inc_str)) == 0:
+    if inc_str is None or str(inc_str).lower() == "none" or len(str(inc_str)) == 0:
         return None
 
     inc_str = str(inc_str)
     units = inc_str[-1]
 
     try:
-        if units == 'c' or units == 's':
-            return float(inc_str[:-1]) / 3600.
-        elif units == 'm':
-            return float(inc_str[:-1]) / 360.
+        if units == "c" or units == "s":
+            return float(inc_str[:-1]) / 3600.0
+        elif units == "m":
+            return float(inc_str[:-1]) / 360.0
         else:
             return float(inc_str)
     except ValueError as e:
-        echo_error_msg(f'Could not parse increment {inc_str}: {e}')
+        echo_error_msg(f"Could not parse increment {inc_str}: {e}")
         return None
 
 
@@ -245,7 +249,7 @@ def remove_glob(pathname: str):
             try:
                 os.remove(p)
             except OSError as e:
-                logger.error(f'Could not remove {p}: {e}')
+                logger.error(f"Could not remove {p}: {e}")
 
 
 def make_temp_fn(basename, temp_dir=None):
@@ -266,8 +270,8 @@ def parse_fmod(fmod):
     """
 
     opts = fmod2dict(fmod)
-    mod = opts.get('_module')
-    mod_args = {k: v for k, v in opts.items() if k != '_module'}
+    mod = opts.get("_module")
+    mod_args = {k: v for k, v in opts.items() if k != "_module"}
     return opts, mod, mod_args
 
 
@@ -279,20 +283,20 @@ def parse_fmod_argparse(fmod):
     """
 
     opts = fmod2dict(fmod)
-    mod = opts.get('_module')
-    mod_args = {k: v for k, v in opts.items() if k != '_module'}
-    mod_args = [f'--{k}={v}' for k,v in opts.items() if k != '_module']
+    mod = opts.get("_module")
+    mod_args = {k: v for k, v in opts.items() if k != "_module"}
+    mod_args = [f"--{k}={v}" for k, v in opts.items() if k != "_module"]
     return opts, mod, mod_args
 
 
 def range_pairs(lst):
-    return [(lst[i], lst[i+1]) for i in range(len(lst) - 1)]
+    return [(lst[i], lst[i + 1]) for i in range(len(lst) - 1)]
 
 
 # =============================================================================
 # Archives, etc.
 # =============================================================================
-def p_unzip(src_fn: str, ext: list, outdir: str = '.', verbose: bool = False) -> list:
+def p_unzip(src_fn: str, ext: list, outdir: str = ".", verbose: bool = False) -> list:
     """Unzip specific extensions from a zip file, optionally flattening directory structures.
 
     Args:
@@ -310,8 +314,10 @@ def p_unzip(src_fn: str, ext: list, outdir: str = '.', verbose: bool = False) ->
     extracted_files = []
 
     try:
-        with zipfile.ZipFile(src_fn, 'r') as z:
-            want_exts = [e.lower() if e.startswith('.') else f'.{e.lower()}' for e in ext]
+        with zipfile.ZipFile(src_fn, "r") as z:
+            want_exts = [
+                e.lower() if e.startswith(".") else f".{e.lower()}" for e in ext
+            ]
 
             for file_info in z.infolist():
                 if file_info.is_dir():
@@ -323,24 +329,24 @@ def p_unzip(src_fn: str, ext: list, outdir: str = '.', verbose: bool = False) ->
                     target_path = os.path.join(outdir, filename)
 
                     if verbose:
-                        logger.info(f'Extracting {filename}...')
+                        logger.info(f"Extracting {filename}...")
 
-                    with z.open(file_info) as source, open(target_path, 'wb') as target:
+                    with z.open(file_info) as source, open(target_path, "wb") as target:
                         shutil.copyfileobj(source, target)
 
                     extracted_files.append(target_path)
 
     except zipfile.BadZipFile:
         if verbose:
-            logger.error(f'Bad Zip File: {src_fn}')
+            logger.error(f"Bad Zip File: {src_fn}")
     except Exception as e:
         if verbose:
-            logger.error(f'Unzip error {src_fn}: {e}')
+            logger.error(f"Unzip error {src_fn}: {e}")
 
     return extracted_files
 
 
-def p_f_unzip(src_file, fns=None, outdir='./', tmp_fn=False):
+def p_f_unzip(src_file, fns=None, outdir="./", tmp_fn=False):
     """Unzip specific files from src_file based on matches in `fns`."""
 
     if fns is None:
@@ -349,14 +355,14 @@ def p_f_unzip(src_file, fns=None, outdir='./', tmp_fn=False):
     extracted_paths = []
     ext = os.path.splitext(src_file)[1].lower()
 
-    if ext == '.zip':
-        with zipfile.ZipFile(src_file, 'r') as z:
+    if ext == ".zip":
+        with zipfile.ZipFile(src_file, "r") as z:
             namelist = z.namelist()
             for pattern in fns:
                 for member in namelist:
                     # Match pattern in the base filename
                     if pattern in os.path.basename(member):
-                        if member.endswith('/'): # Skip directories
+                        if member.endswith("/"):  # Skip directories
                             continue
 
                         dest_fn = os.path.join(outdir, os.path.basename(member))
@@ -364,11 +370,11 @@ def p_f_unzip(src_file, fns=None, outdir='./', tmp_fn=False):
                             dest_fn = make_temp_fn(member, temp_dir=outdir)
 
                         # Extract and write the file
-                        with open(dest_fn, 'wb') as f:
+                        with open(dest_fn, "wb") as f:
                             f.write(z.read(member))
 
                         extracted_paths.append(dest_fn)
-                        logger.info(f'Extracted: {member} to {dest_fn}')
+                        logger.info(f"Extracted: {member} to {dest_fn}")
     else:
         # Fallback if the file isn't a zip
         for pattern in fns:

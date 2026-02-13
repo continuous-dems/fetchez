@@ -23,19 +23,22 @@ logger = logging.getLogger(__name__)
 
 # Direct link to the metadata CSV listing all available COGs
 # moved to codeberg.
-#GEDTM30_COG_LIST_URL = 'https://codeberg.org/openlandmap/GEDTM30/src/branch/main/metadata/cog_list.csv'
-GEDTM30_COG_LIST_URL = 'https://codeberg.org/openlandmap/GEDTM30/raw/branch/main/metadata/cog_list.csv'
+# GEDTM30_COG_LIST_URL = 'https://codeberg.org/openlandmap/GEDTM30/src/branch/main/metadata/cog_list.csv'
+GEDTM30_COG_LIST_URL = (
+    "https://codeberg.org/openlandmap/GEDTM30/raw/branch/main/metadata/cog_list.csv"
+)
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
-    'referer': 'https://codeberg.org/openlandmap/GEDTM30'
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+    "referer": "https://codeberg.org/openlandmap/GEDTM30",
 }
+
 
 # =============================================================================
 # GEDTM30 Module
 # =============================================================================
 @cli.cli_opts(
     help_text="OpenLandMap GEDTM30 (Global 30m DTM)",
-    product="Product Name (e.g., 'Ensemble Digital Terrain Model', 'dtm_downscaled')"
+    product="Product Name (e.g., 'Ensemble Digital Terrain Model', 'dtm_downscaled')",
 )
 class GEDTM30(core.FetchModule):
     """Fetch Global 1-Arc-Second (30m) Digital Terrain Models.
@@ -52,8 +55,8 @@ class GEDTM30(core.FetchModule):
       - https://codeberg.org/openlandmap/GEDTM30
     """
 
-    def __init__(self, product: str = 'Ensemble Digital Terrain Model', **kwargs):
-        super().__init__(name='gedtm30', **kwargs)
+    def __init__(self, product: str = "Ensemble Digital Terrain Model", **kwargs):
+        super().__init__(name="gedtm30", **kwargs)
         self.product = product
         self.headers = HEADERS
 
@@ -68,7 +71,7 @@ class GEDTM30(core.FetchModule):
             return self
 
         try:
-            #f = StringIO(CONTENT)
+            # f = StringIO(CONTENT)
             f = StringIO(req.text)
             reader = csv.reader(f)
 
@@ -76,7 +79,8 @@ class GEDTM30(core.FetchModule):
 
             matches = 0
             for row in reader:
-                if not row: continue
+                if not row:
+                    continue
 
                 # Column 0 is the Product Name
                 # Column 6 is the Download URL
@@ -89,8 +93,8 @@ class GEDTM30(core.FetchModule):
                     self.add_entry_to_results(
                         url=url,
                         dst_fn=fname,
-                        data_type='geotiff',
-                        agency='OpenLandMap',
+                        data_type="geotiff",
+                        agency="OpenLandMap",
                         title=prod_name,
                         cog=True,
                     )

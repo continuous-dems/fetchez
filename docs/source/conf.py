@@ -8,22 +8,22 @@
 
 import os, sys
 
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath("../.."))
 
-project = 'Fetchez'
-copyright = '2026, Matthew Love'
-author = 'Matthew Love'
-release = '0.3.0'
+project = "Fetchez"
+copyright = "2026, Matthew Love"
+author = "Matthew Love"
+release = "0.3.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'sphinx.ext.autodoc',      # Generate docs from docstrings
-    'sphinx.ext.napoleon',     # Support Google-style docstrings
-    'sphinx.ext.viewcode',     # Add links to source code
-    'sphinx.ext.githubpages',  # Auto-generate .nojekyll for GH Pages
-    'myst_parser',             # Parse Markdown files
+    "sphinx.ext.autodoc",  # Generate docs from docstrings
+    "sphinx.ext.napoleon",  # Support Google-style docstrings
+    "sphinx.ext.viewcode",  # Add links to source code
+    "sphinx.ext.githubpages",  # Auto-generate .nojekyll for GH Pages
+    "myst_parser",  # Parse Markdown files
 ]
 
 napoleon_google_docstring = True
@@ -37,26 +37,24 @@ napoleon_include_init_with_doc = False
 #     '.md': 'markdown',
 # }
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-#html_theme = 'sphinx_rtd_theme'
-#html_theme = 'alabaster'
-html_theme = 'pydata_sphinx_theme'
-html_static_path = ['_static']
+# html_theme = 'sphinx_rtd_theme'
+# html_theme = 'alabaster'
+html_theme = "pydata_sphinx_theme"
+html_static_path = ["_static"]
 
-html_sidebars = {
-    "**": []
-}
+html_sidebars = {"**": []}
 
 html_theme_options = {
     "github_url": "https://github.com/ciresdem/fetchez",
     "show_prev_next": False,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
-    #"secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+    # "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
     "secondary_sidebar_items": [],
     "footer_items": ["copyright", "sphinx-version", "theme-version"],
 }
@@ -67,9 +65,9 @@ html_theme_options = {
 # -- Autodoc Options ---------------------------------------------------------
 # Ensure methods are documented
 autodoc_default_options = {
-    'members': True,
-    'member-order': 'bysource',
-    'special-members': '__init__',
-    'undoc-members': True,
-    'exclude-members': '__weakref__'
+    "members": True,
+    "member-order": "bysource",
+    "special-members": "__init__",
+    "undoc-members": True,
+    "exclude-members": "__weakref__",
 }

@@ -15,7 +15,8 @@ from fetchez import core
 from fetchez import cli
 
 # The latest stable release (V2.0)
-SYNBATH_URL = 'https://topex.ucsd.edu/pub/synbath/SYNBATH_V2.0.nc'
+SYNBATH_URL = "https://topex.ucsd.edu/pub/synbath/SYNBATH_V2.0.nc"
+
 
 # =============================================================================
 # SynBath Module
@@ -39,7 +40,7 @@ class SynBath(core.FetchModule):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(name='synbath', **kwargs)
+        super().__init__(name="synbath", **kwargs)
 
     def run(self):
         """Run the SynBath fetching logic."""
@@ -47,10 +48,10 @@ class SynBath(core.FetchModule):
         # We always fetch the full file.
         self.add_entry_to_results(
             url=SYNBATH_URL,
-            dst_fn='SYNBATH_V2.0.nc',
-            data_type='netcdf',
-            agency='SIO / UCSD',
-            title='SynBath Global V2.0'
+            dst_fn="SYNBATH_V2.0.nc",
+            data_type="netcdf",
+            agency="SIO / UCSD",
+            title="SynBath Global V2.0",
         )
 
         return self

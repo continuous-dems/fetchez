@@ -19,6 +19,7 @@ from . import FetchHook
 
 logger = logging.getLogger(__name__)
 
+
 class HookRegistry:
     _hooks = {}
 
@@ -27,9 +28,9 @@ class HookRegistry:
         """Load hooks shipped with fetchez (e.g., fetchez.hooks.basic)."""
 
         from . import basic, utils
+
         cls._register_from_module(basic)
         cls._register_from_module(utils)
-
 
     @classmethod
     def load_user_plugins(cls):
@@ -40,7 +41,8 @@ class HookRegistry:
         cwd_hook_dir = os.path.join(home, ".fetchez", "hooks")
 
         for p_dir in [home_hook_dir, cwd_hook_dir]:
-            if not os.path.exists(p_dir): continue
+            if not os.path.exists(p_dir):
+                continue
 
             sys.path.insert(0, p_dir)
             for f in os.listdir(p_dir):
@@ -53,7 +55,6 @@ class HookRegistry:
                         logger.warning(f"Failed to load user hook {f}: {e}")
             sys.path.pop(0)
 
-
     @classmethod
     def register_hook(cls, hook_cls):
         """Register a hook class.
@@ -62,34 +63,43 @@ class HookRegistry:
         """
 
         import inspect
-        if not hasattr(hook_cls, 'name'):
-            logger.warning(f"Cannot register hook {hook_cls}: Missing 'name' attribute.")
+
+        if not hasattr(hook_cls, "name"):
+            logger.warning(
+                f"Cannot register hook {hook_cls}: Missing 'name' attribute."
+            )
             return
 
         key = hook_cls.name
-        if inspect.isclass(hook_cls) and issubclass(hook_cls, FetchHook) and hook_cls is not FetchHook:
+        if (
+            inspect.isclass(hook_cls)
+            and issubclass(hook_cls, FetchHook)
+            and hook_cls is not FetchHook
+        ):
             cls._hooks[key] = hook_cls
             logger.debug(f"Registered external hook: {key}")
-
 
     @classmethod
     def _register_from_module(cls, module):
         """Inspect a module for classes inheriting from FetchHook."""
 
         import inspect
+
         for name, obj in inspect.getmembers(module):
-            if inspect.isclass(obj) and issubclass(obj, FetchHook) and obj is not FetchHook:
-                key = getattr(obj, 'name', name.lower())
+            if (
+                inspect.isclass(obj)
+                and issubclass(obj, FetchHook)
+                and obj is not FetchHook
+            ):
+                key = getattr(obj, "name", name.lower())
                 cls._hooks[key] = obj
                 logger.debug(f"Registered hook from module: {key}")
-
 
     @classmethod
     def get_hook(cls, name):
         """Retrieve a hook class by name."""
 
         return cls._hooks.get(name)
-
 
     @classmethod
     def list_hooks(cls):

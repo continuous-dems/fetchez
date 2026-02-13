@@ -22,15 +22,16 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-MGDS_FILE_URL = 'https://www.marine-geo.org/services/FileServer'
-MGDS_NAMESPACE = 'https://www.marine-geo.org/services/xml/mgdsDataService'
+MGDS_FILE_URL = "https://www.marine-geo.org/services/FileServer"
+MGDS_NAMESPACE = "https://www.marine-geo.org/services/xml/mgdsDataService"
+
 
 # =============================================================================
 # MGDS Module
 # =============================================================================
 @cli.cli_opts(
     help_text="Marine Geoscience Data System (MGDS)",
-    datatype="Data type (e.g., 'Bathymetry', 'Bathymetry:Swath'). Default: 'Bathymetry'"
+    datatype="Data type (e.g., 'Bathymetry', 'Bathymetry:Swath'). Default: 'Bathymetry'",
 )
 class MGDS(core.FetchModule):
     """
@@ -50,10 +51,9 @@ class MGDS(core.FetchModule):
       - https://www.marine-geo.org
     """
 
-    def __init__(self, datatype: str = 'Bathymetry', **kwargs):
-        super().__init__(name='mgds', **kwargs)
-        self.datatype = datatype.replace(',', ':')
-
+    def __init__(self, datatype: str = "Bathymetry", **kwargs):
+        super().__init__(name="mgds", **kwargs)
+        self.datatype = datatype.replace(",", ":")
 
     def run(self):
         """Run the MGDS fetching logic."""
@@ -64,12 +64,12 @@ class MGDS(core.FetchModule):
         w, e, s, n = self.region
 
         search_params = {
-            'north': n,
-            'west': w,
-            'south': s,
-            'east': e,
-            'format': 'summary',
-            'data_type': self.datatype
+            "north": n,
+            "west": w,
+            "south": s,
+            "east": e,
+            "format": "summary",
+            "data_type": self.datatype,
         }
 
         logger.info(f"Searching MGDS for '{self.datatype}'...")
@@ -88,16 +88,16 @@ class MGDS(core.FetchModule):
             logger.info(f"Found {len(results)} potential files.")
 
             for res in results:
-                name = res.attrib.get('name')
-                link = res.attrib.get('download')
+                name = res.attrib.get("name")
+                link = res.attrib.get("download")
 
                 if name and link:
                     self.add_entry_to_results(
                         url=link,
                         dst_fn=name,
-                        data_type='mgds_file',
-                        agency='MGDS',
-                        title=name
+                        data_type="mgds_file",
+                        agency="MGDS",
+                        title=name,
                     )
 
         except Exception as e:

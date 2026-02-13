@@ -22,20 +22,22 @@ from fetchez import utils
 try:
     import shapefile  # pip install pyshp
     from pyproj import Transformer
+
     HAS_LIGHT_GEO = True
 except ImportError:
     HAS_LIGHT_GEO = False
 
 logger = logging.getLogger(__name__)
 
-ARCTIC_DEM_INDEX_URL = 'https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/indexes/ArcticDEM_Tile_Index_Rel7.zip'
+ARCTIC_DEM_INDEX_URL = "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/indexes/ArcticDEM_Tile_Index_Rel7.zip"
+
 
 # =============================================================================
 # ArcticDEM Module
 # =============================================================================
 @cli.cli_opts(
     help_text="ArcticDEM (PGC/NGA/NSF)",
-    where="Filter by attribute (Not fully supported in light mode, uses manual check)"
+    where="Filter by attribute (Not fully supported in light mode, uses manual check)",
 )
 class ArcticDEM(core.FetchModule):
     """Fetch ArcticDEM data (Digital Surface Models).
@@ -48,7 +50,7 @@ class ArcticDEM(core.FetchModule):
     """
 
     def __init__(self, where: str = None, **kwargs):
-        super().__init__(name='arcticdem', **kwargs)
+        super().__init__(name="arcticdem", **kwargs)
         self.where = where
 
     def _get_projected_bbox(self):
@@ -66,7 +68,7 @@ class ArcticDEM(core.FetchModule):
             transformer.transform(w, s),
             transformer.transform(w, n),
             transformer.transform(e, n),
-            transformer.transform(e, s)
+            transformer.transform(e, s),
         ]
 
         # Calculate bounding box of the transformed corners
@@ -75,16 +77,16 @@ class ArcticDEM(core.FetchModule):
 
         return [min(xs), min(ys), max(xs), max(ys)]
 
-
     def _intersects(self, box_a, box_b):
         """Simple AABB (Axis-Aligned Bounding Box) intersection check."""
 
         # Box: [xmin, ymin, xmax, ymax]
-        return not (box_b[0] > box_a[2] or
-                    box_b[2] < box_a[0] or
-                    box_b[1] > box_a[3] or
-                    box_b[3] < box_a[1])
-
+        return not (
+            box_b[0] > box_a[2]
+            or box_b[2] < box_a[0]
+            or box_b[1] > box_a[3]
+            or box_b[3] < box_a[1]
+        )
 
     def run(self):
         """Run the ArcticDEM fetches module."""
@@ -103,8 +105,10 @@ class ArcticDEM(core.FetchModule):
             logger.error("Failed to download ArcticDEM Index.")
             return self
 
-        unzipped = utils.p_unzip(local_zip, ['shp', 'shx', 'dbf', 'prj'], outdir=self._outdir)
-        v_shp = next((f for f in unzipped if f.endswith('.shp')), None)
+        unzipped = utils.p_unzip(
+            local_zip, ["shp", "shx", "dbf", "prj"], outdir=self._outdir
+        )
+        v_shp = next((f for f in unzipped if f.endswith(".shp")), None)
 
         if not v_shp:
             logger.error("No .shp found in index.")
@@ -116,26 +120,27 @@ class ArcticDEM(core.FetchModule):
 
             sf = shapefile.Reader(v_shp)
 
-            fields = [x[0] for x in sf.fields][1:] # Skip deletion flag
+            fields = [x[0] for x in sf.fields][1:]  # Skip deletion flag
             try:
-                url_idx = fields.index('fileurl')
+                url_idx = fields.index("fileurl")
             except ValueError:
-                url_idx = next((i for i, f in enumerate(fields) if 'url' in f.lower()), -1)
+                url_idx = next(
+                    (i for i, f in enumerate(fields) if "url" in f.lower()), -1
+                )
 
             matches = 0
 
             for shapeRec in sf.iterShapeRecords():
                 if self._intersects(search_bbox, shapeRec.shape.bbox):
-
                     data_link = shapeRec.record[url_idx]
 
                     if data_link:
                         self.add_entry_to_results(
                             url=data_link,
                             dst_fn=os.path.basename(data_link),
-                            data_type='arcticdem',
-                            agency='PGC',
-                            title='ArcticDEM Tile'
+                            data_type="arcticdem",
+                            agency="PGC",
+                            title="ArcticDEM Tile",
                         )
                         matches += 1
 
@@ -145,6 +150,7 @@ class ArcticDEM(core.FetchModule):
             logger.error(f"Error processing index: {e}")
 
         for f in unzipped:
-            if os.path.exists(f): os.remove(f)
+            if os.path.exists(f):
+                os.remove(f)
 
         return self

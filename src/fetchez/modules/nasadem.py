@@ -16,18 +16,19 @@ from fetchez import core
 from fetchez import cli
 
 # OpenTopography S3 Mirror (Public)
-NASADEM_BASE_URL = 'https://opentopography.s3.sdsc.edu/minio/download/raster/NASADEM/NASADEM_be'
+NASADEM_BASE_URL = (
+    "https://opentopography.s3.sdsc.edu/minio/download/raster/NASADEM/NASADEM_be"
+)
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
-    'referer': NASADEM_BASE_URL
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+    "referer": NASADEM_BASE_URL,
 }
+
 
 # =============================================================================
 # NASADEM Module
 # =============================================================================
-@cli.cli_opts(
-    help_text="NASA Digital Elevation Model (NASADEM)"
-)
+@cli.cli_opts(help_text="NASA Digital Elevation Model (NASADEM)")
 class NASADEM(core.FetchModule):
     """Fetch NASADEM Global Elevation data.
 
@@ -44,9 +45,8 @@ class NASADEM(core.FetchModule):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(name='nasadem', **kwargs)
+        super().__init__(name="nasadem", **kwargs)
         self.headers = HEADERS
-
 
     def _format_tile_name(self, lat, lon):
         """Generate NASADEM filename from lat/lon integers.
@@ -54,15 +54,14 @@ class NASADEM(core.FetchModule):
         """
 
         # Latitude: n/s + 2 digits
-        ns = 'n' if lat >= 0 else 's'
+        ns = "n" if lat >= 0 else "s"
         lat_str = f"{abs(lat):02d}"
 
         # Longitude: e/w + 3 digits
-        ew = 'e' if lon >= 0 else 'w'
+        ew = "e" if lon >= 0 else "w"
         lon_str = f"{abs(lon):03d}"
 
         return f"NASADEM_HGT_{ns}{lat_str}{ew}{lon_str}.tif"
-
 
     def run(self):
         """Run the NASADEM fetching logic."""
@@ -81,7 +80,6 @@ class NASADEM(core.FetchModule):
 
         for x in range(x_min, x_max):
             for y in range(y_min, y_max):
-
                 # Note: SRTM/NASADEM tiles are named by their lower-left corner.
                 fname = self._format_tile_name(y, x)
 
@@ -92,9 +90,9 @@ class NASADEM(core.FetchModule):
                 self.add_entry_to_results(
                     url=url,
                     dst_fn=fname,
-                    data_type='gtif',
-                    agency='NASA / OpenTopography',
-                    title=f"NASADEM Tile {y}/{x}"
+                    data_type="gtif",
+                    agency="NASA / OpenTopography",
+                    title=f"NASADEM Tile {y}/{x}",
                 )
 
         return self

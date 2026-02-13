@@ -27,10 +27,11 @@ from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
-NDBC_URL = 'https://www.ndbc.noaa.gov'
-BUOY_RADIAL_SEARCH_URL = 'https://www.ndbc.noaa.gov/radial_search.php'
-BUOY_REALTIME_URL = 'https://www.ndbc.noaa.gov/data/realtime2/'
-BUOY_HISTORICAL_URL = 'https://www.ndbc.noaa.gov/data/historical/stdmet/'
+NDBC_URL = "https://www.ndbc.noaa.gov"
+BUOY_RADIAL_SEARCH_URL = "https://www.ndbc.noaa.gov/radial_search.php"
+BUOY_REALTIME_URL = "https://www.ndbc.noaa.gov/data/realtime2/"
+BUOY_HISTORICAL_URL = "https://www.ndbc.noaa.gov/data/historical/stdmet/"
+
 
 # =============================================================================
 # Buoys Module
@@ -41,7 +42,7 @@ BUOY_HISTORICAL_URL = 'https://www.ndbc.noaa.gov/data/historical/stdmet/'
     radius="Search radius in Nautical Miles (default: 100)",
     datatype="Data type: 'realtime' (last 45 days) or 'historical' (archives) [Default: realtime]",
     min_year="Start year for historical data (default: 2010)",
-    max_year="End year for historical data (default: current year)"
+    max_year="End year for historical data (default: current year)",
 )
 class Buoys(core.FetchModule):
     """Fetch NOAA Buoy Data (NDBC).
@@ -51,20 +52,21 @@ class Buoys(core.FetchModule):
     center of the input region.
     """
 
-    def __init__(self,
-                 station_id: Optional[str] = None,
-                 radius: int = 100,
-                 datatype: str = 'realtime',
-                 min_year: int = 2010,
-                 max_year: Optional[int] = None,
-                 **kwargs):
-        super().__init__(name='buoys', **kwargs)
+    def __init__(
+        self,
+        station_id: Optional[str] = None,
+        radius: int = 100,
+        datatype: str = "realtime",
+        min_year: int = 2010,
+        max_year: Optional[int] = None,
+        **kwargs,
+    ):
+        super().__init__(name="buoys", **kwargs)
         self.station_id = station_id
         self.radius = radius
         self.datatype = datatype.lower()
         self.min_year = min_year
         self.max_year = max_year if max_year else datetime.datetime.now().year
-
 
     def _get_stations_from_region(self) -> Set[str]:
         """Perform radial search to find stations in the region."""
@@ -79,15 +81,17 @@ class Buoys(core.FetchModule):
         # uom=E (English/Nautical Miles), uom=M (Metric/km)
         # ot=A (Observation Time: All)
         params = {
-            'lat1': center_lat,
-            'lon1': center_lon,
-            'uom': 'E',
-            'ot': 'A',
-            'dist': self.radius,
-            'time': 0,
+            "lat1": center_lat,
+            "lon1": center_lon,
+            "uom": "E",
+            "ot": "A",
+            "dist": self.radius,
+            "time": 0,
         }
 
-        logger.info(f"Searching for buoys within {self.radius}nm of ({center_lat:.2f}, {center_lon:.2f})...")
+        logger.info(
+            f"Searching for buoys within {self.radius}nm of ({center_lat:.2f}, {center_lon:.2f})..."
+        )
 
         req = core.Fetch(BUOY_RADIAL_SEARCH_URL).fetch_req(params=params)
         if req is None or req.status_code != 200:
@@ -101,8 +105,8 @@ class Buoys(core.FetchModule):
             links = doc.xpath('//a[contains(@href, "station=")]/@href')
 
             for href in links:
-                if 'station=' in href:
-                    sid = href.split('station=')[-1].split('&')[0].upper()
+                if "station=" in href:
+                    sid = href.split("station=")[-1].split("&")[0].upper()
                     stations.add(sid)
 
         except Exception as e:
@@ -118,7 +122,7 @@ class Buoys(core.FetchModule):
         # Determine Target Stations
         if self.station_id:
             # User provided explicit IDs
-            for s in self.station_id.split(','):
+            for s in self.station_id.split(","):
                 target_stations.add(s.strip().upper())
         elif self.region:
             # Search by Region
@@ -134,23 +138,22 @@ class Buoys(core.FetchModule):
 
         # Generate URLs
         for sid in target_stations:
-
             # --- Realtime Data ---
-            if 'realtime' in self.datatype:
+            if "realtime" in self.datatype:
                 # Standard Meteorological Data
                 # URL: https://www.ndbc.noaa.gov/data/realtime2/44008.txt
                 url = f"{BUOY_REALTIME_URL}{sid}.txt"
                 self.add_entry_to_results(
                     url=url,
                     dst_fn=f"{sid}_realtime.txt",
-                    data_type='buoy_txt',
-                    agency='NOAA NDBC',
+                    data_type="buoy_txt",
+                    agency="NOAA NDBC",
                     title=f"Buoy {sid} Realtime",
-                    license='Public Domain'
+                    license="Public Domain",
                 )
 
             # --- Historical Data ---
-            if 'historical' in self.datatype:
+            if "historical" in self.datatype:
                 # Historical Standard Met Data
                 # URL: https://www.ndbc.noaa.gov/data/historical/stdmet/44008h2021.txt.gz
 
@@ -162,11 +165,11 @@ class Buoys(core.FetchModule):
                     self.add_entry_to_results(
                         url=url,
                         dst_fn=filename,
-                        data_type='buoy_hist_gz',
-                        agency='NOAA NDBC',
+                        data_type="buoy_hist_gz",
+                        agency="NOAA NDBC",
                         date=str(yr),
                         title=f"Buoy {sid} {yr}",
-                        license='Public Domain'
+                        license="Public Domain",
                     )
 
         return self

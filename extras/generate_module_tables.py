@@ -17,6 +17,7 @@ import sys
 import argparse
 from fetchez.registry import FetchezRegistry
 
+
 def generate_markdown_table(modules):
     """Generate a standard Markdown table."""
 
@@ -28,23 +29,23 @@ def generate_markdown_table(modules):
     for key in sorted(modules.keys()):
         meta = FetchezRegistry.get_info(key)
 
-        if meta.get('category') == 'Generic' and key not in ['earthdata', 'http']:
+        if meta.get("category") == "Generic" and key not in ["earthdata", "http"]:
             continue
 
         name = f"**`{key}`**"
-        home_url = meta.get('urls', {}).get('home')
+        home_url = meta.get("urls", {}).get("home")
         if home_url:
             agency = f"[{meta.get('agency', 'Unknown')}]({home_url})"
         else:
-            agency = meta.get('agency', '-')
+            agency = meta.get("agency", "-")
 
-        desc = meta.get('desc', '-')
-        cat = meta.get('category', '-')
-        region = meta.get('region', 'Global')
-        license = meta.get('license', '-')
+        desc = meta.get("desc", "-")
+        cat = meta.get("category", "-")
+        region = meta.get("region", "Global")
+        license = meta.get("license", "-")
 
-        desc = desc.replace('|', '/')
-        license = license.replace('|', '/')
+        desc = desc.replace("|", "/")
+        license = license.replace("|", "/")
 
         row = f"| {name} | {cat} | {desc} | {agency} | {region} | {license} |"
         md.append(row)
@@ -59,17 +60,17 @@ def generate_html_table(modules, fragment=True):
     for key in sorted(modules.keys()):
         meta = FetchezRegistry.get_info(key)
 
-        home_url = meta.get('urls', {}).get('home', '#')
+        home_url = meta.get("urls", {}).get("home", "#")
 
         rows.append(f"""
         <tr>
             <td><code>{key}</code></td>
-            <td>{meta.get('category', '-')}</td>
-            <td>{meta.get('desc', '-')}</td>
-            <td><a href="{home_url}" target="_blank">{meta.get('agency', '-')}</a></td>
-            <td>{meta.get('region', '-')}</td>
-            <td>{meta.get('resolution', '-')}</td>
-            <td>{meta.get('license', '-')}</td>
+            <td>{meta.get("category", "-")}</td>
+            <td>{meta.get("desc", "-")}</td>
+            <td><a href="{home_url}" target="_blank">{meta.get("agency", "-")}</a></td>
+            <td>{meta.get("region", "-")}</td>
+            <td>{meta.get("resolution", "-")}</td>
+            <td>{meta.get("license", "-")}</td>
         </tr>
         """)
 
@@ -167,10 +168,19 @@ def generate_html_table(modules, fragment=True):
 
     return html
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--html", action="store_true", help="Output interactive HTML instead of Markdown")
-    parser.add_argument("--html-fragment", action="store_true", help="Output interactive HTML fragment instead of full page")
+    parser.add_argument(
+        "--html",
+        action="store_true",
+        help="Output interactive HTML instead of Markdown",
+    )
+    parser.add_argument(
+        "--html-fragment",
+        action="store_true",
+        help="Output interactive HTML fragment instead of full page",
+    )
     args = parser.parse_args()
 
     all_modules = FetchezRegistry._modules

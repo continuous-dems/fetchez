@@ -22,7 +22,7 @@ from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
-TNM_API_PRODUCTS_URL = 'https://tnmaccess.nationalmap.gov/api/v1/products?'
+TNM_API_PRODUCTS_URL = "https://tnmaccess.nationalmap.gov/api/v1/products?"
 
 DATASET_CODES = [
     "National Boundary Dataset (NBD)",
@@ -56,6 +56,7 @@ DATASET_CODES = [
     "3D Hydrography Program (3DHP)",
 ]
 
+
 # =============================================================================
 # The National Map Module
 # =============================================================================
@@ -66,9 +67,8 @@ DATASET_CODES = [
     extents="Filter by extent (e.g. '1 x 1 degree')",
     q="Free text search query",
     date_start="Start date (YYYY-MM-DD)",
-    date_end="End date (YYYY-MM-DD)"
+    date_end="End date (YYYY-MM-DD)",
 )
-
 class TheNationalMap(core.FetchModule):
     """Fetch elevation data from The National Map.
 
@@ -84,17 +84,17 @@ class TheNationalMap(core.FetchModule):
     """
 
     def __init__(
-            self,
-            datasets: Optional[str] = None,
-            formats: Optional[str] = None,
-            extents: Optional[str] = None,
-            q: Optional[str] = None,
-            date_type: Optional[str] = 'dateCreated',
-            date_start: Optional[str] = None,
-            date_end: Optional[str] = None,
-            **kwargs
+        self,
+        datasets: Optional[str] = None,
+        formats: Optional[str] = None,
+        extents: Optional[str] = None,
+        q: Optional[str] = None,
+        date_type: Optional[str] = "dateCreated",
+        date_start: Optional[str] = None,
+        date_end: Optional[str] = None,
+        **kwargs,
     ):
-        super().__init__(name='tnm', **kwargs)
+        super().__init__(name="tnm", **kwargs)
         self.q = q
         self.formats = formats
         self.extents = extents
@@ -102,7 +102,6 @@ class TheNationalMap(core.FetchModule):
         self.date_type = date_type
         self.date_start = date_start
         self.date_end = date_end
-
 
     def run(self):
         """Run the TNM fetching module."""
@@ -122,10 +121,14 @@ class TheNationalMap(core.FetchModule):
         dataset_names = []
         if self.datasets is not None:
             try:
-                ds_indices = [int(x) for x in self.datasets.split('/')]
-                dataset_names = [DATASET_CODES[i] for i in ds_indices if 0 <= i < len(DATASET_CODES)]
+                ds_indices = [int(x) for x in self.datasets.split("/")]
+                dataset_names = [
+                    DATASET_CODES[i] for i in ds_indices if 0 <= i < len(DATASET_CODES)
+                ]
             except (ValueError, IndexError):
-                logger.warning(f"Could not parse datasets '{self.datasets}'. Using default.")
+                logger.warning(
+                    f"Could not parse datasets '{self.datasets}'. Using default."
+                )
 
         # Default to NED 1 arc-second if nothing valid selected
         if not dataset_names:
@@ -133,25 +136,34 @@ class TheNationalMap(core.FetchModule):
 
         while True:
             params = {
-                'bbox': bbox_str,
-                'max': 100,
-                'offset': offset,
-                'datasets': ','.join(dataset_names)
+                "bbox": bbox_str,
+                "max": 100,
+                "offset": offset,
+                "datasets": ",".join(dataset_names),
             }
 
-            if self.q: params['q'] = str(self.q)
-            if self.formats: params['prodFormats'] = self.formats.replace('/', ',')
-            if self.extents: params['prodExtents'] = self.extents.replace('/', ',')
+            if self.q:
+                params["q"] = str(self.q)
+            if self.formats:
+                params["prodFormats"] = self.formats.replace("/", ",")
+            if self.extents:
+                params["prodExtents"] = self.extents.replace("/", ",")
 
             if self.date_start:
-                params['start'] = self.date_start
-                params['end'] = self.date_end if self.date_end else utils.this_date()[:8] # YYYYMMDD
-                params['dateType'] = self.date_type
+                params["start"] = self.date_start
+                params["end"] = (
+                    self.date_end if self.date_end else utils.this_date()[:8]
+                )  # YYYYMMDD
+                params["dateType"] = self.date_type
 
-            req = core.Fetch(TNM_API_PRODUCTS_URL).fetch_req(params=params, timeout=60, read_timeout=60)
+            req = core.Fetch(TNM_API_PRODUCTS_URL).fetch_req(
+                params=params, timeout=60, read_timeout=60
+            )
 
             if req is None or req.status_code != 200:
-                logger.error(f"TNM API Failed: {req.status_code if req else 'No Response'}")
+                logger.error(
+                    f"TNM API Failed: {req.status_code if req else 'No Response'}"
+                )
                 break
 
             if req.text.strip().startswith("{errorMessage"):
@@ -160,35 +172,36 @@ class TheNationalMap(core.FetchModule):
 
             try:
                 data = req.json()
-                total = data.get('total', 0)
-                items = data.get('items', [])
+                total = data.get("total", 0)
+                items = data.get("items", [])
 
                 for item in items:
-                    url = item.get('downloadURL')
-                    if not url: continue
+                    url = item.get("downloadURL")
+                    if not url:
+                        continue
 
-                    filename = url.split('/')[-1]
-                    fmt = item.get('format', 'Unknown')
+                    filename = url.split("/")[-1]
+                    fmt = item.get("format", "Unknown")
 
-                    item_bbox = item.get('boundingBox', {})
+                    item_bbox = item.get("boundingBox", {})
                     bounds = None
                     if item_bbox:
                         bounds = (
-                            item_bbox.get('minX'),
-                            item_bbox.get('maxX'),
-                            item_bbox.get('minY'),
-                            item_bbox.get('maxY')
+                            item_bbox.get("minX"),
+                            item_bbox.get("maxX"),
+                            item_bbox.get("minY"),
+                            item_bbox.get("maxY"),
                         )
 
                     self.add_entry_to_results(
                         url=url,
                         dst_fn=filename,
-                        data_type='tnm',
+                        data_type="tnm",
                         format=fmt,
                         bounds=bounds,
-                        date=item.get('publicationDate'),
-                        remote_size=item.get('sizeInBytes'),
-                        title=item.get('title')
+                        date=item.get("publicationDate"),
+                        remote_size=item.get("sizeInBytes"),
+                        title=item.get("title"),
                     )
 
             except Exception as e:
@@ -207,7 +220,7 @@ class TheNationalMap(core.FetchModule):
 # =============================================================================
 @cli.cli_opts(
     help_text="National Elevation Dataset (NED) / 3DEP DEMs",
-    res="Resolution: '13' (Default: 1 & 1/3 arc-sec), '1m' (1-meter), '1', '1/3', or 'all'"
+    res="Resolution: '13' (Default: 1 & 1/3 arc-sec), '1m' (1-meter), '1', '1/3', or 'all'",
 )
 class NED(TheNationalMap):
     """
@@ -221,21 +234,21 @@ class NED(TheNationalMap):
       all   : Fetch 1 arc-sec, 1/3 arc-sec, AND 1-meter
     """
 
-    def __init__(self, res: str = '13', **kwargs):
+    def __init__(self, res: str = "13", **kwargs):
         # Map resolution strings to TNM Dataset Indices
         # 1 = NED 1 arc-sec
         # 2 = DEM 1 meter
         # 3 = NED 1/3 arc-sec
 
         mapping = {
-            '13': '1/3',      # Standard seamless (Old Default)
-            '1m': '2',        # High res
-            '1': '1',         # Coarse
-            '1/3': '3',       # Standard
-            'all': '1/2/3'    # Everything
+            "13": "1/3",  # Standard seamless (Old Default)
+            "1m": "2",  # High res
+            "1": "1",  # Coarse
+            "1/3": "3",  # Standard
+            "all": "1/2/3",  # Everything
         }
 
-        selected_datasets = mapping.get(res, '1/3')
+        selected_datasets = mapping.get(res, "1/3")
 
         super().__init__(datasets=selected_datasets, **kwargs)
 
@@ -246,4 +259,4 @@ class TNM_LAZ(TheNationalMap):
 
     def __init__(self, **kwargs):
         # Index 11 (LPC) + Format Filter
-        super().__init__(datasets='11', formats="LAZ", **kwargs)
+        super().__init__(datasets="11", formats="LAZ", **kwargs)

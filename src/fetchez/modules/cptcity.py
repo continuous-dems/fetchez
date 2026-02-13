@@ -26,25 +26,24 @@ from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
-CPT_PUB_URL = 'http://seaviewsensing.com/pub/'
-CPT_PKG_BASE_URL = 'http://seaviewsensing.com/pub/cpt-city/pkg/'
+CPT_PUB_URL = "http://seaviewsensing.com/pub/"
+CPT_PKG_BASE_URL = "http://seaviewsensing.com/pub/cpt-city/pkg/"
 PACKAGE_XML_URL = f"{CPT_PKG_BASE_URL}package.xml"
+
 
 # =============================================================================
 # CPT City Module
 # =============================================================================
 @cli.cli_opts(
     help_text="CPT City Color Palettes",
-    query="Search term to filter palettes (e.g. 'bathymetry', 'topography', 'rainbow')"
+    query="Search term to filter palettes (e.g. 'bathymetry', 'topography', 'rainbow')",
 )
-
 class CPTCity(core.FetchModule):
     """Fetch various CPT files for DEM hillshades, bathymetry, and visualization."""
 
     def __init__(self, query: Optional[str] = None, **kwargs):
-        super().__init__(name='cpt_city', **kwargs)
+        super().__init__(name="cpt_city", **kwargs)
         self.query = query
-
 
     def run(self):
         """Run the cpt-city fetches module."""
@@ -59,11 +58,11 @@ class CPTCity(core.FetchModule):
 
         try:
             root = lxml.etree.fromstring(req_xml.content)
-            cpt_node = root.find('cpt')
+            cpt_node = root.find("cpt")
 
             if cpt_node is None or not cpt_node.text:
-                 logger.error("Could not find 'cpt' tag in package.xml")
-                 return
+                logger.error("Could not find 'cpt' tag in package.xml")
+                return
 
             cpt_zip_filename = cpt_node.text
 
@@ -90,8 +89,12 @@ class CPTCity(core.FetchModule):
             # Filter results
             if self.query:
                 # Simple substring match
-                filtered_files = [x for x in zip_cpts if self.query.lower() in x.lower()]
-                logger.info(f"Found {len(filtered_files)} palettes matching '{self.query}'")
+                filtered_files = [
+                    x for x in zip_cpts if self.query.lower() in x.lower()
+                ]
+                logger.info(
+                    f"Found {len(filtered_files)} palettes matching '{self.query}'"
+                )
             else:
                 filtered_files = zip_cpts
 
@@ -100,19 +103,21 @@ class CPTCity(core.FetchModule):
             # have to extract locally from the huge zip if we only want one file.
             for f in filtered_files:
                 # Skip directories and non-CPT files (unless query requested them)
-                if f.endswith('/'): continue
-                if not f.endswith('.cpt') and not self.query: continue
+                if f.endswith("/"):
+                    continue
+                if not f.endswith(".cpt") and not self.query:
+                    continue
 
                 f_url = f"{CPT_PUB_URL}{f}"
-                f_fn = f.split('/')[-1]
+                f_fn = f.split("/")[-1]
 
                 self.add_entry_to_results(
                     url=f_url,
                     dst_fn=f_fn,
-                    data_type='cpt',
-                    agency='CPT City',
+                    data_type="cpt",
+                    agency="CPT City",
                     description=f,
-                    license='Public Domain / Varies'
+                    license="Public Domain / Varies",
                 )
 
         except Exception as e:

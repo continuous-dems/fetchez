@@ -15,15 +15,13 @@ from urllib.parse import urlencode
 from fetchez import core
 from fetchez import cli
 
-SRTM_PLUS_CGI_URL = 'https://topex.ucsd.edu/cgi-bin/get_srtm15.cgi'
+SRTM_PLUS_CGI_URL = "https://topex.ucsd.edu/cgi-bin/get_srtm15.cgi"
+
 
 # =============================================================================
 # SRTM Plus Module
 # =============================================================================
-@cli.cli_opts(
-    help_text="SRTM15+ Global Bathymetry/Topography (Scripps/UCSD)"
-)
-
+@cli.cli_opts(help_text="SRTM15+ Global Bathymetry/Topography (Scripps/UCSD)")
 class SRTMPlus(core.FetchModule):
     """Fetch SRTM15+ Global Bathymetry and Topography.
 
@@ -39,8 +37,7 @@ class SRTMPlus(core.FetchModule):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(name='srtm_plus', **kwargs)
-
+        super().__init__(name="srtm_plus", **kwargs)
 
     def run(self):
         """Run the SRTM+ fetching logic."""
@@ -51,23 +48,23 @@ class SRTMPlus(core.FetchModule):
         w, e, s, n = self.region
 
         data = {
-            'north': n,
-            'west': w,
-            'south': s,
-            'east': e,
+            "north": n,
+            "west": w,
+            "south": s,
+            "east": e,
         }
 
         full_url = f"{SRTM_PLUS_CGI_URL}?{urlencode(data)}"
 
-        r_str = f"w{w}_e{e}_s{s}_n{n}".replace('.', 'p').replace('-', 'm')
+        r_str = f"w{w}_e{e}_s{s}_n{n}".replace(".", "p").replace("-", "m")
         out_fn = f"srtm_{r_str}.xyz"
 
         self.add_entry_to_results(
             url=full_url,
             dst_fn=out_fn,
-            data_type='xyz',
-            agency='SIO / UCSD',
-            title='SRTM15+ Global Bathy/Topo'
+            data_type="xyz",
+            agency="SIO / UCSD",
+            title="SRTM15+ Global Bathy/Topo",
         )
 
         return self

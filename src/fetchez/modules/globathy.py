@@ -15,14 +15,13 @@ from fetchez import core
 from fetchez import cli
 
 # Figshare download link for GLOBathy basic parameters (CSV/Shapefile)
-GLOBATHY_URL = 'https://springernature.figshare.com/ndownloader/files/28919991'
+GLOBATHY_URL = "https://springernature.figshare.com/ndownloader/files/28919991"
+
 
 # =============================================================================
 # GLOBathy Module
 # =============================================================================
-@cli.cli_opts(
-    help_text="GLOBathy Global Lake Bathymetry"
-)
+@cli.cli_opts(help_text="GLOBathy Global Lake Bathymetry")
 class GLOBathy(core.FetchModule):
     """Fetch GLOBathy (Global Lakes Bathymetry).
 
@@ -37,18 +36,17 @@ class GLOBathy(core.FetchModule):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(name='globathy', **kwargs)
-
+        super().__init__(name="globathy", **kwargs)
 
     def run(self):
         """Run the GLOBathy fetching logic."""
 
         self.add_entry_to_results(
             url=GLOBATHY_URL,
-            dst_fn='GLOBathy_basic_parameters.zip',
-            data_type='table',
-            agency='Khazaei et al.',
-            title='GLOBathy Parameters'
+            dst_fn="GLOBathy_basic_parameters.zip",
+            data_type="table",
+            agency="Khazaei et al.",
+            title="GLOBathy Parameters",
         )
 
         return self

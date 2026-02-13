@@ -9,6 +9,7 @@ from fetchez.modules.nasadem import HEADERS
 # Region format: (west, east, south, north)
 SAMPLE_REGION = (-105.5, -104.5, 39.5, 40.5)
 
+
 def test_nasadem_url_generation():
     """Verify the module generates the correct filenames/URLs
     based on the input region.
@@ -28,12 +29,12 @@ def test_nasadem_url_generation():
     # Check that the URL looks like a NASADEM URL
     # in this case it is a .tif file, with the beinging
     # looking like: NASADEM_HGT_
-    assert 'opentopography.s3.sdsc.edu' in first_result['url']
-    assert first_result['data_type'] == 'gtif'
+    assert "opentopography.s3.sdsc.edu" in first_result["url"]
+    assert first_result["data_type"] == "gtif"
 
     # Check filename structure (NASADEM_HGT_nXXwYYY.hgt)
-    assert 'NASADEM_HGT_' in first_result['dst_fn']
-    assert '.tif' in first_result['dst_fn']
+    assert "NASADEM_HGT_" in first_result["dst_fn"]
+    assert ".tif" in first_result["dst_fn"]
 
 
 def test_nasadem_server_alive():
@@ -47,18 +48,20 @@ def test_nasadem_server_alive():
 
     # We only check the first result to be polite to the server
     if mod.results:
-
-        target_url = mod.results[0]['url']
+        target_url = mod.results[0]["url"]
 
         # Perform a HEAD request (checks headers without downloading the body)
         # This is fast and bandwidth-friendly.
         try:
-            response = requests.head(target_url, timeout=5, allow_redirects=True, headers=HEADERS)
+            response = requests.head(
+                target_url, timeout=5, allow_redirects=True, headers=HEADERS
+            )
 
             # 200 = OK, 302 = Found/Redirect.
             # 403/404 means the API changed or link is dead.
-            assert response.status_code in [200, 302], \
+            assert response.status_code in [200, 302], (
                 f"Remote URL returned {response.status_code}. API endpoint might have changed: {target_url}"
+            )
 
         except requests.exceptions.ConnectionError:
             print(f"Could not connect to {target_url}. Server might be down.")

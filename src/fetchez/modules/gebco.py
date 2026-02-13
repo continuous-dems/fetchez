@@ -24,10 +24,11 @@ logger = logging.getLogger(__name__)
 
 # BODC / Official GEBCO - Global Zipped Downloads
 GEBCO_GLOBAL_URLS = {
-    'grid': 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2024/geotiff/',
-    'tid': 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2024_tid/geotiff/',
-    'sub_ice': 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2024_sub_ice_topo/geotiff/'
+    "grid": "https://www.bodc.ac.uk/data/open_download/gebco/gebco_2024/geotiff/",
+    "tid": "https://www.bodc.ac.uk/data/open_download/gebco/gebco_2024_tid/geotiff/",
+    "sub_ice": "https://www.bodc.ac.uk/data/open_download/gebco/gebco_2024_sub_ice_topo/geotiff/",
 }
+
 
 class GEBCO(FetchModule):
     """Fetch GEBCO global bathymetry data.
@@ -45,22 +46,23 @@ class GEBCO(FetchModule):
       fetchez gebco --layer sub_ice
     """
 
-    def __init__(self, layer='grid', **kwargs):
+    def __init__(self, layer="grid", **kwargs):
         """
         Args:
             layer (str): 'grid', 'tid', or 'sub_ice'.
             global_grid (bool): Legacy flag, forces source='global'.
         """
 
-        super().__init__(name='gebco', **kwargs)
+        super().__init__(name="gebco", **kwargs)
 
         self.layer = layer.lower()
 
         if self.layer not in GEBCO_GLOBAL_URLS:
             valid = ", ".join(GEBCO_GLOBAL_URLS.keys())
-            logger.warning(f"Unknown GEBCO layer '{self.layer}'. Defaulting to 'grid'. Valid: {valid}")
-            self.layer = 'grid'
-
+            logger.warning(
+                f"Unknown GEBCO layer '{self.layer}'. Defaulting to 'grid'. Valid: {valid}"
+            )
+            self.layer = "grid"
 
     def run(self):
         """Setup for Official Global Download."""

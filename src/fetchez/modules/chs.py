@@ -22,14 +22,15 @@ from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
-CHS_WCS_URL = 'https://nonna-geoserver.data.chs-shc.ca/geoserver/wcs'
+CHS_WCS_URL = "https://nonna-geoserver.data.chs-shc.ca/geoserver/wcs"
+
 
 # =============================================================================
 # CHS Module
 # =============================================================================
 @cli.cli_opts(
     help_text="Canadian Hydrographic Service (NONNA Bathymetry)",
-    resolution="Data resolution in meters: '10' or '100' (Default: 100)"
+    resolution="Data resolution in meters: '10' or '100' (Default: 100)",
 )
 class CHS(core.FetchModule):
     """Fetch bathymetric soundings from the CHS via Web Coverage Service (WCS).
@@ -38,14 +39,15 @@ class CHS(core.FetchModule):
     The module constructs a WCS GetCoverage request for the input region.
     """
 
-    def __init__(self, resolution: str = '100', **kwargs):
-        super().__init__(name='chs', **kwargs)
+    def __init__(self, resolution: str = "100", **kwargs):
+        super().__init__(name="chs", **kwargs)
 
         self.resolution = str(resolution)
-        if self.resolution not in ['10', '100']:
-            logger.warning(f"Invalid CHS resolution '{self.resolution}'. Defaulting to '100'.")
-            self.resolution = '100'
-
+        if self.resolution not in ["10", "100"]:
+            logger.warning(
+                f"Invalid CHS resolution '{self.resolution}'. Defaulting to '100'."
+            )
+            self.resolution = "100"
 
     def run(self):
         """Run the CHS fetching module."""
@@ -57,20 +59,17 @@ class CHS(core.FetchModule):
 
         # Construct WCS 2.0 GetCoverage Parameters
         # Note: CHS GeoServer uses 'Lat' and 'Long' axis labels for subsetting.
-        coverage_id = f'nonna__NONNA {self.resolution} Coverage'
+        coverage_id = f"nonna__NONNA {self.resolution} Coverage"
 
         params = {
-            'service': 'WCS',
-            'version': '2.0.1',
-            'request': 'GetCoverage',
-            'CoverageID': coverage_id,
-            'subset': [
-                f'Long({w},{e})',
-                f'Lat({s},{n})'
-            ],
-            'subsettingcrs': 'http://www.opengis.net/def/crs/EPSG/0/4326',
-            'outputcrs': 'http://www.opengis.net/def/crs/EPSG/0/4326',
-            'format': 'image/tiff'
+            "service": "WCS",
+            "version": "2.0.1",
+            "request": "GetCoverage",
+            "CoverageID": coverage_id,
+            "subset": [f"Long({w},{e})", f"Lat({s},{n})"],
+            "subsettingcrs": "http://www.opengis.net/def/crs/EPSG/0/4326",
+            "outputcrs": "http://www.opengis.net/def/crs/EPSG/0/4326",
+            "format": "image/tiff",
         }
 
         query_string = urlencode(params, doseq=True)
@@ -84,10 +83,10 @@ class CHS(core.FetchModule):
         self.add_entry_to_results(
             url=full_url,
             dst_fn=out_fn,
-            data_type='chs_wcs_gtif',
-            agency='CHS',
+            data_type="chs_wcs_gtif",
+            agency="CHS",
             title=f"NONNA {self.resolution}m Bathymetry",
-            license='Open Government Licence - Canada'
+            license="Open Government Licence - Canada",
         )
 
         return self

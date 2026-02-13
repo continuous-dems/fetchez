@@ -27,6 +27,7 @@ from typing import List
 
 try:
     from osgeo import ogr, osr
+
     HAS_GDAL = True
 except ImportError:
     print("ERROR: This script requires GDAL (osgeo).")
@@ -39,8 +40,9 @@ from fetchez import spatial
 from fetchez import utils
 
 # Setup basic logging
-logging.basicConfig(level=logging.INFO, format='%(message)s')
-logger = logging.getLogger('bing_proc')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger("bing_proc")
+
 
 class BingProcessor:
     def __init__(self, region, out_fn, threads=5, keep_raw=False):
@@ -50,10 +52,9 @@ class BingProcessor:
         self.keep_raw = keep_raw
 
         # Determine cache dir
-        self.cache_dir = os.path.join(os.getcwd(), 'bing_cache')
+        self.cache_dir = os.path.join(os.getcwd(), "bing_cache")
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
-
 
     def fetch(self):
         """Use fetchez to discover and download data."""
@@ -62,7 +63,7 @@ class BingProcessor:
 
         # Load the Bing module dynamically from registry
         # This ensures we are using the installed fetchez module
-        BingModule = registry.FetchezRegistry.load_module('bing')
+        BingModule = registry.FetchezRegistry.load_module("bing")
 
         if not BingModule:
             logger.error("Could not load 'bing' module from fetchez. Is it registered?")
@@ -70,7 +71,9 @@ class BingProcessor:
 
         # Initialize and Run the Module
         # We pass the cache directory so files land there
-        fetcher = BingModule(src_region=self.region, outdir=os.path.dirname(self.cache_dir))
+        fetcher = BingModule(
+            src_region=self.region, outdir=os.path.dirname(self.cache_dir)
+        )
         self.cache_dir = os.path.join(self.cache_dir, fetcher._outdir)
 
         logger.info("Querying Microsoft API for tiles...")
@@ -85,7 +88,6 @@ class BingProcessor:
         core.run_fetchez([fetcher], threads=self.threads)
 
         return fetcher.results
-
 
     def process(self, results):
         """Merge downloaded GeoJSONs into one GeoPackage."""
@@ -102,7 +104,7 @@ class BingProcessor:
 
         ds_out = driver.CreateDataSource(self.out_fn)
         srs = osr.SpatialReference()
-        srs.ImportFromEPSG(4326) # Microsoft data is WGS84
+        srs.ImportFromEPSG(4326)  # Microsoft data is WGS84
 
         layer_out = ds_out.CreateLayer("buildings", srs, ogr.wkbPolygon)
 
@@ -112,18 +114,18 @@ class BingProcessor:
         total_feats = 0
 
         for entry in results:
-            #local_path = os.path.join(self.cache_dir, entry['dst_fn'])
-            local_path = entry['dst_fn']
+            # local_path = os.path.join(self.cache_dir, entry['dst_fn'])
+            local_path = entry["dst_fn"]
 
             if not os.path.exists(local_path):
                 logger.warning(f"File missing: {local_path}")
                 continue
 
             # Unzip (.gz -> .geojson)
-            json_path = local_path.replace('.gz', '')
+            json_path = local_path.replace(".gz", "")
             try:
-                with gzip.open(local_path, 'rb') as f_in:
-                    with open(json_path, 'wb') as f_out:
+                with gzip.open(local_path, "rb") as f_in:
+                    with open(json_path, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
             except Exception as e:
                 logger.error(f"Failed to unzip {local_path}: {e}")
@@ -149,8 +151,11 @@ class BingProcessor:
             # (The tiles are loose QuadKeys, so they might overshoot the bbox)
             w, e, s, n = self.region
             ring = ogr.Geometry(ogr.wkbLinearRing)
-            ring.AddPoint(w, s); ring.AddPoint(w, n); ring.AddPoint(e, n)
-            ring.AddPoint(e, s); ring.AddPoint(w, s)
+            ring.AddPoint(w, s)
+            ring.AddPoint(w, n)
+            ring.AddPoint(e, n)
+            ring.AddPoint(e, s)
+            ring.AddPoint(w, s)
             poly = ogr.Geometry(ogr.wkbPolygon)
             poly.AddGeometry(ring)
             layer_in.SetSpatialFilter(poly)
@@ -169,15 +174,17 @@ class BingProcessor:
                 out_feat = None
                 total_feats += 1
 
-            ds_in = None # Close input
+            ds_in = None  # Close input
 
             # Cleanup
             if not self.keep_raw:
-                if os.path.exists(json_path): os.remove(json_path)
-                if os.path.exists(local_path): os.remove(local_path)
+                if os.path.exists(json_path):
+                    os.remove(json_path)
+                if os.path.exists(local_path):
+                    os.remove(local_path)
 
         logger.info(f"Finished. Wrote {total_feats} buildings to {self.out_fn}")
-        ds_out = None # Close output
+        ds_out = None  # Close output
 
 
 def main():
@@ -185,22 +192,21 @@ def main():
         description="Download and Merge Bing Building Footprints via Fetchez"
     )
     parser.add_argument(
-        '-R', '--region',
+        "-R",
+        "--region",
         required=True,
-        help="Region: west/east/south/north (e.g., -105.3/-105.2/40.0/40.1)"
+        help="Region: west/east/south/north (e.g., -105.3/-105.2/40.0/40.1)",
     )
     parser.add_argument(
-        '-o', '--output',
-        default='buildings.gpkg',
-        help="Output GeoPackage filename"
+        "-o", "--output", default="buildings.gpkg", help="Output GeoPackage filename"
     )
     parser.add_argument(
-        '-t', '--threads', type=int, default=4,
-        help="Number of download threads"
+        "-t", "--threads", type=int, default=4, help="Number of download threads"
     )
     parser.add_argument(
-        '--keep-raw', action='store_true',
-        help="Do not delete the downloaded GeoJSON tiles"
+        "--keep-raw",
+        action="store_true",
+        help="Do not delete the downloaded GeoJSON tiles",
     )
 
     args = parser.parse_args()
@@ -215,10 +221,7 @@ def main():
         sys.exit(1)
 
     processor = BingProcessor(
-        region=region,
-        out_fn=args.output,
-        threads=args.threads,
-        keep_raw=args.keep_raw
+        region=region, out_fn=args.output, threads=args.threads, keep_raw=args.keep_raw
     )
 
     # Run Workflow
@@ -226,5 +229,5 @@ def main():
     processor.process(results)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

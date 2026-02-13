@@ -19,14 +19,13 @@ from fetchez import cli
 # =============================================================================
 # VGG is often stored as 'curv' (curvature) in the SIO archives.
 # Version 33.1 is the latest stable release as of 2026.
-VGG_URL = 'https://topex.ucsd.edu/pub/global_grav_1min/curv_33.1.nc'
+VGG_URL = "https://topex.ucsd.edu/pub/global_grav_1min/curv_33.1.nc"
+
 
 # =============================================================================
 # VGG Module
 # =============================================================================
-@cli.cli_opts(
-    help_text="Vertical Gravity Gradient (Scripps/UCSD)"
-)
+@cli.cli_opts(help_text="Vertical Gravity Gradient (Scripps/UCSD)")
 class VGG(core.FetchModule):
     """
     Fetch the Vertical Gravity Gradient (VGG) global grid.
@@ -44,7 +43,7 @@ class VGG(core.FetchModule):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(name='vgg', **kwargs)
+        super().__init__(name="vgg", **kwargs)
 
     def run(self):
         """Run the VGG fetching logic."""
@@ -52,10 +51,10 @@ class VGG(core.FetchModule):
         # Download the global NetCDF
         self.add_entry_to_results(
             url=VGG_URL,
-            dst_fn='curv_33.1.nc',
-            data_type='netcdf',
-            agency='SIO / UCSD',
-            title='Global Vertical Gravity Gradient (VGG)'
+            dst_fn="curv_33.1.nc",
+            data_type="netcdf",
+            agency="SIO / UCSD",
+            title="Global Vertical Gravity Gradient (VGG)",
         )
 
         return self

@@ -20,17 +20,15 @@ from fetchez import utils
 
 logger = logging.getLogger(__name__)
 
-FABDEM_FOOTPRINTS_URL = 'https://data.bris.ac.uk/datasets/s5hqmjcdj8yo2ibzi9b4ew3sn/FABDEM_v1-2_tiles.geojson'
-FABDEM_DATA_URL = 'https://data.bris.ac.uk/datasets/s5hqmjcdj8yo2ibzi9b4ew3sn'
-FABDEM_INFO_URL = 'https://data.bris.ac.uk/data/dataset/s5hqmjcdj8yo2ibzi9b4ew3sn'
+FABDEM_FOOTPRINTS_URL = "https://data.bris.ac.uk/datasets/s5hqmjcdj8yo2ibzi9b4ew3sn/FABDEM_v1-2_tiles.geojson"
+FABDEM_DATA_URL = "https://data.bris.ac.uk/datasets/s5hqmjcdj8yo2ibzi9b4ew3sn"
+FABDEM_INFO_URL = "https://data.bris.ac.uk/data/dataset/s5hqmjcdj8yo2ibzi9b4ew3sn"
+
 
 # =============================================================================
 # FABDEM Module
 # =============================================================================
-@cli.cli_opts(
-    help_text="FABDEM (Forest And Buildings removed Copernicus DEM)"
-)
-
+@cli.cli_opts(help_text="FABDEM (Forest And Buildings removed Copernicus DEM)")
 class FABDEM(core.FetchModule):
     """Fetch FABDEM elevation data.
 
@@ -46,12 +44,11 @@ class FABDEM(core.FetchModule):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(name='fabdem', **kwargs)
+        super().__init__(name="fabdem", **kwargs)
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Fetchez/0.2',
-            'Referer': FABDEM_INFO_URL
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Fetchez/0.2",
+            "Referer": FABDEM_INFO_URL,
         }
-
 
     def _intersects(self, search_bbox, feature_geom):
         """
@@ -62,7 +59,7 @@ class FABDEM(core.FetchModule):
         s_w, s_e, s_s, s_n = search_bbox
 
         try:
-            coords = feature_geom.get('coordinates', [])[0] # Outer ring
+            coords = feature_geom.get("coordinates", [])[0]  # Outer ring
             xs = [p[0] for p in coords]
             ys = [p[1] for p in coords]
 
@@ -75,7 +72,6 @@ class FABDEM(core.FetchModule):
         except (IndexError, TypeError):
             return False
 
-
     def run(self):
         """Run the FABDEM fetching logic."""
 
@@ -86,24 +82,29 @@ class FABDEM(core.FetchModule):
         local_json = os.path.join(self._outdir, idx_filename)
 
         logger.info("Fetching FABDEM tile index...")
-        if core.Fetch(FABDEM_FOOTPRINTS_URL, headers=self.headers).fetch_file(local_json) != 0:
+        if (
+            core.Fetch(FABDEM_FOOTPRINTS_URL, headers=self.headers).fetch_file(
+                local_json
+            )
+            != 0
+        ):
             logger.error("Failed to download FABDEM footprints.")
             return self
 
         matches = 0
         try:
-            with open(local_json, 'r') as f:
+            with open(local_json, "r") as f:
                 data = json.load(f)
 
-            features = data.get('features', [])
+            features = data.get("features", [])
             logger.info(f"Scanning {len(features)} tiles...")
 
             for feature in features:
-                props = feature.get('properties', {})
-                geom = feature.get('geometry', {})
+                props = feature.get("properties", {})
+                geom = feature.get("geometry", {})
 
                 if self._intersects(self.region, geom):
-                    zip_name = props.get('zipfile_name')
+                    zip_name = props.get("zipfile_name")
 
                     if zip_name:
                         url = f"{FABDEM_DATA_URL}/{zip_name}"
@@ -111,9 +112,9 @@ class FABDEM(core.FetchModule):
                         self.add_entry_to_results(
                             url=url,
                             dst_fn=zip_name,
-                            data_type='zip',
-                            agency='University of Bristol',
-                            title=f"FABDEM Tile {zip_name}"
+                            data_type="zip",
+                            agency="University of Bristol",
+                            title=f"FABDEM Tile {zip_name}",
                         )
                         matches += 1
 
@@ -126,6 +127,6 @@ class FABDEM(core.FetchModule):
             logger.error(f"Error processing FABDEM index: {e}")
 
         if os.path.exists(local_json):
-           os.remove(local_json)
+            os.remove(local_json)
 
         return self
