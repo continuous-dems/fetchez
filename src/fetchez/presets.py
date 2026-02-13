@@ -49,7 +49,7 @@ def load_user_presets():
         # }
         data = config.load_user_config()
         return data.get("presets", {})
-    except:
+    except Exception as e:
         logger.warning(f"Could not load user presets: {e}")
         return {}
 
