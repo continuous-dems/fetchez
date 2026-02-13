@@ -26,7 +26,6 @@ from . import spatial
 
 try:
     from shapely.geometry import shape
-    from shapely.strtree import STRtree
 
     HAS_SHAPELY = True
 except ImportError:
