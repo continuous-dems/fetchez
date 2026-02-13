@@ -173,7 +173,7 @@ class Sentinel2(core.FetchModule):
     def run_openeo(self):
         """Run the OpenEO fetching module"""
 
-        username, password = fetches.get_userpass(OPENEO_AUTH_URL)
+        username, password = core.get_userpass(OPENEO_AUTH_URL)
         api = SentinelAPI(username, password, OPENEO_API_HUB)
 
         # Define your area of interest (e.g., from a GeoJSON file)
