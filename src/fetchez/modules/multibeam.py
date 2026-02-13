@@ -48,7 +48,7 @@ def _parse_mbsystem_inf_bounds(
 ) -> Optional[Tuple[float, float, float, float]]:
     """Parse spatial bounds from an MBSystem .inf file content."""
 
-    minmax: Tuple[float, float, float, float] = [0., 0., 0., 0.]  # xmin, xmax, ymin, ymax
+    minmax = (0., 0., 0., 0.)  # xmin, xmax, ymin, ymax
     found = False
 
     for line in inf_text:
