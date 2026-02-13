@@ -90,3 +90,9 @@ module = [
     "yaml",
 ]
 ignore_missing_imports = true
+
+[tool.ruff]
+ignore = [
+    "E722",  # Forbid bare except
+    "E731",  # Forbid lambda
+]
