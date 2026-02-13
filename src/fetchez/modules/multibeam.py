@@ -17,7 +17,7 @@ import logging
 import requests
 from tqdm import tqdm
 from io import StringIO
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Cast
 
 from fetchez import core
 from fetchez import utils
@@ -66,7 +66,7 @@ def _parse_mbsystem_inf_bounds(
             except (IndexError, ValueError):
                 continue
 
-    return tuple(minmax) if found else None
+    return Cast(tuple[float, float, float, float], minmax) if found else None
 
 
 # =============================================================================
