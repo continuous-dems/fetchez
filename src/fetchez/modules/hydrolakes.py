@@ -50,10 +50,8 @@ class HydroLAKES(core.FetchModule):
 
         if self.format == "gdb":
             url = HYDROLAKES_GDB_URL
-            ext = "gdb.zip"
         else:
             url = HYDROLAKES_SHP_URL
-            ext = "shp.zip"
 
         self.add_entry_to_results(
             url=url,

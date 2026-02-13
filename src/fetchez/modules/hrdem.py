@@ -91,7 +91,6 @@ class HRDEM(core.FetchModule):
 
             for feat in features:
                 assets = feat.get("assets", {})
-                props = feat.get("properties", {})
                 tile_id = feat.get("id")
 
                 asset = assets.get(self.model)

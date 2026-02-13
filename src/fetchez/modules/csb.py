@@ -73,7 +73,7 @@ class CSB(core.FetchModule):
         if self.region is None:
             return []
 
-        w, e, s, n = self.region
+        # w, e, s, n = self.region
         aoi = spatial.region_to_wkt(self.region)
 
         page_size = min(self.limit, 200)
