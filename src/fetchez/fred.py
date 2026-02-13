@@ -14,6 +14,7 @@ that lack a public API but provide file lists (e.g., NCEI Thredds, USACE).
 :license: MIT, see LICENSE for more details.
 """
 
+import csv
 import os
 import json
 import logging
