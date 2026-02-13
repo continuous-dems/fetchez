@@ -43,6 +43,7 @@ full = ["fetchez[aws,vector]"]
 
 [dependency-groups]
 dev = [
+  "pre-commit",
   "mypy",
   "types-requests>=2.31.0.6",
   "types-tqdm>=4.67.0.20241221",
