@@ -13,7 +13,7 @@ Fetch Sentinel-2 Imagery via the Copernicus Data Space Ecosystem (CDSE).
 
 import requests
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from fetchez import core
 from fetchez import cli
 
