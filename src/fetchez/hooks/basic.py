@@ -180,13 +180,6 @@ class Inventory(FetchHook):
         # Convert (mod, entry) tuples to dicts for reporting
         inventory_list = []
         for mod, entry in entries:
-            item = {
-                "module": mod.name,
-                "filename": entry.get("dst_fn"),
-                "url": entry.get("url"),
-                "data_type": entry.get("data_type"),
-                "date": entry.get("date", ""),
-            }
             inventory_list.append(entry)
 
         if self.format == "json":
