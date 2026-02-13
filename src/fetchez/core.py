@@ -1168,7 +1168,7 @@ class FetchModule:
         """fetch the gathered `results` from the sub-class"""
 
         for entry in self.results:
-            status = self.fetch(entry)
+            self.fetch(entry)
 
     def fill_results(self, entry):
         """fill self.results with the fetch module entry"""
