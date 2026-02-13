@@ -68,10 +68,6 @@ class LocalDataset(core.FetchModule):
             abs_path = os.path.abspath(p)
             url = f"file://{abs_path}"
 
-        # Determine a "destination filename" (just the basename)
-        # This is what hooks will see as 'dst_fn'
-        filename = os.path.basename(abs_path)
-
         # We set status=0 so Fetchez Core thinks it's "Already Downloaded"
         # and proceeds immediately to the hooks.
         self.add_entry_to_results(
