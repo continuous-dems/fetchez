@@ -7,6 +7,7 @@ __credits__ = "CIRES"
 # Import everything except the individual modules.
 from . import fred
 from . import core
-from . import cli
 from . import spatial
 from . import registry
+
+__all__ = ["core", "fred", "spatial", "registry"]

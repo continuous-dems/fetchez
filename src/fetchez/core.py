@@ -37,7 +37,7 @@ try:
     from shapely.geometry import Polygon, mapping
 
     HAS_SHAPELY = True
-except:
+except ImportError:
     HAS_SHAPELY = False
 
 from . import utils
@@ -314,7 +314,6 @@ class iso_xml:
             if geom:
                 if HAS_SHAPELY:
                     poly = Polygon(out_poly)
-                    wkt_string = poly.wkt
                     geojson_dict = mapping(poly)
                 else:
                     geojson_dict = {"type": "Polygon", "coordinates": [out_poly]}
@@ -772,7 +771,7 @@ def fetch_queue(q: queue.Queue, stop_event: threading.Event, c: bool = True):
         if not os.path.exists(os.path.dirname(local_path)):
             try:
                 os.makedirs(os.path.dirname(local_path))
-            except:
+            except Exception as e:
                 pass
 
         # fname = os.path.basename(local_path)
@@ -1102,8 +1101,8 @@ class FetchModule:
         self.weight = float(weight)
         self.uncertainty = float(uncertainty)
 
-        presets = {}
-
+        # comment out for linter, but we'll be using this in the future.
+        # presets = {}
         # Example structure:
         # presets = {
         #    'lidar-clean': [
@@ -1176,7 +1175,7 @@ class FetchModule:
                     tries=retries,
                     verbose=verbose,
                 )
-        except:
+        except Exception as e:
             status = -1
         return status
 
@@ -1184,7 +1183,7 @@ class FetchModule:
         """fetch the gathered `results` from the sub-class"""
 
         for entry in self.results:
-            status = self.fetch(entry)
+            self.fetch(entry)
 
     def fill_results(self, entry):
         """fill self.results with the fetch module entry"""

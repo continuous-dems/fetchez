@@ -48,7 +48,7 @@ def cli_opts(help_text: Optional[str] = None, **arg_help):
 
 
 def print_banner_orbit():
-    C, B, G, R = "\033[36m", "\033[34m", "\033[32m", "\033[0m"
+    #C, B, G, R = "\033[36m", "\033[34m", "\033[32m", "\033[0m"
     print("""
     [ F E T C H E Z ]
     """)
@@ -429,12 +429,12 @@ CUDEM home page: <http://cudem.colorado.edu>
         metavar="N",
         help="Number of retry attempts per file (default: 5).",
     )
-    exec_grp.add_argument(
-        "-z",
-        "--no_check_size",
-        action="store_true",
-        help="Skip remote file size check if local file exists.",
-    )
+    # exec_grp.add_argument(
+    #     "-z",
+    #     "--no_check_size",
+    #     action="store_true",
+    #     help="Skip remote file size check if local file exists.",
+    # )
     exec_grp.add_argument(
         "-q",
         "--quiet",
@@ -493,9 +493,9 @@ CUDEM home page: <http://cudem.colorado.edu>
     fixed_argv = spatial.fix_argparse_region(sys.argv[1:])
     global_args, remaining_argv = parser.parse_known_args(fixed_argv)
 
-    check_size = not global_args.no_check_size
+    #check_size = not global_args.no_check_size
 
-    level = logging.WARNING if global_args.quiet else logging.INFO
+    # level = logging.WARNING if global_args.quiet else logging.INFO
     # I like sending logging to stderr, and anyway we want this with --pipe-path
     # logging.basicConfig(level=level, format='[ %(levelname)s ] %(name)s: %(message)s', stream=sys.stderr)
     setup_logging(

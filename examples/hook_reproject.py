@@ -100,8 +100,7 @@ class Reproject(FetchHook):
                 )
 
                 # Run the warp
-                ds = gdal.Warp(dst_path, src_path, options=warp_opts)
-                ds = None  # Flush to disk
+                gdal.Warp(dst_path, src_path, options=warp_opts)
 
                 # We return the NEW path so subsequent hooks (like --pipe-path) use the warped file
                 processed_entries.append(

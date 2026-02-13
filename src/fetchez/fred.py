@@ -25,7 +25,7 @@ from . import spatial
 
 try:
     from shapely.geometry import shape
-    from shapely.strtree import STRtree
+    #from shapely.strtree import STRtree
 
     HAS_SHAPELY = True
 except ImportError:
@@ -176,7 +176,7 @@ class FRED:
             if HAS_SHAPELY:
                 search_geom = spatial.region_to_shapely(region)
             else:
-                search_bbox = region
+                search_geom = None # TODO: update to manually make one from region!
 
         if region:
             r_str = ",".join(f"{x:.2f}" for x in region)
