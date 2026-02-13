@@ -21,7 +21,6 @@ from typing import Optional
 import lxml.etree
 
 from fetchez import core
-from fetchez import utils
 from fetchez import cli
 
 logger = logging.getLogger(__name__)

@@ -34,7 +34,6 @@ except ImportError:
     ogr = None
 
 from fetchez import core
-from fetchez import utils
 from fetchez import cli
 
 logger = logging.getLogger(__name__)

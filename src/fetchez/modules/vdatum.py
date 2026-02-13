@@ -15,7 +15,6 @@ import os
 import logging
 from fetchez import core
 from fetchez import cli
-from fetchez import utils
 from fetchez import fred
 
 logger = logging.getLogger(__name__)

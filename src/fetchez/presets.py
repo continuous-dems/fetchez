@@ -158,9 +158,9 @@ def init_current_presets():
 
         print(f"{utils.GREEN}✅ Exported active presets to: {utils.RESET}{output_path}")
         print("\nTo use these as your personal defaults:")
-        print(f"  1. Edit the file to customize your workflows.")
+        print("  1. Edit the file to customize your workflows.")
         print(f"  2. Move it to: {utils.CYAN}~/.fetchez/presets.json{utils.RESET}")
-        print(f"     (Or merge it into your existing config.json)")
+        print("     (Or merge it into your existing config.json)")
 
     except Exception as e:
         logger.error(f"Failed to export presets: {e}")

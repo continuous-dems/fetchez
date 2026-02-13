@@ -14,10 +14,8 @@ Fetch NOAA Nautical Charts (ENC) using official XML Catalogs.
 import os
 import logging
 import copy
-from typing import List, Dict, Optional
 
 from fetchez import core
-from fetchez import utils
 from fetchez import fred
 from fetchez import cli
 
@@ -129,7 +127,7 @@ class NOAACharts(core.FetchModule):
         # Filter by chart type
         where_clause = []
         # if self.chart_type != 'ALL':
-        where_clause.append(f"DataType = 'ENC'")
+        where_clause.append("DataType = 'ENC'")
 
         # Query FRED
         results = self.fred.search(region=self.region, where=where_clause)

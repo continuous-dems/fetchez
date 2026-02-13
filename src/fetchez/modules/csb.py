@@ -16,12 +16,11 @@ downloads the raw CSV point files directly from the AWS S3 Open Data bucket.
 
 import os
 import logging
-from typing import Optional, Dict, List
+from typing import Optional
 from urllib.parse import urlparse
 
 from fetchez import core
 from fetchez import spatial
-from fetchez import utils
 from fetchez import cli
 
 logger = logging.getLogger(__name__)

@@ -14,11 +14,9 @@ This module contains the CLI for the Fetchez library.
 import os
 import sys
 import logging
-import json
 import argparse
 import inspect
-import queue
-from typing import List, Dict, Optional, Union, Any, Tuple
+from typing import Dict
 
 from . import utils
 from . import registry
@@ -50,7 +48,7 @@ def cli_opts(help_text: str = None, **arg_help):
 
 def print_banner_orbit():
     C, B, G, R = "\033[36m", "\033[34m", "\033[32m", "\033[0m"
-    print(f"""
+    print("""
     [ F E T C H E Z ]
     """)
 
@@ -232,7 +230,7 @@ def print_module_info(mod_key):
     print(f"  Tags        : {', '.join(meta.get('tags', []))}")
 
     if "urls" in meta:
-        print(f"\n  Links:")
+        print("\n  Links:")
         for k, v in meta["urls"].items():
             print(f"    {k:<10}: {v}")
     print(f"{'-' * 40}\n")
@@ -334,7 +332,7 @@ def fetchez_cli():
         run.run()
         sys.exit(0)
 
-    _usage = f"%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]..."
+    _usage = "%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]..."
 
     registry.FetchezRegistry.load_user_plugins()
     registry.FetchezRegistry.load_installed_plugins()
@@ -356,7 +354,7 @@ def fetchez_cli():
         formatter_class=argparse.RawTextHelpFormatter,
         add_help=False,
         usage=_usage,
-        epilog=f"""
+        epilog="""
 Examples:
   fetchez -R -105/-104/39/40 srtm_plus
   fetchez -R loc:"Boulder, CO" copernicus --datatype=1
@@ -760,7 +758,7 @@ CUDEM home page: <http://cudem.colorado.edu>
                 logger.error("User interruption.")
                 sys.exit(-1)
             except Exception:
-                logger.error(f"Error running module", exc_info=True)
+                logger.error("Error running module", exc_info=True)
 
     if active_modules:
         try:

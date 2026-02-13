@@ -16,7 +16,6 @@ import json
 import logging
 from fetchez import core
 from fetchez import cli
-from fetchez import utils
 
 logger = logging.getLogger(__name__)
 

@@ -16,7 +16,6 @@ import csv
 import logging
 from fetchez import core
 from fetchez import cli
-from fetchez import utils
 
 # Soft Dependency: mercantile (for QuadKey calculation)
 try:

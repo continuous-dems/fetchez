@@ -17,7 +17,7 @@ import logging
 import requests
 from tqdm import tqdm
 from io import StringIO
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Tuple
 
 from fetchez import core
 from fetchez import utils

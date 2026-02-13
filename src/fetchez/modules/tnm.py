@@ -11,9 +11,8 @@ Fetch elevation data from The National Map (TNM) API.
 :license: MIT, see LICENSE for more details.
 """
 
-import datetime
 import logging
-from typing import Optional, List, Any
+from typing import Optional
 
 from fetchez import core
 from fetchez import utils

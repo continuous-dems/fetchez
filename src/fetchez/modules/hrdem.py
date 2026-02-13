@@ -16,12 +16,10 @@ Supports two modes:
 """
 
 import os
-import json
 import logging
 import requests
 from fetchez import core
 from fetchez import cli
-from fetchez import utils
 
 logger = logging.getLogger(__name__)
 

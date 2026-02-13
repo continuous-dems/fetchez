@@ -19,7 +19,6 @@ from urllib.parse import urlencode
 from datetime import datetime, timedelta
 from fetchez import core
 from fetchez import cli
-from fetchez import utils
 
 # Service for finding stations (ArcGIS REST)
 STATION_SEARCH_URL = "https://mapservices.weather.noaa.gov/static/rest/services/NOS_Observations/CO_OPS_Products/FeatureServer/0/query?"

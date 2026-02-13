@@ -18,11 +18,10 @@ standard meteorological data and historical archives.
 import logging
 import datetime
 import lxml.html
-from typing import Optional, List, Set
+from typing import Optional, Set
 
 from fetchez import core
 from fetchez import spatial
-from fetchez import utils
 from fetchez import cli
 
 logger = logging.getLogger(__name__)

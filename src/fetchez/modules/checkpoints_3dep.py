@@ -11,9 +11,6 @@ fetchez.modules.checkpoints_3dep
 :license: MIT, see LICENSE for more details.
 """
 
-import logging
-from typing import Optional, List, Any
-
 from fetchez import core
 from fetchez import cli
 

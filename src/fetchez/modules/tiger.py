@@ -11,11 +11,8 @@ Fetch US Census Bureau TIGER data (Boundaries) via the TIGERweb REST API.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
-import json
 import logging
-import requests
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode
 
 from fetchez import core
 from fetchez import cli

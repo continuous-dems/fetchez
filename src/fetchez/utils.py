@@ -12,7 +12,8 @@ and basic user interaction. Based on cudem.utils
 :license: MIT, see LICENSE for more details.
 """
 
-import os, sys
+import os
+import sys
 import datetime
 import getpass
 import logging
@@ -110,8 +111,6 @@ class TqdmLoggingHandler(logging.Handler):
 def this_date():
     """Get current date."""
 
-    import datetime
-
     return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
 
@@ -123,8 +122,6 @@ def get_username():
 
 
 def get_password():
-    import getpass
-
     password = ""
     while not password:
         password = getpass.getpass("password: ")
@@ -218,8 +215,6 @@ def str2inc(inc_str):
     c/s - arc-seconds
     m - arc-minutes
     """
-
-    import fractions
 
     if inc_str is None or str(inc_str).lower() == "none" or len(str(inc_str)) == 0:
         return None

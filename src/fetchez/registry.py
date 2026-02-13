@@ -14,7 +14,7 @@ This module contains the Module Registry for the Fetchez library.
 import logging
 import importlib
 import copy
-from typing import List, Dict, Optional, Any, cast
+from typing import Dict, Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -913,7 +913,8 @@ class FetchezRegistry:
     def load_user_plugins(cls):
         """Scan ~/.fetchez/plugins/ and .fetchez/plugins for external modules and register them."""
 
-        import os, sys
+        import os
+        import sys
         import inspect
         import importlib.util
         from . import core

@@ -16,10 +16,8 @@ Data is organized in 2x2 degree GeoTIFF tiles.
 
 import os
 import logging
-from typing import Optional, List, Dict
 
 from fetchez import core
-from fetchez import utils
 from fetchez import fred
 from fetchez import cli
 

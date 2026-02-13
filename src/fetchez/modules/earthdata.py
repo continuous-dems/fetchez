@@ -18,10 +18,9 @@ import os
 import time
 import datetime
 import logging
-from typing import List, Dict, Optional, Any, Union
+from typing import Dict, Optional
 
 from fetchez import core
-from fetchez import utils
 from fetchez import spatial
 from fetchez import cli
 

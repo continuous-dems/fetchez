@@ -17,8 +17,7 @@ that lack a public API but provide file lists (e.g., NCEI Thredds, USACE).
 import os
 import json
 import logging
-from typing import List, Dict, Optional, Any, Tuple, Union
-from tqdm import tqdm
+from typing import List, Dict, Optional, Any, Tuple
 
 from . import utils
 from . import config

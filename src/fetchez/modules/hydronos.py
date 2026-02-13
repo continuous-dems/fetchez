@@ -14,11 +14,10 @@ Fetch NOS Hydrographic Surveys (BAGs and XYZ soundings) from NOAA.
 import os
 import json
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict
 
 from fetchez import core
 from fetchez import utils
-from fetchez import spatial
 from fetchez import cli
 
 logger = logging.getLogger(__name__)

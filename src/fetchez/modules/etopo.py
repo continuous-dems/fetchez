@@ -22,10 +22,8 @@ is requested but not found for a specific tile.
 """
 
 import logging
-from typing import Optional, Dict
 
 from fetchez import core
-from fetchez import utils
 from fetchez import fred
 from fetchez import cli
 

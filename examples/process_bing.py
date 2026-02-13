@@ -23,7 +23,6 @@ import argparse
 import gzip
 import shutil
 import logging
-from typing import List
 
 try:
     from osgeo import ogr, osr
@@ -37,7 +36,6 @@ except ImportError:
 from fetchez import core
 from fetchez import registry
 from fetchez import spatial
-from fetchez import utils
 
 # Setup basic logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")

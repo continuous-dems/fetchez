@@ -13,7 +13,7 @@ threading, and the base FetchModule class.
 :license: MIT, see LICENSE for more details.
 """
 
-import os, sys
+import os
 import time
 import base64
 import threading
@@ -24,7 +24,7 @@ import logging
 import collections
 from tqdm import tqdm
 import urllib.parse
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.request import Request, build_opener, HTTPCookieProcessor
 from typing import List, Dict, Optional, Union, Any, Tuple
 import concurrent.futures
@@ -489,7 +489,7 @@ class Fetch:
         try:
             req = self.fetch_req(timeout=timeout, read_timeout=read_timeout)
             results = lxml.etree.fromstring(req.text.encode("utf-8"))
-        except Exception as e:
+        except Exception:
             ## Fallback empty XML
             results = lxml.etree.fromstring(
                 '<?xml version="1.0"?><!DOCTYPE _[<!ELEMENT _ EMPTY>]><_/>'.encode(

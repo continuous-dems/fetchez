@@ -84,8 +84,8 @@ class Nominatim(core.FetchModule):
                         logger.warning(
                             f"Nominatim: No results found for query '{self.query}'"
                         )
-                except Exception as e:
-                    logger.error(f"Nominatim parse error")
+                except Exception:
+                    logger.error("Nominatim parse error")
             else:
                 status = _req.status_code if _req else "Connection Failed"
                 logger.error(f"Nominatim request failed: {status}")

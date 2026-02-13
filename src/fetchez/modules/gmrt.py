@@ -12,7 +12,7 @@ Fetch data from the Global Multi-Resolution Topography (GMRT) synthesis.
 """
 
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional
 from fetchez import core
 from fetchez import utils
 from fetchez import spatial

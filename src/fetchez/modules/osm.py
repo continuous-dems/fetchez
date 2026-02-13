@@ -11,11 +11,9 @@ Fetch OpenStreetMap (OSM) data via the Overpass API.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 from urllib.parse import urlencode
 from fetchez import core
 from fetchez import cli
-from fetchez import utils
 from fetchez import spatial
 
 OVERPASS_API = "https://overpass-api.de/api/interpreter"

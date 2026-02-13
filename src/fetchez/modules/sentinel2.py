@@ -11,14 +11,11 @@ Fetch Sentinel-2 Imagery via the Copernicus Data Space Ecosystem (CDSE).
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import requests
 import logging
-import netrc
 from datetime import datetime, timedelta
 from fetchez import core
 from fetchez import cli
-from fetchez import utils
 
 try:
     from sentinelsat import SentinelAPI

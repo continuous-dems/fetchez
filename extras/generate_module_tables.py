@@ -13,7 +13,6 @@ Usage:
     python generate_module_table.py --html > modules.html
 """
 
-import sys
 import argparse
 from fetchez.registry import FetchezRegistry
 
