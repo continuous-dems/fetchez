@@ -60,7 +60,6 @@ html_theme_options = {
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     # "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
     "secondary_sidebar_items": [],
-    "footer_items": ["copyright", "sphinx-version", "theme-version"],
 }
 
 # Optional: Add a logo
