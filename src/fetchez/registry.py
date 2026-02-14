@@ -61,6 +61,16 @@ class FetchezRegistry:
             "region": "Custom",
             "resolution": "N/A",
         },
+        # Local module - query a local fred geojson
+        "ipinfo": {
+            "mod": "fetchez.modules.ipinfo",
+            "cls": "IPInfo",
+            "category": "Reference",
+            "desc": "Query IP Addresses for coordinates",
+            "tags": ["utility", "geolocation", "ip", "context"],
+            "region": "Custom",
+            "resolution": "N/A",
+        },
         # GMRT
         "gmrt": {
             "mod": "fetchez.modules.gmrt",
