@@ -850,6 +850,37 @@ class FetchezRegistry:
             "license": "ODbL (Open Data Commons Open Database License)",
             "urls": {"home": "https://www.openstreetmap.org/"},
         },
+        "wikigeo": {
+            "mod": "fetchez.modules.wikigeo",
+            "cls": "WikiGeo",
+            "category": "Context",
+            "desc": "Geolocated Wikipedia Articles (Points of Interest)",
+            "agency": "Wikipedia Foundation",
+            "tags": ["wikipedia", "context", "labels", "history", "poi", "geosearch"],
+            "region": "Global",
+            "resolution": "Point Data",
+            "license": "CC-BY-SA 3.0",
+            "urls": {
+                "home": "https://www.wikipedia.org/",
+                "api": "https://en.wikipedia.org/w/api.php"
+            }
+        },
+        # USNO Sun/Moon Data
+        "sun_moon": {
+            "mod": "fetchez.modules.sun_moon",
+            "cls": "SunMoon",
+            "category": "Reference",
+            "desc": "USNO Sun/Moon Rise/Set Times & Phases",
+            "agency": "US Naval Observatory",
+            "tags": ["sun", "moon", "ephemeris", "daylight", "planning", "astronomy", "usno"],
+            "region": "Global",
+            "resolution": "Temporal (Daily)",
+            "license": "Public Domain",
+            "urls": {
+                "home": "https://aa.usno.navy.mil/data/api",
+                "docs": "https://aa.usno.navy.mil/data/docs/RS_OneDay.php"
+            }
+        },
         # The following modules don't need a `region`,
         # they populate `FetchModule.results` in some other way.
         # Cpt-City
@@ -880,6 +911,15 @@ class FetchezRegistry:
                 "home": "https://nominatim.org/",
                 "policy": "https://operations.osmfoundation.org/policies/nominatim/",
             },
+        },
+        "ipinfo": {
+            "mod": "fetchez.modules.ipinfo",
+            "cls": "IPInfo",
+            "category": "Reference",
+            "desc": "Query IP Addresses for coordinates",
+            "tags": ["utility", "geolocation", "ip", "context"],
+            "region": "Custom",
+            "resolution": "N/A",
         },
     }
 
