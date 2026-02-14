@@ -77,7 +77,7 @@ include = [
   "tests",
   "CHANGELOG.md",
   "CITATION.cff",
-  "CONTRIBUTION.md",
+  "CONTRIBUTING.md",
   "AUTHORS.md",
 ]
 exclude = [
