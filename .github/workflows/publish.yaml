@@ -1,18 +1,19 @@
 name: Publish to PyPI
 
 on:
-  push:
-    tags:
-      - 'v*'  # Triggers only on version tags (e.g., v0.1.0, v2.3.1)
+  release:
+    types: [published]  # Triggers when you click "Publish release" in GitHub
 
 jobs:
   build-and-publish:
     name: Build and Publish
     runs-on: ubuntu-latest
 
+    environment: pypi
+
     # Permissions required for Trusted Publishing (OIDC) authentication
     permissions:
-      id-token: write  # MANDATORY for OIDC
+      id-token: write
       contents: read
 
     steps:
