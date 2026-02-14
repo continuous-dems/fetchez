@@ -79,5 +79,8 @@ autodoc_default_options = {
 napoleon_use_rtype = False
 typehints_use_rtype = False
 
+# Show types of undocumented parameters
+always_document_param_types = True
+
 # Display the parameter's default value alongside the parameter's type
 typehints_defaults = "comma"
