@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.5.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "fetchez"
@@ -59,18 +59,32 @@ fetchez = "fetchez.cli:fetchez_cli"
 Homepage = "https://github.com/ciresdem/fetchez"
 Issues = "https://github.com/ciresdem/fetchez/issues"
 
-# --- Setuptools Configuration for 'src' layout ---
 
-[tool.setuptools.packages.find]
-where = ["src"]  # Look for packages inside the 'src' folder
-include = ["fetchez*"]  # Include the package named 'fetchez'
-exclude = ["tests*", "docs*", "scripts*", "examples*"]
-namespaces = false
+# --- Build configuration ---
 
-[tool.setuptools.package-data]
-# Keys are package names. Values are globs relative to that package root.
-# Example: src/fetchez/data/*.geojson -> "data/*.geojson"
-fetchez = ["data/*.geojson"]
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fetchez"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/fetchez",
+  "tests",
+  "CHANGELOG.md",
+  "CITATION.cff",
+  "CONTRIBUTION.md",
+  "AUTHORS.md",
+]
+exclude = [
+  ".github",
+  "examples",
+  "scripts",
+]
+
+
+# --- Devtools configuration ---
 
 [tool.mypy]
 mypy_path = "src"
