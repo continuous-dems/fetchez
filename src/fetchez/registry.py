@@ -3,7 +3,7 @@
 
 """
 fetchez.registry
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 This module contains the Module Registry for the Fetchez library.
 
