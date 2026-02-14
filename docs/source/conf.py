@@ -19,6 +19,8 @@ author = "Matthew Love"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
+nitpicky = True
+
 extensions = [
     "sphinx.ext.autodoc",  # Generate docs from docstrings
     "sphinx.ext.napoleon",  # Support Google-style docstrings
