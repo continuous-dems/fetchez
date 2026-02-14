@@ -41,7 +41,7 @@ bing = ["mercantile"]
 earthdata = ["earthaccess>=0.9.0"]
 test = ['pytest']
 
-full = ["fetchez[aws,bing,vector,earthaccess]"]
+full = ["fetchez[aws,bing,vector,earthdata]"]
 
 [dependency-groups]
 dev = [
