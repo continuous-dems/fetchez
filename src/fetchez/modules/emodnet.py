@@ -12,6 +12,7 @@ Supports retrieval via WCS (default) or ERDDAP.
 :license: MIT, see LICENSE for more details.
 """
 
+from typing import Optional
 from urllib.parse import urlencode
 from fetchez import core
 from fetchez import cli
@@ -54,7 +55,7 @@ class EMODNet(core.FetchModule):
         want_erddap: bool = False,
         erddap_format: str = "nc",
         layer: str = "mean",
-        resolution: float = None,
+        resolution: Optional[float] = None,
         **kwargs,
     ):
         super().__init__(name="emodnet", **kwargs)

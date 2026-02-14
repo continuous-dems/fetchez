@@ -12,7 +12,7 @@ This module contains the Module Registry for the Fetchez library.
 """
 
 import logging
-import importlib
+import importlib.metadata
 import copy
 from typing import Dict, Any, cast
 
@@ -280,6 +280,31 @@ class FetchezRegistry:
             "resolution": "Point Data",
             "license": "Public Domain",
             "urls": {"home": "https://waterservices.usgs.gov/"},
+        },
+        # NASA EarthData via EarthAccess
+        "earthaccess": {
+            "mod": "fetchez.modules.earthaccess",
+            "cls": "EarthAccess",
+            "category": "Generic",
+            "desc": "NASA Earth Science Data via EarthAccess",
+            "agency": "NASA",
+            "tags": [
+                "nasa",
+                "cmr",
+                "harmony",
+                "satellite",
+                "earth-science",
+                "remote-sensing",
+                "nsidc",
+            ],
+            "region": "Global",
+            "resolution": "Varies",
+            "license": "NASA Data and Information Policy (Open)",
+            "urls": {
+                "home": "https://earthdata.nasa.gov/",
+                "search": "https://search.earthdata.nasa.gov/",
+                "git": "https://github.com/nsidc/earthaccess",
+            },
         },
         # NASA EarthData
         "earthdata": {

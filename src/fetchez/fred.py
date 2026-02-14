@@ -82,7 +82,7 @@ class FRED:
         else:
             self.path = self.filename
 
-        self.features = []
+        self.features: List[Any] = []
         self._load()
 
     def _load(self):
@@ -154,7 +154,7 @@ class FRED:
         self,
         region: Optional[Tuple[float, float, float, float]] = None,
         where: List[str] = [],
-        layer: str = None,
+        layer: Optional[str] = None,
     ) -> List[Dict]:
         """Search for data in the reference vector file.
 
@@ -252,7 +252,7 @@ class FRED:
         return get_val(keys_w), get_val(keys_e), get_val(keys_s), get_val(keys_n)
 
     def ingest(
-        self, source_file: str, field_map: Dict[str, str] = None, wipe: bool = False
+        self, source_file: str, field_map: Optional[Dict[str, str]] = None, wipe: bool = False
     ):
         """Ingest a file listing (CSV or JSON) into the FRED index.
 
@@ -262,6 +262,8 @@ class FRED:
                        Example: {'file_url': 'DataLink', 'file_name': 'Name'}
             wipe: If True, clears existing index before ingesting.
         """
+
+        import csv
 
         if not os.path.exists(source_file):
             logger.error(f"Source file not found: {source_file}")
@@ -292,8 +294,8 @@ class FRED:
             else:
                 logger.error("Unsupported file format. Use CSV or JSON.")
                 return
-        except Exception as e:
-            logger.error(f"Failed to read source file: {e}")
+        except Exception as exception:
+            logger.error(f"Failed to read source file: {exception}")
             return
 
         logger.info(f"Ingesting {len(items)} items from {source_file}...")

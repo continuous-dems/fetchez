@@ -38,8 +38,9 @@ keywords = ["Geospatial"]
 aws = ["boto3"]
 vector = ["pyshp", "pyproj"]
 test = ['pytest']
+earthdata = ["earthaccess>=0.9.0"]
 
-full = ["fetchez[aws,vector]"]
+full = ["fetchez[aws,vector,earthaccess]"]
 
 [dependency-groups]
 dev = [
@@ -88,6 +89,7 @@ module = [
     "sentinelsat",
     "shapefile",
     "yaml",
+    "earthaccess.*",
 ]
 ignore_missing_imports = true
 

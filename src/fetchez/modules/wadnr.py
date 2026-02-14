@@ -14,6 +14,7 @@ Fetch LiDAR data from the Washington State Department of Natural Resources (WA D
 import json
 import math
 import logging
+from typing import Optional
 from urllib.parse import urlencode
 from fetchez import core
 from fetchez import cli
@@ -56,7 +57,7 @@ class WADNR(core.FetchModule):
       - https://lidarportal.dnr.wa.gov/
     """
 
-    def __init__(self, filter: str = None, project_id: str = None, **kwargs):
+    def __init__(self, filter: Optional[str] = None, project_id: Optional[str] = None, **kwargs):
         super().__init__(name="wadnr", **kwargs)
         self.name_filter = filter.lower() if filter else None
         self.project_id = int(project_id) if project_id else None

@@ -12,6 +12,7 @@ Generic module to query custom/local FRED indices.
 """
 
 import os
+from typing import Optional
 from fetchez import core
 from fetchez import cli
 from fetchez import fred
@@ -29,7 +30,7 @@ class Local(core.FetchModule):
     and allows spatial querying of those files.
     """
 
-    def __init__(self, index: str = None, mode: str = "reference", **kwargs):
+    def __init__(self, index: Optional[str] = None, mode: str = "reference", **kwargs):
         super().__init__(name="local", **kwargs)
         self.index_name = index
         self.mode = mode

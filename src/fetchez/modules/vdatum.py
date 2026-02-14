@@ -13,6 +13,7 @@ Fetch NOAA Tidal Grids (MLLW, MHHW) from vdatum.noaa.gov.
 
 import os
 import logging
+from typing import Optional
 from fetchez import core
 from fetchez import cli
 from fetchez import fred
@@ -48,7 +49,7 @@ class VDatum(core.FetchModule):
     - Builds a local spatial index (FRED) for future fast lookups.
     """
 
-    def __init__(self, datatype: str = None, update: bool = False, **kwargs):
+    def __init__(self, datatype: Optional[str] = None, update: bool = False, **kwargs):
         super().__init__(name="vdatum", **kwargs)
         self.datatype = datatype.lower() if datatype else None
         self.force_update = update

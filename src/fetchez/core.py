@@ -98,7 +98,7 @@ def urlencode(opts: Dict, doseq: bool = True) -> str:
 def xml2py(node) -> Optional[Dict]:
     """Parse an xml file into a python dictionary."""
 
-    texts = {}
+    texts: Dict[Any, Any] = {}
     if node is None:
         return None
 
@@ -135,11 +135,15 @@ def xml2py(node) -> Optional[Dict]:
 def get_userpass(authenticator_url: str) -> Tuple[Optional[str], Optional[str]]:
     """Retrieve username and password from netrc for a given URL."""
 
+    username = None
+    password = None
     try:
         info = netrc.netrc()
-        username, _, password = info.authenticators(
-            urllib.parse.urlparse(authenticator_url).hostname
-        )
+        host_auth = urllib.parse.urlparse(authenticator_url).hostname
+        if host_auth is not None:
+            auth_results = info.authenticators(host_auth)
+            if auth_results is not None:
+                username, _, password = auth_results
     except Exception as e:
         if "No such file" not in str(e):
             logger.error(f"Failed to parse netrc: {e}")
@@ -388,12 +392,12 @@ class Fetch:
     """Fetch class to fetch ftp/http data files"""
 
     def __init__(
-        self,
-        url: str = None,
-        callback=fetches_callback,
-        headers: Dict = R_HEADERS,
-        verify: bool = True,
-        allow_redirects: bool = True,
+            self,
+            url: str,
+            callback=fetches_callback,
+            headers: Dict = R_HEADERS,
+            verify: bool = True,
+            allow_redirects: bool = True,
     ):
         self.url = url
         self.callback = callback
@@ -403,14 +407,15 @@ class Fetch:
         self.silent = logger.getEffectiveLevel() > logging.INFO
 
     def fetch_req(
-        self,
-        method: str = "GET",
-        params: Optional[Dict] = None,
-        data: Optional[Any] = None,
-        json: Optional[Dict] = None,
-        tries: int = 5,
-        timeout: Optional[Union[float, Tuple]] = None,
-        read_timeout: Optional[float] = None,
+            self,
+            method: str = "GET",
+            params: Optional[Dict] = None,
+            data: Optional[Any] = None,
+            json: Optional[Dict] = None,
+            tries: int = 5,
+            #timeout: Optional[Union[float, Tuple]] = None,
+            timeout: Optional[float] = None,
+            read_timeout: Optional[float] = None,
     ) -> Optional[requests.Response]:
         """Fetch src_url and return the requests object (iterative retry)."""
 
@@ -1022,7 +1027,7 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
                     logger.error(f"Teardown failed for hook '{hook.name}': {e}")
 
     # --- Post Hooks ---
-    results_by_mod = {m: [] for m in modules}
+    results_by_mod: Dict[Any, Any] = {m: [] for m in modules}
     for r_tuple in final_results_with_owner:
         owner_mod, entry = r_tuple
         if owner_mod in results_by_mod:

@@ -16,7 +16,8 @@ import sys
 import logging
 import argparse
 import inspect
-from typing import Dict
+import signal
+from typing import Dict, Optional, Any
 
 from . import utils
 from . import registry
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # CLI Decorator and Decorations and logging
 # =============================================================================
-def cli_opts(help_text: str = None, **arg_help):
+def cli_opts(help_text: Optional[str] = None, **arg_help):
     """Decorator to attach CLI help text to FetchModule classes.
 
     Args:
@@ -175,7 +176,7 @@ def get_module_cli_desc(m: Dict) -> str:
         "Reference",
         "Generic",
     ]
-    grouped_modules = {}
+    grouped_modules: Dict[Any, Any] = {}
 
     for key, val in m.items():
         cat = val.get("category", "Generic")
@@ -311,6 +312,12 @@ def init_hooks(hook_list_strs):
 # =============================================================================
 def fetchez_cli():
     """Run fetchez from command-line using argparse."""
+
+    try:
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    except AttributeError:
+        # Windows does not strictly support SIGPIPE in the same way
+        pass
 
     # Check if first arg exists and ends in .json or yaml. -- project file --
     if (
@@ -750,7 +757,7 @@ CUDEM home page: <http://cudem.colorado.edu>
                 if count > 0:
                     active_modules.append(x_f)
 
-            except (KeyboardInterrupt, SystemExit):
+            except (KeyboardInterrupt, SystemExit, BrokenPipeError):
                 logger.error("User interruption.")
                 sys.exit(-1)
             except Exception:

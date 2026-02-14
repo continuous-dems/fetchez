@@ -14,6 +14,7 @@ Fetch transformation grids via the PROJ Content Delivery Network (CDN).
 import os
 import json
 import logging
+from typing import Optional
 from fetchez import core
 from fetchez import cli
 from fetchez import spatial
@@ -45,7 +46,7 @@ class PROJ(core.FetchModule):
     For NOAA Tidal Grids (MLLW, MHHW), use the 'vdatum' module.
     """
 
-    def __init__(self, query: str = None, epsg: str = None, **kwargs):
+    def __init__(self, query: Optional[str] = None, epsg: Optional[str] = None, **kwargs):
         super().__init__(name="proj", **kwargs)
         self.query = query.lower() if query else None
         self.epsg = str(epsg) if epsg else None

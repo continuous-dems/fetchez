@@ -14,11 +14,11 @@ Fetch ArcticDEM high-resolution digital surface models.
 
 import os
 import logging
+from typing import Optional
 from fetchez import core
 from fetchez import cli
 from fetchez import utils
 
-# Lightweight Dependencies
 try:
     import shapefile  # pip install pyshp
     from pyproj import Transformer
@@ -49,7 +49,7 @@ class ArcticDEM(core.FetchModule):
     This module uses 'pyproj' and 'pyshp'.
     """
 
-    def __init__(self, where: str = None, **kwargs):
+    def __init__(self, where: Optional[str] = None, **kwargs):
         super().__init__(name="arcticdem", **kwargs)
         self.where = where
 

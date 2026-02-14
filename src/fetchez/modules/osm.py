@@ -11,6 +11,7 @@ Fetch OpenStreetMap (OSM) data via the Overpass API.
 :license: MIT, see LICENSE for more details.
 """
 
+from typing import Optional
 from urllib.parse import urlencode
 from fetchez import core
 from fetchez import cli
@@ -80,7 +81,7 @@ class OSM(core.FetchModule):
       the bounding box (e.g., `node["amenity"="pub"]({bbox}); out;`).
     """
 
-    def __init__(self, query: str = "coastline", chunk_size: str = None, **kwargs):
+    def __init__(self, query: str = "coastline", chunk_size: Optional[str] = None, **kwargs):
         super().__init__(name="osm", **kwargs)
         self.query_type = query
         self.chunk_size = float(chunk_size) if chunk_size else None

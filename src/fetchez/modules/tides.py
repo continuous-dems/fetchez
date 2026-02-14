@@ -17,6 +17,7 @@ Supports two modes:
 
 from urllib.parse import urlencode
 from datetime import datetime, timedelta
+from typing import Optional
 from fetchez import core
 from fetchez import cli
 
@@ -55,12 +56,12 @@ class Tides(core.FetchModule):
 
     def __init__(
         self,
-        station: str = None,
-        start_date: str = None,
-        end_date: str = None,
+        station: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
         datum: str = "MLLW",
         product: str = "water_level",
-        interval: str = None,
+        interval: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(name="tides", **kwargs)

@@ -17,7 +17,7 @@ import logging
 import requests
 from tqdm import tqdm
 from io import StringIO
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, cast
 
 from fetchez import core
 from fetchez import utils
@@ -48,7 +48,7 @@ def _parse_mbsystem_inf_bounds(
 ) -> Optional[Tuple[float, float, float, float]]:
     """Parse spatial bounds from an MBSystem .inf file content."""
 
-    minmax = [0, 0, 0, 0]  # xmin, xmax, ymin, ymax
+    minmax = [0., 0., 0., 0.]  # xmin, xmax, ymin, ymax
     found = False
 
     for line in inf_text:
@@ -66,7 +66,7 @@ def _parse_mbsystem_inf_bounds(
             except (IndexError, ValueError):
                 continue
 
-    return tuple(minmax) if found else None
+    return cast(tuple[float, float, float, float], minmax) if found else None
 
 
 # =============================================================================

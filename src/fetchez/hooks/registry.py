@@ -15,13 +15,14 @@ import importlib
 import os
 import sys
 import logging
+from typing import Dict, Any
 from . import FetchHook
 
 logger = logging.getLogger(__name__)
 
 
 class HookRegistry:
-    _hooks = {}
+    _hooks: Dict[Any, Any] = {}
 
     @classmethod
     def load_builtins(cls):

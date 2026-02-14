@@ -14,6 +14,7 @@ Fetch Sentinel-2 Imagery via the Copernicus Data Space Ecosystem (CDSE).
 import requests
 import logging
 from datetime import date, datetime, timedelta
+from typing import Optional
 from fetchez import core
 from fetchez import cli
 
@@ -65,8 +66,8 @@ class Sentinel2(core.FetchModule):
 
     def __init__(
         self,
-        start_date: str = None,
-        end_date: str = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
         cloud_cover: int = 20,
         product_type: str = "S2MSI2A",
         **kwargs,

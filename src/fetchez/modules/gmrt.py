@@ -99,7 +99,7 @@ class GMRT(core.FetchModule):
         # Buffer the input region and correct to wgs extremes
         # GMRT specific: 2.33% buffer, 0.0088 increment
         if self.region is not None:
-            self.gmrt_region = spatial.buffer_region(self.region, pct=2.33)
+            self.gmrt_region = spatial.buffer_region(self.region, p=2.33)
             # todo: implement/port wgs_extremes (from cudem.regions)
             # self.gmrt_region._wgs_extremes(just_below=True)
         else:

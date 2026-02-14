@@ -12,7 +12,7 @@ Fetch data from the Copernicus Digital Elevation Model (DEM).
 """
 
 import logging
-from typing import Optional
+from typing import Optional, List, Any
 from tqdm import tqdm
 
 from fetchez import core
@@ -63,7 +63,7 @@ class CopernicusDEM(core.FetchModule):
         super().__init__(name="copernicus", **kwargs)
         self.datatype = datatype
         self.force_update = update
-        self.where = []
+        self.where: List[Any] = []
 
         self.headers = HEADERS
 

@@ -128,7 +128,7 @@ class DAV(core.FetchModule):
             return response.get("data", {})
         except Exception as exception:
             logger.error(f"DAV API Query Error: {exception}")
-            return {}
+            return []
 
     def _find_index_zip(self, bulk_url: str) -> Optional[str]:
         """Find the tile index zip file given the Bulk Download landing page URL."""

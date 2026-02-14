@@ -14,6 +14,7 @@ Fetch USACE eHydro bathymetric survey data.
 import json
 import logging
 import datetime
+from typing import Optional
 from urllib.parse import urlencode
 from fetchez import core
 from fetchez import cli
@@ -51,9 +52,9 @@ class eHydro(core.FetchModule):
     def __init__(
         self,
         where: str = "1=1",
-        survey: str = None,
-        min_year: str = None,
-        max_year: str = None,
+        survey: Optional[str] = None,
+        min_year: Optional[str] = None,
+        max_year: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(name="ehydro", **kwargs)
