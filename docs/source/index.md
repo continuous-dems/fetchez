@@ -9,8 +9,6 @@ Fetchez is a lightweight, modular Python library and command-line tool designed 
 :caption: User Guide:
 
 user_guide/installation
-user_guide/quickstart
-user_guide/configuration
 ```
 
 ```{toctree}
@@ -22,28 +20,11 @@ modules/index
 
 ```{toctree}
 :maxdepth: 2
-:caption: Cookbook
-
-cookbook/coastal_modeling
-cookbook/local_archiving
-cookbook/osm_processing
-```
-
-```{toctree}
-:maxdepth: 2
 :caption: Python API
 
 api/core
 api/registry
 api/fred
-```
-
-```{toctree}
-:maxdepth: 1
-:caption: Project Info
-
-contributing
-license
 ```
 
 Indices and tables
