@@ -203,6 +203,20 @@ def str_truncate_middle(s, n=50):
     return f"{s[:n_2]}...{s[-n_2:]}"
 
 
+def fn_url_p(fn):
+    """Check if fn is a URL."""
+
+    url_sw = ['http://', 'https://', 'ftp://', 'ftps://', '/vsicurl']
+    if str_or(fn):
+        try:
+            for u in url_sw:
+                if fn.startswith(u):
+                    return True
+        except:
+            return False
+    return False
+
+
 def inc2str(inc):
     """Convert a WGS84 geographic increment to a string identifier."""
     import fractions
@@ -248,6 +262,27 @@ def remove_glob(pathname: str):
                 os.remove(p)
             except OSError as e:
                 logger.error(f"Could not remove {p}: {e}")
+
+
+def remove_glob2(*args):
+    """Glob `glob_str` and os.remove results."""
+
+    import glob
+
+    for glob_str in args:
+        try:
+            globs = glob.glob(glob_str)
+            for g in globs:
+                if os.path.isdir(g):
+                    remove_glob(f'{g}/*')
+                    remove_glob(f'{g}/.*')
+                    os.removedirs(g)
+                else:
+                    os.remove(g)
+        except Exception as e:
+            echo_error_msg(e)
+            return -1
+    return 0
 
 
 def _parse_value_string(val_str: str) -> Any:
@@ -390,11 +425,9 @@ def p_unzip(src_fn: str, ext: list, outdir: str = ".", verbose: bool = False) ->
                     extracted_files.append(target_path)
 
     except zipfile.BadZipFile:
-        if verbose:
-            logger.error(f"Bad Zip File: {src_fn}")
+        logger.error(f"Bad Zip File: {src_fn}")
     except Exception as e:
-        if verbose:
-            logger.error(f"Unzip error {src_fn}: {e}")
+        logger.error(f"Unzip error {src_fn}: {e}")
 
     return extracted_files
 

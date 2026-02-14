@@ -483,6 +483,12 @@ CUDEM home page: <http://cudem.colorado.edu>
         "--list-hooks", action="store_true", help="List all available hooks."
     )
     adv_grp.add_argument(
+        "--hook-info",
+        metavar="HOOK_NAME",
+        type=str,
+        help="Print detailed documentation and arguments for a specific hook."
+    )
+    adv_grp.add_argument(
         "--init-presets",
         action="store_true",
         help="Generate a default ~/.fetchez/presets.json file.",
@@ -538,6 +544,28 @@ CUDEM home page: <http://cudem.colorado.edu>
         print("-" * 60)
         sys.exit(0)
 
+    # --- HOOK INFO ---
+    if global_args.hook_info:
+        from fetchez.hooks.registry import HookRegistry
+        hook_cls = HookRegistry.get_hook(global_args.hook_info)
+        if hook_cls:
+            print(f"\n🪝  Hook: {hook_cls.name}")
+            print(f"   Stage: {hook_cls.stage}")
+            print(f"   Type:  {hook_cls.category}\n")
+
+            import inspect
+            doc = inspect.getdoc(hook_cls)
+            if doc:
+                print(doc)
+            else:
+                print("(No documentation available for this hook)")
+            print("\n")
+        else:
+            print(f"❌ Hook '{global_args.hook_info}' not found.")
+            print(f"   Run 'fetchez --list-hooks' to see available options.")
+            
+        sys.exit(0)
+        
     if hasattr(global_args, "list_hooks") and global_args.list_hooks:
         print("\nAvailable Hooks:")
         print("=" * 60)

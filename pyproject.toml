@@ -37,10 +37,11 @@ keywords = ["Geospatial"]
 [project.optional-dependencies]
 aws = ["boto3"]
 vector = ["pyshp", "pyproj"]
-test = ['pytest']
+bing = ["mercantile"]
 earthdata = ["earthaccess>=0.9.0"]
+test = ['pytest']
 
-full = ["fetchez[aws,vector,earthaccess]"]
+full = ["fetchez[aws,bing,vector,earthaccess]"]
 
 [dependency-groups]
 dev = [
