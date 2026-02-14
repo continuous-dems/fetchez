@@ -50,7 +50,7 @@ exclude_patterns = []
 # html_theme = 'sphinx_rtd_theme'
 # html_theme = 'alabaster'
 html_theme = "pydata_sphinx_theme"
-html_static_path = ["_static"]
+# html_static_path = ["_static"]
 
 html_sidebars = {"**": []}
 
