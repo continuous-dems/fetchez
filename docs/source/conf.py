@@ -23,6 +23,7 @@ extensions = [
     "sphinx.ext.autodoc",  # Generate docs from docstrings
     "sphinx.ext.napoleon",  # Support Google-style docstrings
     "sphinx_autodoc_typehints",  # Generate docs from typehints
+    "sphinx.ext.intersphinx",  # Link to other projects' docs
     "sphinx.ext.viewcode",  # Add links to source code
     "sphinx.ext.githubpages",  # Auto-generate .nojekyll for GH Pages
     "myst_parser",  # Parse Markdown files
@@ -84,3 +85,7 @@ always_document_param_types = True
 
 # Display the parameter's default value alongside the parameter's type
 typehints_defaults = "comma"
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+}
