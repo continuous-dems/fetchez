@@ -1,14 +1,14 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.5.0", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "fetchez"
-version = "0.4.2"
 description = "Geo-Spatial Data Fetching"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { file = "LICENSE" }
+dynamic = ["version"]
 authors = [
     {name = "Matthew Love", email = "matthew.love@colorado.edu"},
     {name = "Christopher Amante", email = "christopher.amante@colorado.edu"},
@@ -41,7 +41,7 @@ bing = ["mercantile"]
 earthdata = ["earthaccess>=0.9.0"]
 test = ['pytest']
 
-full = ["fetchez[aws,bing,vector,earthaccess]"]
+full = ["fetchez[aws,bing,vector,earthdata]"]
 
 [dependency-groups]
 dev = [
@@ -59,18 +59,35 @@ fetchez = "fetchez.cli:fetchez_cli"
 Homepage = "https://github.com/ciresdem/fetchez"
 Issues = "https://github.com/ciresdem/fetchez/issues"
 
-# --- Setuptools Configuration for 'src' layout ---
 
-[tool.setuptools.packages.find]
-where = ["src"]  # Look for packages inside the 'src' folder
-include = ["fetchez*"]  # Include the package named 'fetchez'
-exclude = ["tests*", "docs*", "scripts*", "examples*"]
-namespaces = false
+# --- Build configuration ---
 
-[tool.setuptools.package-data]
-# Keys are package names. Values are globs relative to that package root.
-# Example: src/fetchez/data/*.geojson -> "data/*.geojson"
-fetchez = ["data/*.geojson"]
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.version]
+path = "src/fetchez/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fetchez"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/fetchez",
+  "tests",
+  "CHANGELOG.md",
+  "CITATION.cff",
+  "CONTRIBUTING.md",
+  "AUTHORS.md",
+]
+exclude = [
+  ".github",
+  "examples",
+  "scripts",
+]
+
+
+# --- Devtools configuration ---
 
 [tool.mypy]
 mypy_path = "src"
