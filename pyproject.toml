@@ -54,6 +54,9 @@ test = [
   "pytest",
   "pytest-cov",
 ]
+doc = [
+    "sphinx-autodoc-typehints>=2.0.1",
+]
 docs = [
   "sphinx",
   "pydata-sphinx-theme",

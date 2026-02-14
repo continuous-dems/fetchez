@@ -22,6 +22,7 @@ author = "Matthew Love"
 extensions = [
     "sphinx.ext.autodoc",  # Generate docs from docstrings
     "sphinx.ext.napoleon",  # Support Google-style docstrings
+    "sphinx_autodoc_typehints",  # Generate docs from typehints
     "sphinx.ext.viewcode",  # Add links to source code
     "sphinx.ext.githubpages",  # Auto-generate .nojekyll for GH Pages
     "myst_parser",  # Parse Markdown files
@@ -73,3 +74,10 @@ autodoc_default_options = {
     "undoc-members": True,
     "exclude-members": "__weakref__",
 }
+
+# Combine return description with return type
+napoleon_use_rtype = False
+typehints_use_rtype = False
+
+# Display the parameter's default value alongside the parameter's type
+typehints_defaults = "comma"
