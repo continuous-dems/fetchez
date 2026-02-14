@@ -115,6 +115,9 @@ def this_date():
 
     return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
+def today_str():
+    # "YYYY-MM-DD"
+    return datetime.datetime.now().strftime("%Y-%m-%d")
 
 def get_username():
     username = ""
