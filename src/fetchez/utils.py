@@ -212,7 +212,7 @@ def fn_url_p(fn):
             for u in url_sw:
                 if fn.startswith(u):
                     return True
-        except:
+        except Exception as e:
             return False
     return False
 
