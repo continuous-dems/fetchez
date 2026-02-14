@@ -87,14 +87,20 @@ class OSM(core.FetchModule):
       the bounding box (e.g., `node["amenity"="pub"]({bbox}); out;`).
     """
 
-    def __init__(self, query: str = "coastline", tag: Optional[str] = None, chunk_size: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        query: str = "coastline",
+        tag: Optional[str] = None,
+        chunk_size: Optional[str] = None,
+        **kwargs,
+    ):
         super().__init__(name="osm", **kwargs)
         self.query_type = query
         self.chunk_size = float(chunk_size) if chunk_size else None
 
         if tag:
             self.ql_template = self._build_tag_template(tag)
-            self.file_tag = tag.replace('=', '_').replace(':', '')
+            self.file_tag = tag.replace("=", "_").replace(":", "")
         # Priority 2: Preset
         elif query in PRESETS:
             self.ql_template = PRESETS[query]
@@ -106,13 +112,13 @@ class OSM(core.FetchModule):
 
     def _build_tag_template(self, tag_str):
         """Construct QL for a specific tag (key=value or key)."""
-        
-        if '=' in tag_str:
-            k, v = tag_str.split('=', 1)
+
+        if "=" in tag_str:
+            k, v = tag_str.split("=", 1)
             selector = f'["{k}"="{v}"]'
         else:
             selector = f'["{tag_str}"]'
-            
+
         # Search Nodes, Ways, and Relations for this tag
         return f"""(
           node{selector}({{bbox}});
@@ -121,7 +127,7 @@ class OSM(core.FetchModule):
         );
         (._;>;);
         out meta;"""
-            
+
     def _build_query(self, region):
         """Inject bbox into the QL template."""
 
@@ -146,10 +152,12 @@ class OSM(core.FetchModule):
             ql = self._build_query(chunk)
             params = {"data": ql}
             full_url = f"{OVERPASS_API}?{urlencode(params)}"
-            
+
             w, e, s, n = chunk
-            #r_str = f"w{w:.2f}_n{n:.2f}".replace(".", "p").replace("-", "m")
-            r_str = f"w{w:.2f}_e{e:.2f}_s{s:.2f}_n{n:.2f}".replace(".", "p").replace("-", "m")
+            # r_str = f"w{w:.2f}_n{n:.2f}".replace(".", "p").replace("-", "m")
+            r_str = f"w{w:.2f}_e{e:.2f}_s{s:.2f}_n{n:.2f}".replace(".", "p").replace(
+                "-", "m"
+            )
             out_fn = f"osm_{self.file_tag}_{r_str}.osm"
 
             self.add_entry_to_results(
@@ -158,6 +166,6 @@ class OSM(core.FetchModule):
                 data_type="osm_xml",
                 agency="OpenStreetMap",
                 title=f"OSM {self.file_tag} (Chunk {i + 1})",
-            )            
+            )
 
         return self

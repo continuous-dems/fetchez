@@ -478,14 +478,16 @@ def region_to_geojson_geom(region: Tuple[float, float, float, float]):
 # Backwards compatibility aliases
 region_from_list = Region.from_list
 region_from_string = Region.from_string
-#chunk_region = lambda r, s=1.0: Region.from_list(r).chunk(s) if r else []
-#buffer_region = lambda r, p=5: Region.from_list(r).buffer(p) if r else None
+# chunk_region = lambda r, s=1.0: Region.from_list(r).chunk(s) if r else []
+# buffer_region = lambda r, p=5: Region.from_list(r).buffer(p) if r else None
 
-def chunk_region(r, s=1.):
+
+def chunk_region(r, s=1.0):
     if r:
         return Region.from_list(r).chunk(s)
     else:
         return []
+
 
 def buffer_region(r, p=5):
     if r:

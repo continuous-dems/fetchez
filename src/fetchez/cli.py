@@ -48,7 +48,7 @@ def cli_opts(help_text: Optional[str] = None, **arg_help):
 
 
 def print_banner_orbit():
-    #C, B, G, R = "\033[36m", "\033[34m", "\033[32m", "\033[0m"
+    # C, B, G, R = "\033[36m", "\033[34m", "\033[32m", "\033[0m"
     print("""
     [ F E T C H E Z ]
     """)
@@ -486,7 +486,7 @@ CUDEM home page: <http://cudem.colorado.edu>
         "--hook-info",
         metavar="HOOK_NAME",
         type=str,
-        help="Print detailed documentation and arguments for a specific hook."
+        help="Print detailed documentation and arguments for a specific hook.",
     )
     adv_grp.add_argument(
         "--init-presets",
@@ -499,7 +499,7 @@ CUDEM home page: <http://cudem.colorado.edu>
     fixed_argv = spatial.fix_argparse_region(sys.argv[1:])
     global_args, remaining_argv = parser.parse_known_args(fixed_argv)
 
-    #check_size = not global_args.no_check_size
+    # check_size = not global_args.no_check_size
 
     # level = logging.WARNING if global_args.quiet else logging.INFO
     # I like sending logging to stderr, and anyway we want this with --pipe-path
@@ -547,6 +547,7 @@ CUDEM home page: <http://cudem.colorado.edu>
     # --- HOOK INFO ---
     if global_args.hook_info:
         from fetchez.hooks.registry import HookRegistry
+
         hook_cls = HookRegistry.get_hook(global_args.hook_info)
         if hook_cls:
             print(f"\n🪝  Hook: {hook_cls.name}")
@@ -554,6 +555,7 @@ CUDEM home page: <http://cudem.colorado.edu>
             print(f"   Type:  {hook_cls.category}\n")
 
             import inspect
+
             doc = inspect.getdoc(hook_cls)
             if doc:
                 print(doc)
@@ -562,10 +564,10 @@ CUDEM home page: <http://cudem.colorado.edu>
             print("\n")
         else:
             print(f"❌ Hook '{global_args.hook_info}' not found.")
-            print(f"   Run 'fetchez --list-hooks' to see available options.")
-            
+            print("   Run 'fetchez --list-hooks' to see available options.")
+
         sys.exit(0)
-        
+
     if hasattr(global_args, "list_hooks") and global_args.list_hooks:
         print("\nAvailable Hooks:")
         print("=" * 60)

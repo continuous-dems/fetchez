@@ -325,9 +325,9 @@ class DAV(core.FetchModule):
                         f"Routing USGS dataset '{project_name}' to TNM module..."
                     )
 
-                    #dav_dir = self._outdir.rstrip(os.sep)
-                    #base_dir = os.path.dirname(dav_dir)
-                    #tnm_outdir = os.path.join(base_dir, "tnm")
+                    # dav_dir = self._outdir.rstrip(os.sep)
+                    # base_dir = os.path.dirname(dav_dir)
+                    # tnm_outdir = os.path.join(base_dir, "tnm")
 
                     if self.datatype == "lidar":
                         target_datasets = "11"  # Lidar Point Cloud

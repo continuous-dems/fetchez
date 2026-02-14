@@ -852,8 +852,8 @@ class FetchezRegistry:
             "license": "CC-BY-SA 3.0",
             "urls": {
                 "home": "https://www.wikipedia.org/",
-                "api": "https://en.wikipedia.org/w/api.php"
-            }
+                "api": "https://en.wikipedia.org/w/api.php",
+            },
         },
         # USNO Sun/Moon Data
         "sun_moon": {
@@ -862,14 +862,22 @@ class FetchezRegistry:
             "category": "Reference",
             "desc": "USNO Sun/Moon Rise/Set Times & Phases",
             "agency": "US Naval Observatory",
-            "tags": ["sun", "moon", "ephemeris", "daylight", "planning", "astronomy", "usno"],
+            "tags": [
+                "sun",
+                "moon",
+                "ephemeris",
+                "daylight",
+                "planning",
+                "astronomy",
+                "usno",
+            ],
             "region": "Global",
             "resolution": "Temporal (Daily)",
             "license": "Public Domain",
             "urls": {
                 "home": "https://aa.usno.navy.mil/data/api",
-                "docs": "https://aa.usno.navy.mil/data/docs/RS_OneDay.php"
-            }
+                "docs": "https://aa.usno.navy.mil/data/docs/RS_OneDay.php",
+            },
         },
         # The following modules don't need a `region`,
         # they populate `FetchModule.results` in some other way.

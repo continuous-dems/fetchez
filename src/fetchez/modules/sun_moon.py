@@ -18,14 +18,15 @@ from fetchez import utils
 
 USNO_API = "https://aa.usno.navy.mil/api/rstt/oneday"
 
+
 @cli.cli_opts(
     help_text="USNO Sun/Moon Ephemeris",
     date="Date (YYYY-MM-DD). Default: Today.",
-    timezone="Timezone offset (e.g. -7 for MST). Default: 0 (UTC)."
+    timezone="Timezone offset (e.g. -7 for MST). Default: 0 (UTC).",
 )
 class SunMoon(core.FetchModule):
     """Fetch official Sun/Moon data for the center of the region.
-    
+
     Returns a JSON file containing:
     - Begin/End of Civil Twilight
     - Sunrise/Sunset
@@ -35,7 +36,7 @@ class SunMoon(core.FetchModule):
 
     def __init__(self, date=None, timezone=0, **kwargs):
         super().__init__(name="sun_moon", **kwargs)
-        self.date = date if date else utils.today_str() 
+        self.date = date if date else utils.today_str()
         self.timezone = timezone
 
     def run(self):
@@ -50,11 +51,11 @@ class SunMoon(core.FetchModule):
         params = {
             "date": self.date,
             "coords": f"{center_lat},{center_lon}",
-            "tz": self.timezone
+            "tz": self.timezone,
         }
 
         full_url = f"{USNO_API}?{urlencode(params)}"
-        
+
         out_fn = f"ephemeris_{self.date}_{center_lat:.2f}_{center_lon:.2f}.json"
 
         self.add_entry_to_results(
@@ -62,7 +63,7 @@ class SunMoon(core.FetchModule):
             dst_fn=out_fn,
             data_type="json",
             agency="US Naval Observatory",
-            title=f"Sun/Moon Data {self.date}"
+            title=f"Sun/Moon Data {self.date}",
         )
 
         return self

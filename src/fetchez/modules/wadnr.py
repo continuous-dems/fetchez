@@ -57,7 +57,9 @@ class WADNR(core.FetchModule):
       - https://lidarportal.dnr.wa.gov/
     """
 
-    def __init__(self, filter: Optional[str] = None, project_id: Optional[str] = None, **kwargs):
+    def __init__(
+        self, filter: Optional[str] = None, project_id: Optional[str] = None, **kwargs
+    ):
         super().__init__(name="wadnr", **kwargs)
         self.name_filter = filter.lower() if filter else None
         self.project_id = int(project_id) if project_id else None
@@ -153,7 +155,7 @@ class WADNR(core.FetchModule):
                     try:
                         resp_json = r.json()
                         final_url = resp_json.get("url")
-                    except Exception as exception:
+                    except Exception:
                         final_url = r.url  # If it was a redirect
 
                     if final_url:

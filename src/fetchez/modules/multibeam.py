@@ -48,7 +48,7 @@ def _parse_mbsystem_inf_bounds(
 ) -> Optional[Tuple[float, float, float, float]]:
     """Parse spatial bounds from an MBSystem .inf file content."""
 
-    minmax = [0., 0., 0., 0.]  # xmin, xmax, ymin, ymax
+    minmax = [0.0, 0.0, 0.0, 0.0]  # xmin, xmax, ymin, ymax
     found = False
 
     for line in inf_text:
@@ -123,7 +123,7 @@ class Multibeam(core.FetchModule):
             if response is not None and response.status_code in [200, 302]:
                 return True
             return False
-        except Exception as e:
+        except Exception:
             return False
 
     def run(self):

@@ -26,7 +26,7 @@ from tqdm import tqdm
 import urllib.parse
 from urllib.error import HTTPError
 from urllib.request import Request, build_opener, HTTPCookieProcessor
-from typing import List, Dict, Optional, Union, Any, Tuple
+from typing import List, Dict, Optional, Any, Tuple
 import concurrent.futures
 
 import requests
@@ -392,12 +392,12 @@ class Fetch:
     """Fetch class to fetch ftp/http data files"""
 
     def __init__(
-            self,
-            url: str,
-            callback=fetches_callback,
-            headers: Dict = R_HEADERS,
-            verify: bool = True,
-            allow_redirects: bool = True,
+        self,
+        url: str,
+        callback=fetches_callback,
+        headers: Dict = R_HEADERS,
+        verify: bool = True,
+        allow_redirects: bool = True,
     ):
         self.url = url
         self.callback = callback
@@ -407,15 +407,15 @@ class Fetch:
         self.silent = logger.getEffectiveLevel() > logging.INFO
 
     def fetch_req(
-            self,
-            method: str = "GET",
-            params: Optional[Dict] = None,
-            data: Optional[Any] = None,
-            json: Optional[Dict] = None,
-            tries: int = 5,
-            #timeout: Optional[Union[float, Tuple]] = None,
-            timeout: Optional[float] = None,
-            read_timeout: Optional[float] = None,
+        self,
+        method: str = "GET",
+        params: Optional[Dict] = None,
+        data: Optional[Any] = None,
+        json: Optional[Dict] = None,
+        tries: int = 5,
+        # timeout: Optional[Union[float, Tuple]] = None,
+        timeout: Optional[float] = None,
+        read_timeout: Optional[float] = None,
     ) -> Optional[requests.Response]:
         """Fetch src_url and return the requests object (iterative retry)."""
 
@@ -771,7 +771,7 @@ def fetch_queue(q: queue.Queue, stop_event: threading.Event, c: bool = True):
         if not os.path.exists(os.path.dirname(local_path)):
             try:
                 os.makedirs(os.path.dirname(local_path))
-            except Exception as e:
+            except Exception:
                 pass
 
         # fname = os.path.basename(local_path)
@@ -1175,7 +1175,7 @@ class FetchModule:
                     tries=retries,
                     verbose=verbose,
                 )
-        except Exception as e:
+        except Exception:
             status = -1
         return status
 

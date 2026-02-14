@@ -115,9 +115,11 @@ def this_date():
 
     return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
+
 def today_str():
     # "YYYY-MM-DD"
     return datetime.datetime.now().strftime("%Y-%m-%d")
+
 
 def get_username():
     username = ""
@@ -138,7 +140,7 @@ def int_or(val, or_val=None):
 
     try:
         return int(float_or(val))
-    except Exception as e:
+    except Exception:
         return or_val
 
 
@@ -147,7 +149,7 @@ def float_or(val, or_val=None):
 
     try:
         return float(val)
-    except Exception as e:
+    except Exception:
         return or_val
 
 
@@ -159,7 +161,7 @@ def str_or(instr, or_val=None, replace_quote=True):
     try:
         s = str(instr)
         return s.replace('"', "") if replace_quote else s
-    except Exception as e:
+    except Exception:
         return or_val
 
 
@@ -209,13 +211,13 @@ def str_truncate_middle(s, n=50):
 def fn_url_p(fn):
     """Check if fn is a URL."""
 
-    url_sw = ['http://', 'https://', 'ftp://', 'ftps://', '/vsicurl']
+    url_sw = ["http://", "https://", "ftp://", "ftps://", "/vsicurl"]
     if str_or(fn):
         try:
             for u in url_sw:
                 if fn.startswith(u):
                     return True
-        except Exception as e:
+        except Exception:
             return False
     return False
 
@@ -277,8 +279,8 @@ def remove_glob2(*args):
             globs = glob.glob(glob_str)
             for g in globs:
                 if os.path.isdir(g):
-                    remove_glob(f'{g}/*')
-                    remove_glob(f'{g}/.*')
+                    remove_glob(f"{g}/*")
+                    remove_glob(f"{g}/.*")
                     os.removedirs(g)
                 else:
                     os.remove(g)
@@ -290,22 +292,22 @@ def remove_glob2(*args):
 
 def _parse_value_string(val_str: str) -> Any:
     """Helper to parse string values into Python types (bool, None, list)."""
-    
+
     val_lower = val_str.lower()
     # if utils.str2bool(val_str) is not None:
     #     return utils.str2bool(val_str)
-    if val_lower == 'false':
+    if val_lower == "false":
         return False
-    elif val_lower == 'true':
+    elif val_lower == "true":
         return True
-    elif val_lower == 'none':
+    elif val_lower == "none":
         return None
-    elif ';' in val_str:
-        return val_str.strip('"').split(';')
+    elif ";" in val_str:
+        return val_str.strip('"').split(";")
     else:
         return val_str.strip('"')
 
-                
+
 def make_temp_fn(basename, temp_dir=None):
     """Generate a temporary filename."""
 
@@ -353,30 +355,30 @@ def fmod2dict(fmod: str, dict_args: Optional[Dict[str, Any]] = None) -> Dict[str
     Returns:
       dict: A dictionary of the key/values.
     """
-    
+
     if dict_args is None:
         dict_args = {}
 
     ## Split by colon, ignoring colons inside quotes
     args_list = re.split(r':(?=(?:[^"]*"[^"]*")*[^"]*$)', fmod)
-    
+
     for arg in args_list:
         ## Split by equals, ignoring equals inside quotes
         p_arg = re.split(r'=(?=(?:[^"]*"[^"]*")*[^"]*$)', arg)
-        
+
         if len(p_arg) == 1:
-            if '_module' not in dict_args:
-                dict_args['_module'] = p_arg[0]
+            if "_module" not in dict_args:
+                dict_args["_module"] = p_arg[0]
         elif len(p_arg) > 1:
             key = p_arg[0]
             val_str = p_arg[1]
-            
+
             ## If there are multiple '=' parts, rejoin the rest
             if len(p_arg) > 2:
-                dict_args[key] = '='.join(p_arg[1:])
+                dict_args[key] = "=".join(p_arg[1:])
             else:
                 dict_args[key] = _parse_value_string(val_str)
-        
+
     return dict_args
 
 

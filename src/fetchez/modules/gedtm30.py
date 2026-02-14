@@ -75,7 +75,7 @@ class GEDTM30(core.FetchModule):
             f = StringIO(req.text)
             reader = csv.reader(f)
 
-            next(reader, None) # header 
+            next(reader, None)  # header
 
             matches = 0
             for row in reader:

@@ -25,7 +25,7 @@ from . import spatial
 
 try:
     from shapely.geometry import shape
-    #from shapely.strtree import STRtree
+    # from shapely.strtree import STRtree
 
     HAS_SHAPELY = True
 except ImportError:
@@ -176,7 +176,7 @@ class FRED:
             if HAS_SHAPELY:
                 search_geom = spatial.region_to_shapely(region)
             else:
-                search_geom = None # TODO: update to manually make one from region!
+                search_geom = None  # TODO: update to manually make one from region!
 
         if region:
             r_str = ",".join(f"{x:.2f}" for x in region)
@@ -254,7 +254,10 @@ class FRED:
         return get_val(keys_w), get_val(keys_e), get_val(keys_s), get_val(keys_n)
 
     def ingest(
-        self, source_file: str, field_map: Optional[Dict[str, str]] = None, wipe: bool = False
+        self,
+        source_file: str,
+        field_map: Optional[Dict[str, str]] = None,
+        wipe: bool = False,
     ):
         """Ingest a file listing (CSV or JSON) into the FRED index.
 

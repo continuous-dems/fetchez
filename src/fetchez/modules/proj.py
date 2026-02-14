@@ -46,7 +46,9 @@ class PROJ(core.FetchModule):
     For NOAA Tidal Grids (MLLW, MHHW), use the 'vdatum' module.
     """
 
-    def __init__(self, query: Optional[str] = None, epsg: Optional[str] = None, **kwargs):
+    def __init__(
+        self, query: Optional[str] = None, epsg: Optional[str] = None, **kwargs
+    ):
         super().__init__(name="proj", **kwargs)
         self.query = query.lower() if query else None
         self.epsg = str(epsg) if epsg else None

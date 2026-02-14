@@ -56,7 +56,7 @@ class LocalDataset(core.FetchModule):
 
     def _add_file_entry(self, p):
         """Helper to format and register a single file."""
-        
+
         if not p:
             return
 
@@ -71,7 +71,7 @@ class LocalDataset(core.FetchModule):
 
         # Determine a "destination filename" (just the basename)
         # This is what hooks will see as 'dst_fn'
-        #filename = os.path.basename(abs_path)
+        # filename = os.path.basename(abs_path)
 
         # We set status=0 so Fetchez Core thinks it's "Already Downloaded"
         # and proceeds immediately to the hooks.
