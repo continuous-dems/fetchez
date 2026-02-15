@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Users can add their own hooks in ~/.fetchez/hooks
 - 'file' module to send local data through hooks
 - --outdir option in CLI (global and per-module).
+- Each entry now gets a 'history' key that keeps track of the hooks it passed through.
 
 ### Changed
 - groupded parsers in argparse
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - pyproj/pyshp error msg in dav.py
 - name conflict with cudem/coned/dav
 - double path.join in core fixed. (this resulted in duplicated outdirs)
+- unzip hook would send a bad entry record if the unzip files already existed
 
 ## [0.3.0] - 2026-02-01
 ### Added
