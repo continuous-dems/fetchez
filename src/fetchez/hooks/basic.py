@@ -318,3 +318,85 @@ class FilenameFilter(FetchHook):
             f"Filename Filter hook filtered files and has kept {len(kept_entries)} matches."
         )
         return kept_entries
+
+
+class Sidecar(FetchHook):
+    """Write a metadata sidecar file (.meta.json) for every download.
+    Useful for data provenance (tracking source URLs and dates).
+    """
+
+    name = "sidecar"
+    desc = "Write a .meta.json sidecar file. Usage: --hook sidecar"
+    stage = "file"
+    category = "metadata"
+
+    def run(self, entries):
+        for mod, entry in entries:
+            if entry.get("status") != 0:
+                continue
+
+            filepath = entry.get("dst_fn")
+            if not filepath or not os.path.exists(filepath):
+                continue
+
+            meta_fn = filepath + ".meta.json"
+            meta_data = {
+                "source_module": mod.name,
+                "source_url": entry.get("url"),
+                "download_date": datetime.now().isoformat(),
+                "original_filename": os.path.basename(filepath),
+                "tags": getattr(mod, "tags", []),
+                "extra": {
+                    k: v
+                    for k, v in entry.items()
+                    if k not in ["url", "dst_fn", "status", "stream"]
+                },
+            }
+
+            try:
+                with open(meta_fn, "w") as f:
+                    json.dump(meta_data, f, indent=2)
+            except Exception as e:
+                logger.warning(f"Failed to write sidecar for {filepath}: {e}")
+
+        return entries
+
+
+class Rename(FetchHook):
+    """Rename files using Regex substitution before download.
+
+    Args:
+        match (str): Regex pattern to match (e.g. 'export_(\d+)')
+        replace (str): Replacement string (e.g. 'site_\1')
+    """
+
+    name = "rename"
+    stage = "pre"
+    category = "file-op"
+
+    def __init__(self, match=None, replace="", **kwargs):
+        super().__init__(**kwargs)
+        self.match = match
+        self.replace = replace
+
+    def run(self, entries):
+        import re
+
+        if not self.match:
+            return entries
+
+        for mod, entry in entries:
+            dst = entry.get("dst_fn")
+            if not dst:
+                continue
+
+            dirname, basename = os.path.split(dst)
+
+            try:
+                new_basename = re.sub(self.match, self.replace, basename)
+                if new_basename != basename:
+                    entry["dst_fn"] = os.path.join(dirname, new_basename)
+            except Exception as e:
+                logger.error(f"Rename pattern failed for {basename}: {e}")
+
+        return entries

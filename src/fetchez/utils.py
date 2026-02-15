@@ -512,4 +512,13 @@ def _log_hook_history(entries, hook):
     for owner, item in entries:
         if "history" not in item:
             item["history"] = []
-        item["history"].append(history_record)
+
+        if item["history"]:
+            last = item["history"][-1]
+            if (
+                last["hook"] == history_record["hook"]
+                and last["stage"] == history_record["stage"]
+            ):
+                continue
+
+        item["history"].append(history_record.copy())
