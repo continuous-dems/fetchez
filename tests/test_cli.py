@@ -1,5 +1,4 @@
 import subprocess
-import pytest
 import sys
 
 # CMD will run Fetchez
