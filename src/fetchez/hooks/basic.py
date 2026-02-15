@@ -363,7 +363,7 @@ class Sidecar(FetchHook):
 
 
 class Rename(FetchHook):
-    """Rename files using Regex substitution BEFORE download.
+    """Rename files using Regex substitution before download.
 
     Args:
         match (str): Regex pattern to match (e.g. 'export_(\d+)')
