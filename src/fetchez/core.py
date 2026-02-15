@@ -906,6 +906,8 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
                 local_entries = hook.run(local_entries)
                 if local_entries is None:
                     local_entries = []
+
+                utils._log_hook_history(local_entries, hook)
             except Exception as e:
                 logger.error(f'Module "{mod.name}" pre-hook "{hook.name}" failed: {e}')
 
@@ -924,6 +926,8 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
             result = hook.run(all_entries)
             if isinstance(result, list):
                 all_entries = result
+
+            utils._log_hook_history(all_entries, hook)
         except Exception as e:
             logger.error(f'Global pre-hook "{hook.name}" failed: {e}')
 
@@ -980,6 +984,8 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
                             current_entries = hook.run(current_entries)
                             if current_entries is None:
                                 current_entries = []
+
+                            utils._log_hook_history(current_entries, hook)
                         except Exception as e:
                             logger.error(f'File hook "{hook.name}" failed: {e}')
 
@@ -1039,6 +1045,7 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
             for hook in mod_post:
                 try:
                     hook.run(results_by_mod[mod])
+                    utils._log_hook_history(results_by_mod[mod], hook)
                 except Exception as e:
                     logger.error(
                         f'Module "{mod.name}" post-hook "{hook.name}" failed: {e}'
@@ -1049,6 +1056,7 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
     for hook in global_post:
         try:
             hook.run(flat_results)
+            utils._log_hook_history(flat_results, hook)
         except Exception as e:
             logger.error(f'Global post-hook "{hook.name}" failed: {e}')
 

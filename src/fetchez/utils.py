@@ -495,3 +495,21 @@ def merge_hooks(global_hooks, local_hooks):
             merged.append(h)
 
     return merged
+
+
+def _log_hook_history(entries, hook):
+    """Append a history record to every entry in the list."""
+
+    if not entries:
+        return
+
+    history_record = {
+        "hook": hook.name,
+        "stage": hook.stage,
+        "timestamp": datetime.datetime.now().isoformat(),
+    }
+
+    for owner, item in entries:
+        if "history" not in item:
+            item["history"] = []
+        item["history"].append(history_record)

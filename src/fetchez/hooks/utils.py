@@ -35,6 +35,7 @@ class Unzip(FetchHook):
             remove (bool): Delete the original .zip file after extraction.
             overwrite (bool): Overwrite existing files.
         """
+
         super().__init__(**kwargs)
         self.remove = remove
         self.overwrite = overwrite
@@ -65,11 +66,14 @@ class Unzip(FetchHook):
                             )
                             out_entries.extend(
                                 [
-                                    {
-                                        **entry,
-                                        "dst_fn": os.path.join(extract_dir, f),
-                                        "status": 0,
-                                    }
+                                    (
+                                        mod,
+                                        {
+                                            **entry,
+                                            "dst_fn": os.path.join(extract_dir, f),
+                                            "status": 0,
+                                        },
+                                    )
                                     for f in files_to_extract
                                 ]
                             )
