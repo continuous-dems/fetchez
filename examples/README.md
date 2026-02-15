@@ -11,6 +11,7 @@ Unlike the core `fetchez` CLI, these scripts may require additional dependencies
 | `process_bing.py` | Script | Downloads Microsoft Building Footprints and merges them into a single GeoPackage. | `fetchez`, `gdal` |
 | `visualize_tides.py` | Script | Fetches NOAA Tide data and generates a generic plot. | `fetchez`, `matplotlib`, `pandas` |
 | `hook_reproject.py` | **Hook** | Automatically reprojects downloaded rasters using GDAL (e.g., `--hook reproject:crs=EPSG:3857`). | `fetchez`, `gdal` |
+| `class2xyz.py` | **Hook (example)** | Extract LAS/LAZ points by classification and export ASCII XYZ (X Y Z). Output filename includes class tag(s) (e.g., `_c29.xyz`, `_c2-29-40.xyz`). *(No CRS transforms — use Globato for reprojection/gridding.)* | `fetchez`, `laspy` *(+ `lazrs` for `.laz`)* |
 
 ## 💻 How to Run
 
@@ -30,17 +31,43 @@ Hooks are plugins that `fetchez` loads automatically. To use an example hook:
 1.  **Install the Hook:** Copy the file to your local configuration directory.
     ```bash
     mkdir -p ~/.fetchez/hooks/
+
+    # Reproject example hook
     cp hook_reproject.py ~/.fetchez/hooks/reproject.py
+
+    # LAS/LAZ class → XYZ example hook
+    cp class2xyz.py ~/.fetchez/hooks/class2xyz.py
     ```
+
 2.  **Verify it Loaded:**
     ```bash
     fetchez --list-hooks
-    # You should see 'reproject' in the list.
+    # You should see 'reproject' and/or 'class2xyz' in the list.
     ```
+
 3.  **Run it:**
     ```bash
     # Use the colon syntax for arguments: name:key=val,key2=val2
+
+    # Example: reproject rasters
     fetchez copernicus --hook reproject:crs=EPSG:3857,suffix=_web
+
+    # Example: extract ground points (class 2) to XYZ
+    fetchez <module> ... --hook class2xyz:classes=2,out_dir=./ground_xyz
+
+    # Example: extract bathy points (class 29) to XYZ (native CRS)
+    fetchez dav -R -71.76/-71.70/41.32/41.36 --survey_id 8688 \
+      --hook class2xyz:classes=29,out_dir=./bathy_xyz
+    ```
+
+    **Note (multiple classes):** Hook args are comma-delimited (`key=value,key=value,...`), so don’t use commas *inside* `classes=`.
+    Use `+` (shell-safe) or quote `|`:
+    ```bash
+    # Shell-safe:
+    --hook class2xyz:classes=2+29+40,out_dir=./classes_xyz
+
+    # Pipe variant (must quote or escape):
+    --hook "class2xyz:classes=2|29|40,out_dir=./classes_xyz"
     ```
 
 ## 🤝 How to Contribute
