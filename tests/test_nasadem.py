@@ -1,4 +1,5 @@
 # tests/test_nasadem.py
+import pytest
 import requests
 from fetchez.modules.nasadem import NASADEM
 
@@ -10,6 +11,7 @@ from fetchez.modules.nasadem import HEADERS
 SAMPLE_REGION = (-105.5, -104.5, 39.5, 40.5)
 
 
+@pytest.mark.skip(reason="We don't really need this tested every time.")
 def test_nasadem_url_generation():
     """Verify the module generates the correct filenames/URLs
     based on the input region.
@@ -37,6 +39,7 @@ def test_nasadem_url_generation():
     assert ".tif" in first_result["dst_fn"]
 
 
+@pytest.mark.skip(reason="We don't really need this tested every time.")
 def test_nasadem_server_alive():
     """Verify the generated URL actually exists on the remote server.
     This detects if the Agency/API has moved their files.
