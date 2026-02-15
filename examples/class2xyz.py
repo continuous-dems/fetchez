@@ -225,12 +225,20 @@ class Class2XYZ(FetchHook):
         self._xy_geo_precision = _as_int(xy_geo_precision, 10)
         self._xy_proj_precision = _as_int(xy_proj_precision, 3)
 
-        p_both = None if precision is None or str(precision).strip() == "" else _as_int(precision, 3)
+        p_both = (
+            None
+            if precision is None or str(precision).strip() == ""
+            else _as_int(precision, 3)
+        )
         self._xy_precision_override = (
-            None if xy_precision is None or str(xy_precision).strip() == "" else _as_int(xy_precision, 10)
+            None
+            if xy_precision is None or str(xy_precision).strip() == ""
+            else _as_int(xy_precision, 10)
         )
         self._z_precision_override = (
-            None if z_precision is None or str(z_precision).strip() == "" else _as_int(z_precision, 3)
+            None
+            if z_precision is None or str(z_precision).strip() == ""
+            else _as_int(z_precision, 3)
         )
         self._precision_both = p_both
 
@@ -248,7 +256,9 @@ class Class2XYZ(FetchHook):
         # filename: <base>_<tag><suffix>.xyz
         return os.path.join(self.out_dir, f"{base}_{tag}{self.suffix}.xyz")
 
-    def _log_enabled_once(self, xy_dp: int, z_dp: int, geo: bool, z_scale: Optional[float]):
+    def _log_enabled_once(
+        self, xy_dp: int, z_dp: int, geo: bool, z_scale: Optional[float]
+    ):
         if self._logged_enabled:
             return
         cl = "ALL" if self.classes is None else ",".join(map(str, self.classes))
@@ -259,7 +269,9 @@ class Class2XYZ(FetchHook):
         )
         self._logged_enabled = True
 
-    def _infer_precisions_from_header(self, las_path: str) -> Tuple[bool, int, int, Optional[float]]:
+    def _infer_precisions_from_header(
+        self, las_path: str
+    ) -> Tuple[bool, int, int, Optional[float]]:
         try:
             import laspy  # type: ignore
         except Exception:
@@ -276,7 +288,9 @@ class Class2XYZ(FetchHook):
             except Exception:
                 xmin = ymin = xmax = ymax = float("nan")
 
-            geo = _looks_geographic_bbox(float(xmin), float(xmax), float(ymin), float(ymax))
+            geo = _looks_geographic_bbox(
+                float(xmin), float(xmax), float(ymin), float(ymax)
+            )
             xy_default = self._xy_geo_precision if geo else self._xy_proj_precision
 
             z_scale_val: Optional[float] = None
@@ -298,7 +312,9 @@ class Class2XYZ(FetchHook):
 
         return geo, int(xy_default), int(z_default), z_scale_val
 
-    def _run_laspy(self, las_path: str, out_xyz: str, xy_dp: int, z_dp: int) -> Tuple[bool, int]:
+    def _run_laspy(
+        self, las_path: str, out_xyz: str, xy_dp: int, z_dp: int
+    ) -> Tuple[bool, int]:
         try:
             import laspy  # type: ignore
         except Exception:
@@ -323,7 +339,9 @@ class Class2XYZ(FetchHook):
                     "  # or: pip install lazrs"
                 )
                 self._warned_laz_backend = True
-            logger.warning(f"class2xyz: failed to open {os.path.basename(las_path)} with laspy: {msg}")
+            logger.warning(
+                f"class2xyz: failed to open {os.path.basename(las_path)} with laspy: {msg}"
+            )
             return False, 0
 
         points_written = 0
@@ -344,7 +362,9 @@ class Class2XYZ(FetchHook):
                         try:
                             cls = chunk.classification
                         except Exception:
-                            logger.warning(f"class2xyz: no classification dimension in {las_path}")
+                            logger.warning(
+                                f"class2xyz: no classification dimension in {las_path}"
+                            )
                             return False, 0
 
                         try:
@@ -436,7 +456,9 @@ class Class2XYZ(FetchHook):
                 self._c.failed += 1
                 continue
 
-            produced = os.path.exists(out_xyz) and (not self.skip_empty or os.path.getsize(out_xyz) > 0)
+            produced = os.path.exists(out_xyz) and (
+                not self.skip_empty or os.path.getsize(out_xyz) > 0
+            )
             if produced:
                 self._c.produced_xyz += 1
                 entry["class2xyz_out"] = out_xyz
@@ -454,7 +476,11 @@ class Class2XYZ(FetchHook):
             logger.info("class2xyz: no LAS/LAZ files seen; nothing to do.")
             return
 
-        if self._c.produced_xyz == 0 and self._c.skipped_existing > 0 and self._c.failed == 0:
+        if (
+            self._c.produced_xyz == 0
+            and self._c.skipped_existing > 0
+            and self._c.failed == 0
+        ):
             logger.info(
                 f"class2xyz: reused existing XYZ outputs for {self._c.skipped_existing}/{self._c.seen_las} LAS/LAZ file(s) "
                 f"(out_dir={self.out_dir})."
