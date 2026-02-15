@@ -418,7 +418,7 @@ CUDEM home page: <http://cudem.colorado.edu>
         "--outdir",
         default=None,
         metavar="DIR",
-        help="Base output directory (default: current working directory)."
+        help="Base output directory (default: current working directory).",
     )
     exec_grp.add_argument(
         "-H",
@@ -742,7 +742,7 @@ CUDEM home page: <http://cudem.colorado.edu>
             type=str,
             default=None,
             metavar="DIR",
-            help=f"Override output directory for {mod_key}."
+            help=f"Override output directory for {mod_key}.",
         )
 
         active_presets = getattr(mod_cls, "presets", {}).copy()
