@@ -360,3 +360,43 @@ class Sidecar(FetchHook):
                 logger.warning(f"Failed to write sidecar for {filepath}: {e}")
 
         return entries
+
+
+class Rename(FetchHook):
+    """Rename files using Regex substitution BEFORE download.
+
+    Args:
+        match (str): Regex pattern to match (e.g. 'export_(\d+)')
+        replace (str): Replacement string (e.g. 'site_\1')
+    """
+
+    name = "rename"
+    stage = "pre"
+    category = "file-op"
+
+    def __init__(self, match=None, replace="", **kwargs):
+        super().__init__(**kwargs)
+        self.match = match
+        self.replace = replace
+
+    def run(self, entries):
+        import re
+
+        if not self.match:
+            return entries
+
+        for mod, entry in entries:
+            dst = entry.get("dst_fn")
+            if not dst:
+                continue
+
+            dirname, basename = os.path.split(dst)
+
+            try:
+                new_basename = re.sub(self.match, self.replace, basename)
+                if new_basename != basename:
+                    entry["dst_fn"] = os.path.join(dirname, new_basename)
+            except Exception as e:
+                logger.error(f"Rename pattern failed for {basename}: {e}")
+
+        return entries
