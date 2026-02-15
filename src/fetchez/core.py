@@ -1197,8 +1197,8 @@ class FetchModule:
         added to `results`, but we need `url`, `dst_fn` and `data_type`.
         """
 
-        if utils.str_or(dst_fn) is not None:
-            dst_fn = os.path.join(self._outdir, dst_fn)
+        # if utils.str_or(dst_fn) is not None:
+        #     dst_fn = os.path.join(self._outdir, dst_fn)
         entry = {"url": url, "dst_fn": dst_fn, "data_type": data_type}
         entry.update(kwargs)
         self.results.append(entry)

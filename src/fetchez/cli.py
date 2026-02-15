@@ -414,6 +414,13 @@ CUDEM home page: <http://cudem.colorado.edu>
 
     exec_grp = parser.add_argument_group("Execution Control")
     exec_grp.add_argument(
+        "-O",
+        "--outdir",
+        default=None,
+        metavar="DIR",
+        help="Base output directory (default: current working directory)."
+    )
+    exec_grp.add_argument(
         "-H",
         "--threads",
         type=int,
@@ -728,7 +735,14 @@ CUDEM home page: <http://cudem.colorado.edu>
             type=float,
             default=1,
             metavar="W",
-            help=f"Add a hook for {mod_key} only.",
+            help=f"Set the weight for {mod_key} data (default: 1).",
+        )
+        mod_parser.add_argument(
+            "--outdir",
+            type=str,
+            default=None,
+            metavar="DIR",
+            help=f"Override output directory for {mod_key}."
         )
 
         active_presets = getattr(mod_cls, "presets", {}).copy()
@@ -752,6 +766,9 @@ CUDEM home page: <http://cudem.colorado.edu>
         _populate_subparser(mod_parser, mod_cls)
         mod_args_ns = mod_parser.parse_args(mod_argv)
         mod_kwargs = vars(mod_args_ns)
+
+        if mod_kwargs.get("outdir") is None:
+            mod_kwargs["outdir"] = global_args.outdir
 
         if "mod_hook" in mod_kwargs and mod_kwargs["mod_hook"]:
             mod_kwargs["hook"] = init_hooks(mod_kwargs["mod_hook"])
