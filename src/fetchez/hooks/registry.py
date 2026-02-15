@@ -28,10 +28,10 @@ class HookRegistry:
     def load_builtins(cls):
         """Load hooks shipped with fetchez (e.g., fetchez.hooks.basic)."""
 
-        from . import basic, utils
+        from . import basic, file_ops
 
         cls._register_from_module(basic)
-        cls._register_from_module(utils)
+        cls._register_from_module(file_ops)
 
     @classmethod
     def load_user_plugins(cls):
