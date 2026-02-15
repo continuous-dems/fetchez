@@ -52,7 +52,7 @@ def test_hook_info():
 
 
 def test_dry_run_ipinfo():
-    """ Run a simple module."""
+    """Run a simple module."""
 
     result = run_fetchez(["ipinfo:ip=8.8.8.8", "--hook", "dryrun"])
     assert result.returncode == 0
