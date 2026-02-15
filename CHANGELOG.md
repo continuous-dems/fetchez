@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hook system for fetchez! (--list, --inventory, --pipe-path are now hooks)
 - Users can add their own hooks in ~/.fetchez/hooks
 - 'file' module to send local data through hooks
+- --outdir option in CLI (global and per-module).
 
 ### Changed
 - groupded parsers in argparse
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### BUGFIX
 - pyproj/pyshp error msg in dav.py
 - name conflict with cudem/coned/dav
+- double path.join in core fixed. (this resulted in duplicated outdirs)
 
 ## [0.3.0] - 2026-02-01
 ### Added
