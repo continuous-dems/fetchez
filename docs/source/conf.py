@@ -10,6 +10,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath("../.."))
+sys.path.insert(0, os.path.abspath("../_ext"))
 
 project = "Fetchez"
 copyright = "2026, Matthew Love"
@@ -25,6 +26,7 @@ extensions = [
     "sphinx.ext.viewcode",  # Add links to source code
     "sphinx.ext.githubpages",  # Auto-generate .nojekyll for GH Pages
     "myst_parser",  # Parse Markdown files
+    "module_table",  # Generate module catalog table
 ]
 
 napoleon_google_docstring = True
