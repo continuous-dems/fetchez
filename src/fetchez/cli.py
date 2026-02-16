@@ -320,6 +320,23 @@ def fetchez_cli():
         # Windows does not strictly support SIGPIPE in the same way
         pass
 
+    _usage = "%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]..."
+
+    registry.FetchezRegistry.load_user_plugins()
+    registry.FetchezRegistry.load_installed_plugins()
+
+    from .hooks.registry import HookRegistry
+    from . import presets
+    from . import config
+
+    HookRegistry.load_builtins()
+    HookRegistry.load_user_plugins()
+
+    # user_presets = presets.load_user_presets()
+    # user_presets = config.load_user_config().get('presets', {})
+    user_presets = presets.get_global_presets()
+    user_mod_presets = config.load_user_config().get("modules", {})
+
     # Check if first arg exists and ends in .json or yaml. -- project file --
     if (
         len(sys.argv) > 1
@@ -338,23 +355,6 @@ def fetchez_cli():
         run = project.ProjectRun(project_file)
         run.run()
         sys.exit(0)
-
-    _usage = "%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]..."
-
-    registry.FetchezRegistry.load_user_plugins()
-    registry.FetchezRegistry.load_installed_plugins()
-
-    from .hooks.registry import HookRegistry
-    from . import presets
-    from . import config
-
-    HookRegistry.load_builtins()
-    HookRegistry.load_user_plugins()
-
-    # user_presets = presets.load_user_presets()
-    # user_presets = config.load_user_config().get('presets', {})
-    user_presets = presets.get_global_presets()
-    user_mod_presets = config.load_user_config().get("modules", {})
 
     parser = argparse.ArgumentParser(
         description=f"{utils.CYAN}%(prog)s{utils.RESET} ({__version__}) :: Discover and Fetch remote geospatial data",
