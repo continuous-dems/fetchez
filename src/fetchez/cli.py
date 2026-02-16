@@ -680,12 +680,22 @@ CUDEM home page: <http://cudem.colorado.edu>
         else:
             if current_cmd and current_cmd != "file":
                 current_args.append(arg)
+            elif current_cmd == "file" and arg.startswith("-"):
+                current_args.append(arg)
             elif os.path.isfile(arg):
-                current_cmd = "file"
-                if current_args:
-                    current_args[0] += f",{arg}"
+                if current_cmd == "file":
+                    if current_args and current_args[0].startswith("--paths="):
+                        current_args[0] += f",{arg}"
+                    else:
+                        current_args.append(f"--paths={arg}")
                 else:
+                    current_cmd = "file"
                     current_args = [f"--paths={arg}"]
+                # current_cmd = "file"
+                # if current_args:
+                #     current_args[0] += f",{arg}"
+                # else:
+                #     current_args = [f"--paths={arg}"]
 
     if current_cmd:
         commands.append((current_cmd, current_args))
