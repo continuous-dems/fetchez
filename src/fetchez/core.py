@@ -17,7 +17,6 @@ import os
 import time
 import base64
 import threading
-import queue
 import netrc
 import io
 import logging
@@ -747,129 +746,6 @@ class Fetch:
         return status
 
 
-# =============================================================================
-# Threading & Queues
-#
-# `fetch_queue` and `fetch_results` have been depreciated, but left for legacy
-# usage. They don't currently support hooks, but that could be added if we
-# want to maintain these functions.
-# =============================================================================
-def fetch_queue(q: queue.Queue, stop_event: threading.Event, c: bool = True):
-    """Worker for the fetch queue.
-    q items: [remote_data_url, local_data_path, data-type, fetches-module, attempts, results-list]
-    """
-
-    # Modules that bypass SSL verification
-    no_verify = ["mar_grav", "srtm_plus"]
-
-    while not stop_event.is_set():
-        url, local_path, data_type, module, retries, results_list = q.get()
-        if stop_event.is_set():
-            q.task_done()
-            continue
-
-        if not os.path.exists(os.path.dirname(local_path)):
-            try:
-                os.makedirs(os.path.dirname(local_path))
-            except Exception:
-                pass
-
-        # fname = os.path.basename(local_path)
-        # logger.debug(f"Queueing {fname}...")
-
-        parsed_url = urllib.parse.urlparse(url)
-
-        try:
-            verify_ssl = False if module.name in no_verify else True
-
-            if parsed_url.scheme == "ftp":
-                status = Fetch(
-                    url=url, callback=module.callback, headers=module.headers
-                ).fetch_ftp_file(local_path)
-            else:
-                status = Fetch(
-                    url=url,
-                    headers=module.headers,
-                    callback=module.callback,
-                    verify=verify_ssl,
-                ).fetch_file(local_path, check_size=c)
-
-            if status == 0:
-                logger.info(f"File {local_path} was fetched succesfully.")
-
-            ## Record result
-            fetch_results_entry = [url, local_path, data_type, status]
-            results_list.append(fetch_results_entry)
-
-            if callable(module.callback):
-                module.callback(fetch_results_entry)
-
-        except Exception as e:
-            if retries > 0:
-                q.put([url, local_path, data_type, module, retries - 1, results_list])
-            else:
-                logger.error(f"Failed to fetch {os.path.basename(local_path)}: {e}")
-                results_list.append([url, local_path, data_type, str(e)])
-
-                if callable(module.callback):
-                    module.callback(fetch_results_entry)
-
-        q.task_done()
-
-
-class fetch_results(threading.Thread):
-    """Threaded fetch runner."""
-
-    def __init__(self, mod, check_size=True, n_threads=3, attempts=5):
-        threading.Thread.__init__(self)
-        self.fetch_q = queue.Queue()
-        self.stop_event = threading.Event()
-        self.mod = mod
-        self.check_size = check_size
-        self.n_threads = n_threads
-        self.attempts = attempts
-        self.results = []
-
-        if len(self.mod.results) == 0:
-            self.mod.run()
-
-    def run(self):
-        logger.info(f"Queuing {len(self.mod.results)} downloads...")
-
-        for _ in range(self.n_threads):
-            t = threading.Thread(
-                target=fetch_queue,
-                args=(self.fetch_q, self.stop_event, self.check_size),
-            )
-            t.daemon = True
-            t.start()
-
-        ## Queue item: [url, path, type, module, retries, results_ptr]
-        for row in self.mod.results:
-            if row["dst_fn"]:
-                self.fetch_q.put(
-                    [
-                        row["url"],
-                        os.path.join(self.mod._outdir, row["dst_fn"]),
-                        row["data_type"],
-                        self.mod,
-                        self.attempts,
-                        self.results,
-                    ]
-                )
-
-        while not self.fetch_q.empty() and not self.stop_event.is_set():
-            time.sleep(0.1)
-
-        if not self.stop_event.is_set():
-            self.fetch_q.join()
-
-    def stop(self):
-        """Stop all threads"""
-
-        self.stop_event.set()
-
-
 def _fetch_worker(module, entry, verbose=True):
     """Helper wrapper to call fetch_entry on a module."""
 
@@ -1186,12 +1062,6 @@ class FetchModule:
         except Exception:
             status = -1
         return status
-
-    def fetch_results(self):
-        """fetch the gathered `results` from the sub-class"""
-
-        for entry in self.results:
-            self.fetch(entry)
 
     def fill_results(self, entry):
         """fill self.results with the fetch module entry"""
