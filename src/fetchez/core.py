@@ -850,7 +850,8 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
                     lf_hooks = [h for h in mod.hooks if h.stage == "file"]
 
                     # active_hooks = utils.merge_hooks(gf_hooks, lf_hooks)
-                    active_hooks = utils.merge_hooks(lf_hooks, gf_hooks)
+                    # active_hooks = utils.merge_hooks(lf_hooks, gf_hooks)
+                    active_hooks = lf_hooks + gf_hooks
                     active_hooks_full.append(active_hooks)
 
                     current_entries = [(mod, original_entry)]
@@ -876,10 +877,13 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
                             stream,
                             (collections.abc.Iterator, collections.abc.Generator),
                         ):
-                            logger.debug(
-                                f"Exhausting stream for {os.path.basename(item.get('dst_fn', ''))}..."
-                            )
-                            collections.deque(stream, maxlen=0)
+                            try:
+                                logger.debug(
+                                    f"Exhausting stream for {os.path.basename(item.get('dst_fn', ''))}..."
+                                )
+                                collections.deque(stream, maxlen=0)
+                            except Exception as e:
+                                logger.error(f"Stream processing error in {os.path.basename(item.get('dst_fn', ''))}: {e}")
 
                         processed_entries.append((owner, item))
 
