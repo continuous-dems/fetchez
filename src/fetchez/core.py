@@ -1171,14 +1171,14 @@ class FetchModule:
             if parsed_url.scheme == "ftp":
                 logger.info("ok")
                 status = Fetch(url=entry["url"], headers=self.headers).fetch_ftp_file(
-                    os.path.join(self._outdir, entry["dst_fn"])
+                    entry["dst_fn"]
                 )
             else:
                 status = Fetch(
                     url=entry["url"],
                     headers=self.headers,
                 ).fetch_file(
-                    os.path.join(self._outdir, entry["dst_fn"]),
+                    entry["dst_fn"],
                     check_size=check_size,
                     tries=retries,
                     verbose=verbose,
@@ -1205,8 +1205,8 @@ class FetchModule:
         added to `results`, but we need `url`, `dst_fn` and `data_type`.
         """
 
-        # if utils.str_or(dst_fn) is not None:
-        #     dst_fn = os.path.join(self._outdir, dst_fn)
+        if utils.str_or(dst_fn) is not None:
+            dst_fn = os.path.join(self._outdir, dst_fn)
         entry = {"url": url, "dst_fn": dst_fn, "data_type": data_type}
         entry.update(kwargs)
         self.results.append(entry)

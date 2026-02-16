@@ -42,20 +42,21 @@ class Flatten(FetchHook):
 
     def run(self, entries):
         for mod, entry in entries:
-            if entry.get("dst_fn"):
-                entry["dst_fn"] = os.path.basename(entry["dst_fn"])
+            current_path = entry.get("dst_fn")
+            if not current_path:
+                continue
 
-            if self.mode == "root":
-                if mod.outdir:
-                    mod._outdir = mod.outdir
-                else:
-                    mod._outdir = os.getcwd()
+            filename = os.path.basename(current_path)
+            if self.mode == "cwd":
+                new_dir = os.getcwd()
 
-            elif self.mode == "cwd":
-                mod._outdir = os.getcwd()
+            elif self.mode == "root":
+                new_dir = mod.outdir if mod.outdir else os.getcwd()
 
             elif self.mode == "module":
-                pass
+                new_dir = mod._outdir
+
+            entry["dst_fn"] = os.path.join(new_dir, filename)
 
         return entries
 

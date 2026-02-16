@@ -60,7 +60,7 @@ print_welcome_banner = print_banner_orbit  # alias for when we randomly change i
 def setup_logging(verbose=False):
     log_level = logging.INFO if verbose else logging.WARNING
 
-    logger = logging.getLogger("fetchez")
+    logger = logging.getLogger()
     logger.setLevel(log_level)
 
     if logger.hasHandlers():
