@@ -314,10 +314,10 @@ class FilenameFilter(FetchHook):
             if keep:
                 kept_entries.append(item)
 
-        if self.stage == "pre":
-            logger.info(
-                f"Filename Filter hook filtered files and has kept {len(kept_entries)} matches."
-            )
+        # if self.stage == "pre":
+        #     logger.info(
+        #         f"Filename Filter hook filtered files and has kept {len(kept_entries)} matches."
+        #     )
         return kept_entries
 
 
