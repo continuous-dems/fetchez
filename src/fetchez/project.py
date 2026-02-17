@@ -57,7 +57,7 @@ class ProjectRun:
             return {}
 
     def _init_hooks(self, hook_defs):
-        """Instantiate hooks from list of dicts."""
+        """Initialize hooks from list of dicts."""
 
         if not hook_defs:
             return []
@@ -70,7 +70,7 @@ class ProjectRun:
             for k, v in kwargs.items():
                 if isinstance(
                     v, str
-                ):  # and k in ['file', 'output', 'output_grid', 'mask_fn', 'dem']:
+                ) and k in ['file', 'output', 'output_grid', 'mask_fn', 'dem']:
                     if not os.path.isabs(v) and not v.startswith(
                         ("http", "s3://", "gs://", "ftp://")
                     ):

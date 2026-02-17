@@ -345,11 +345,7 @@ def fetchez_cli():
     ):
         from . import project
 
-        logging.basicConfig(
-            level=logging.INFO,
-            format="[ %(levelname)s ] %(name)s: %(message)s",
-            stream=sys.stderr,
-        )
+        setup_logging(True)
 
         project_file = sys.argv[1]
         run = project.ProjectRun(project_file)
