@@ -320,25 +320,6 @@ def fetchez_cli():
         # Windows does not strictly support SIGPIPE in the same way
         pass
 
-    # Check if first arg exists and ends in .json or yaml. -- project file --
-    if (
-        len(sys.argv) > 1
-        and (sys.argv[1].endswith(".json") or sys.argv[1].endswith(".yaml"))
-        and os.path.isfile(sys.argv[1])
-    ):
-        from . import project
-
-        logging.basicConfig(
-            level=logging.INFO,
-            format="[ %(levelname)s ] %(name)s: %(message)s",
-            stream=sys.stderr,
-        )
-
-        project_file = sys.argv[1]
-        run = project.ProjectRun(project_file)
-        run.run()
-        sys.exit(0)
-
     _usage = "%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]..."
 
     registry.FetchezRegistry.load_user_plugins()
@@ -355,6 +336,21 @@ def fetchez_cli():
     # user_presets = config.load_user_config().get('presets', {})
     user_presets = presets.get_global_presets()
     user_mod_presets = config.load_user_config().get("modules", {})
+
+    # Check if first arg exists and ends in .json or yaml. -- project file --
+    if (
+        len(sys.argv) > 1
+        and (sys.argv[1].endswith(".json") or sys.argv[1].endswith(".yaml"))
+        and os.path.isfile(sys.argv[1])
+    ):
+        from . import project
+
+        setup_logging(True)
+
+        project_file = sys.argv[1]
+        run = project.ProjectRun(project_file)
+        run.run()
+        sys.exit(0)
 
     parser = argparse.ArgumentParser(
         description=f"{utils.CYAN}%(prog)s{utils.RESET} ({__version__}) :: Discover and Fetch remote geospatial data",
@@ -680,12 +676,22 @@ CUDEM home page: <http://cudem.colorado.edu>
         else:
             if current_cmd and current_cmd != "file":
                 current_args.append(arg)
+            elif current_cmd == "file" and arg.startswith("-"):
+                current_args.append(arg)
             elif os.path.isfile(arg):
-                current_cmd = "file"
-                if current_args:
-                    current_args[0] += f",{arg}"
+                if current_cmd == "file":
+                    if current_args and current_args[0].startswith("--paths="):
+                        current_args[0] += f",{arg}"
+                    else:
+                        current_args.append(f"--paths={arg}")
                 else:
+                    current_cmd = "file"
                     current_args = [f"--paths={arg}"]
+                # current_cmd = "file"
+                # if current_args:
+                #     current_args[0] += f",{arg}"
+                # else:
+                #     current_args = [f"--paths={arg}"]
 
     if current_cmd:
         commands.append((current_cmd, current_args))
