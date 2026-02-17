@@ -68,9 +68,13 @@ class ProjectRun:
             kwargs = h.get("args", {})
 
             for k, v in kwargs.items():
-                if isinstance(
-                    v, str
-                ) and k in ['file', 'output', 'output_grid', 'mask_fn', 'dem']:
+                if isinstance(v, str) and k in [
+                    "file",
+                    "output",
+                    "output_grid",
+                    "mask_fn",
+                    "dem",
+                ]:
                     if not os.path.isabs(v) and not v.startswith(
                         ("http", "s3://", "gs://", "ftp://")
                     ):

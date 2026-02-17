@@ -88,7 +88,7 @@ class Unzip(FetchHook):
             status = entry.get("status")
 
             if status != 0 or not zip_path.lower().endswith(".zip"):
-                out_entries.append((mod,entry))
+                out_entries.append((mod, entry))
                 continue
 
             extract_dir = os.path.dirname(zip_path)
