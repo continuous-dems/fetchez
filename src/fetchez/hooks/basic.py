@@ -276,7 +276,7 @@ class FilenameFilter(FetchHook):
                 stage.lower() if stage.lower() in ["pre", "file", "post"] else "file"
             )
 
-        logger.info(f"filename_filter is set to stage {self.stage}")
+        # logger.info(f"filename_filter is set to stage {self.stage}")
 
     def run(self, entries):
         # Input: List of file entries
@@ -314,9 +314,10 @@ class FilenameFilter(FetchHook):
             if keep:
                 kept_entries.append(item)
 
-        logger.info(
-            f"Filename Filter hook filtered files and has kept {len(kept_entries)} matches."
-        )
+        if self.stage == "pre":
+            logger.info(
+                f"Filename Filter hook filtered files and has kept {len(kept_entries)} matches."
+            )
         return kept_entries
 
 
