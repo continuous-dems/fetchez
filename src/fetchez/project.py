@@ -74,6 +74,7 @@ class ProjectRun:
                     if not os.path.isabs(v) and not v.startswith(
                         ("http", "s3://", "gs://", "ftp://")
                     ):
+                        # This breaks the filename_filter hook when trying to match an extenstion!
                         if "." in os.path.basename(v) or os.sep in v:
                             kwargs[k] = os.path.abspath(os.path.join(self.base_dir, v))
 
