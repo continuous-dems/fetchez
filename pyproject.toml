@@ -39,8 +39,9 @@ aws = ["boto3"]
 vector = ["pyshp", "pyproj"]
 bing = ["mercantile"]
 earthdata = ["earthaccess>=0.9.0"]
+stac = ["pystac", "pystac_client"]
 
-full = ["fetchez[aws,bing,vector,earthdata]"]
+full = ["fetchez[aws,bing,vector,earthdata,stac]"]
 
 [dependency-groups]
 dev = [
@@ -111,5 +112,7 @@ module = [
     "shapefile",
     "yaml",
     "earthaccess.*",
+    "pystac",
+    "pystac_client",
 ]
 ignore_missing_imports = true
