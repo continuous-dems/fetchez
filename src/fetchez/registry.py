@@ -879,6 +879,56 @@ class FetchezRegistry:
                 "docs": "https://aa.usno.navy.mil/data/docs/RS_OneDay.php",
             },
         },
+        # STAC (SpatioTemporal Asset Catalog)
+        "stac": {
+            "mod": "globato.modules.common.stac",
+            "cls": "STACModule",
+            "category": "Generic",
+            "desc": "Generic STAC API Fetcher (SpatioTemporal Asset Catalog)",
+            "agency": "Various",
+            "tags": [
+                "stac",
+                "api",
+                "catalog",
+                "spatiotemporal",
+                "json",
+                "cloud-native",
+            ],
+            "region": "Global",
+            "resolution": "Variable",
+            "license": "Varies",
+            "urls": {
+                "spec": "https://stacspec.org/",
+                "browser": "https://radiantearth.github.io/stac-browser/",
+            },
+        },
+        # Maxar Open Data
+        "maxar": {
+            "mod": "globato.modules.maxar",
+            "cls": "MaxarOpenData",
+            "category": "Imagery",
+            "desc": "Maxar Open Data Program (Disaster Response Imagery)",
+            "agency": "Maxar Technologies",
+            "tags": [
+                "maxar",
+                "imagery",
+                "disaster",
+                "response",
+                "stac",
+                "cog",
+                "optical",
+                "earthquake",
+                "flood",
+            ],
+            "region": "Global (Event Based)",
+            "resolution": "High-Res (~30cm - 50cm)",
+            "license": "CC BY-NC 4.0",
+            "urls": {
+                "home": "https://www.maxar.com/open-data",
+                "registry": "https://registry.opendata.aws/maxar-open-data/",
+                "license": "https://www.maxar.com/open-data/attribution",
+            },
+        },
         # The following modules don't need a `region`,
         # they populate `FetchModule.results` in some other way.
         # Cpt-City

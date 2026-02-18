@@ -236,6 +236,7 @@ def str2inc(inc_str):
 
     c/s - arc-seconds
     m - arc-minutes
+    t - meters
     """
 
     if inc_str is None or str(inc_str).lower() == "none" or len(str(inc_str)) == 0:
@@ -249,6 +250,8 @@ def str2inc(inc_str):
             return float(inc_str[:-1]) / 3600.0
         elif units == "m":
             return float(inc_str[:-1]) / 360.0
+        elif units == "t":
+            return float(inc_str[:-1]) / 111320.0  # Approx meters at equator
         else:
             return float(inc_str)
     except ValueError as e:
