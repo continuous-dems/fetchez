@@ -15,14 +15,17 @@ sys.path.insert(0, os.path.abspath("../_ext"))
 project = "Fetchez"
 copyright = "2026, Matthew Love"
 author = "Matthew Love"
-release = "0.3.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
+nitpicky = True
+
 extensions = [
     "sphinx.ext.autodoc",  # Generate docs from docstrings
     "sphinx.ext.napoleon",  # Support Google-style docstrings
+    "sphinx_autodoc_typehints",  # Generate docs from typehints
+    "sphinx.ext.intersphinx",  # Link to other projects' docs
     "sphinx.ext.viewcode",  # Add links to source code
     "sphinx.ext.githubpages",  # Auto-generate .nojekyll for GH Pages
     "myst_parser",  # Parse Markdown files
@@ -49,7 +52,7 @@ exclude_patterns = []
 # html_theme = 'sphinx_rtd_theme'
 # html_theme = 'alabaster'
 html_theme = "pydata_sphinx_theme"
-html_static_path = ["_static"]
+# html_static_path = ["_static"]
 
 html_sidebars = {"**": []}
 
@@ -59,7 +62,6 @@ html_theme_options = {
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     # "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
     "secondary_sidebar_items": [],
-    "footer_items": ["copyright", "sphinx-version", "theme-version"],
 }
 
 # Optional: Add a logo
@@ -73,4 +75,19 @@ autodoc_default_options = {
     "special-members": "__init__",
     "undoc-members": True,
     "exclude-members": "__weakref__",
+}
+
+# Combine return description with return type
+napoleon_use_rtype = False
+typehints_use_rtype = False
+
+# Show types of undocumented parameters
+always_document_param_types = True
+
+# Display the parameter's default value alongside the parameter's type
+typehints_defaults = "comma"
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "requests": ("https://requests.readthedocs.io/en/latest/", None),
 }

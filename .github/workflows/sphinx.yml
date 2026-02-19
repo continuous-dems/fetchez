@@ -25,24 +25,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
         run: |
-          pip install sphinx pydata-sphinx-theme myst-parser
-          pip install .  # Install fetchez so autodoc can import it
-
-      - name: Generate API Docs
-        run: |
-          sphinx-apidoc -o docs/source/api src -f -M
+          uv sync --group docs
 
       - name: Build Sphinx
         run: |
           cd docs
-          make html
+          uv run make html
 
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

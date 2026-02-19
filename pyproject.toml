@@ -45,14 +45,20 @@ full = ["fetchez[aws,bing,vector,earthdata,stac]"]
 
 [dependency-groups]
 dev = [
-  "pre-commit",
-  "mypy",
-  "types-requests>=2.31.0.6",
-  "types-tqdm>=4.67.0.20241221",
+    "pre-commit",
+    "mypy",
+    "types-requests>=2.31.0.6",
+    "types-tqdm>=4.67.0.20241221",
 ]
 test = [
-  "pytest",
-  "pytest-cov",
+    "pytest",
+    "pytest-cov",
+]
+docs = [
+    "sphinx",
+    "sphinx-autodoc-typehints>=2.0.1",
+    "pydata-sphinx-theme",
+    "myst-parser",
 ]
 
 [project.scripts]

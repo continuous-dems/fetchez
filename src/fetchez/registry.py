@@ -3,7 +3,7 @@
 
 """
 fetchez.registry
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 This module contains the Module Registry for the Fetchez library.
 
@@ -1159,7 +1159,7 @@ class FetchezRegistry:
 
         Args:
             mod_key (str): The CLI command name (e.g., 'datum_grids').
-            mod_cls (class): The actual Python class (inheriting from FetchModule).
+            mod_cls: The actual Python class (inheriting from FetchModule).
             metadata (dict): Optional metadata for discovery (desc, tags, etc.).
         """
 

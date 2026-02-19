@@ -1,8 +1,0 @@
-theme: jekyll-theme-primer
-title: Fetchez
-description: The Generic Geospatial Data Acquisition and Registry Engine
-show_downloads: true
-google_analytics:
-github:
-  is_project_page: true
-  repository_url: https://github.com/ciresdem/fetchez
