@@ -828,6 +828,20 @@ class FetchezRegistry:
                 "data": "https://ftp.space.dtu.dk/pub/",
             },
         },
+        "seanoe": {
+            "mod": "fetchez.modules.seanoe",
+            "cls": "Seanoe",
+            "category": "Geodesy",
+            "desc": "FES Global Gravity, Altimetry, and Tide Models",
+            "agency": "SHOM",
+            "tags": ["tides", "lat", "msl", "fes2014", "global", "open-science"],
+            "region": "Global",
+            "resolution": "1 arc-minute (~2km)",
+            "license": "Public / Scientific Use",
+            "urls": {
+                "home": "https://www.seanoe.org/data/00742/85408/",
+            },
+        },
         "osm": {
             "mod": "fetchez.modules.osm",
             "cls": "OSM",
