@@ -51,8 +51,8 @@ dev = [
     "types-tqdm>=4.67.0.20241221",
 ]
 test = [
-  "pytest",
-  "pytest-cov",
+    "pytest",
+    "pytest-cov",
 ]
 docs = [
     "sphinx",
