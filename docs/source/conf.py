@@ -20,6 +20,7 @@ author = "Matthew Love"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 nitpicky = True
+nitpick_ignore = [('py:data', 'typing.Union')]
 
 extensions = [
     "sphinx.ext.autodoc",  # Generate docs from docstrings
@@ -28,6 +29,7 @@ extensions = [
     "sphinx.ext.intersphinx",  # Link to other projects' docs
     "sphinx.ext.viewcode",  # Add links to source code
     "sphinx.ext.githubpages",  # Auto-generate .nojekyll for GH Pages
+    "sphinx_argparse_cli", # argparse
     "myst_parser",  # Parse Markdown files
     "module_table",  # Generate module catalog table
 ]
@@ -54,10 +56,13 @@ exclude_patterns = []
 html_theme = "pydata_sphinx_theme"
 # html_static_path = ["_static"]
 
-html_sidebars = {"**": []}
+# html_sidebars = {"**": []}
+html_sidebars = {
+    "modules/*": []
+}
 
 html_theme_options = {
-    "github_url": "https://github.com/ciresdem/fetchez",
+    "github_url": "https://github.com/continuous-dems/fetchez",
     "show_prev_next": False,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     # "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
