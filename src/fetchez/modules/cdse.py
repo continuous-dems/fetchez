@@ -162,7 +162,8 @@ class CDSE(core.FetchModule):
     def _strip_ns(self, xml_text):
         """Strip namespaces from XML string to allow simple tag searching."""
 
-        return re.sub(r'\sxmlns="[^"]+"', "", xml_text, count=1)
+        # return re.sub(r'\sxmlns="[^"]+"', "", xml_text, count=1)
+        return re.sub(r"\sxmlns='[^']+'", "", xml_text, count=1)
 
     def run(self):
         """Execute the query and generate download links for JP2 bands."""
