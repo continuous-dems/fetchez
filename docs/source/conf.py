@@ -56,12 +56,11 @@ html_theme = "pydata_sphinx_theme"
 
 # html_sidebars = {"**": []}
 html_sidebars = {
-    "**": ["search-field", "sidebar-nav-bs"], # Default for all pages
     "modules/*": []
 }
 
 html_theme_options = {
-    "github_url": "https://github.com/ciresdem/fetchez",
+    "github_url": "https://github.com/continuous-dems/fetchez",
     "show_prev_next": False,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     # "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
