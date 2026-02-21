@@ -56,6 +56,7 @@ html_theme = "pydata_sphinx_theme"
 
 # html_sidebars = {"**": []}
 html_sidebars = {
+    "**": ["search-field", "sidebar-nav-bs"], # Default for all pages
     "modules/*": []
 }
 
