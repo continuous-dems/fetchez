@@ -70,6 +70,8 @@ modules/index
 
 api/core
 api/registry
+api/hooks
+api/spatial
 api/fred
 ```
 
