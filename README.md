@@ -4,13 +4,13 @@
 
 *Fetchez Les Données*
 
-[![Version](https://img.shields.io/badge/version-0.4.2-blue.svg)](https://github.com/ciresdem/fetchez)
+[![Version](https://img.shields.io/badge/version-0.4.2-blue.svg)](https://github.com/continuous-dems/fetchez)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-yellow.svg)](https://www.python.org/)
 [![PyPI version](https://badge.fury.io/py/fetchez.svg)](https://badge.fury.io/py/fetchez)
 [![project chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://cudem.zulip.org)
 
-**Fetchez** is a lightweight, modular and highly extendable Python library and command-line tool designed to discover and retrieve geospatial data from a wide variety of public repositories. Originally part of the [CUDEM](https://github.com/ciresdem/cudem) project, Fetchez is now a standalone tool capable of retrieving Bathymetry, Topography, Imagery, and Oceanographic data (and more!) from sources like NOAA, USGS, NASA, and the European Space Agency.
+**Fetchez** is a lightweight, modular and highly extendable Python library and command-line tool designed to discover and retrieve geospatial data from a wide variety of public repositories. Originally part of the [CUDEM](https://github.com/continuous-dems/cudem) project, Fetchez is now a standalone tool capable of retrieving Bathymetry, Topography, Imagery, and Oceanographic data (and more!) from sources like NOAA, USGS, NASA, and the European Space Agency.
 
 ---
 
@@ -56,13 +56,13 @@ pip install fetchez
 Download and install git (If you have not already): [git installation](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
 ```bash
-pip install git+https://github.com/ciresdem/fetchez.git#egg=fetchez
+pip install git+https://github.com/continuous-dems/fetchez.git#egg=fetchez
 ```
 
 Clone and install from source
 
 ```bash
-git clone https://github.com/ciresdem/fetchez.git
+git clone https://github.com/continuous-dems/fetchez.git
 cd fetchez
 pip install .
 ```
@@ -192,7 +192,7 @@ Fetchez includes a powerful Hook System that allows you to chain actions togethe
 fetchez charts --hook unzip --hook pipe
 ```
 
-You can write your own custom hooks (e.g., to log downloads to a database or trigger a script) and drop them in ~/.fetchez/hooks/. See [CONTRIBUTING.md](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING.md) for details.
+You can write your own custom hooks (e.g., to log downloads to a database or trigger a script) and drop them in ~/.fetchez/hooks/. See [CONTRIBUTING.md](https://github.com/continuous-dems/fetchez/blob/main/CONTRIBUTING.md) for details.
 
 ## 🔗 Pipeline Presets (Macros)
 Tired of typing the same chain of hooks every time? Presets allow you to define reusable workflow macros.
@@ -290,11 +290,11 @@ Drop your Python scripts into these configuration folders, and they will be auto
 2.  Drop a python script there (e.g., `my_data.py`).
 3.  Run it: `fetchez my_data`
 
-See [CONTRIBUTING.md](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING.md) for a full code example.
+See [CONTRIBUTING.md](https://github.com/continuous-dems/fetchez/blob/main/CONTRIBUTING.md) for a full code example.
 
 ## 🛠 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](https://github.com/ciresdem/fetchez/blob/main/CONTRIBUTING.md) for details on how to register new modules or hooks with our metadata schema.
+We welcome contributions! Please see [CONTRIBUTING.md](https://github.com/continuous-dems/fetchez/blob/main/CONTRIBUTING.md) for details on how to register new modules or hooks with our metadata schema.
 
 ## 🔱 Disclaimer on Data Persistence
 
@@ -310,6 +310,6 @@ We strive to keep our modules robust and our index fresh. If you encounter a bro
 
 ## ⚖ License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/ciresdem/fetchez/blob/main/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/continuous-dems/fetchez/blob/main/LICENSE) file for details.
 
 Copyright (c) 2010-2026 Regents of the University of Colorado
