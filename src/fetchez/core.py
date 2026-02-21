@@ -580,6 +580,7 @@ class Fetch:
                     headers=self.headers,
                     timeout=(timeout, read_timeout),
                     verify=self.verify,
+                    allow_redirects=self.allow_redirects,
                 ) as req:
                     # Finished/Cached by Server (304) or Pre-check
                     if req.status_code == 304:
@@ -614,8 +615,31 @@ class Fetch:
                             del self.headers["Range"]
                         continue
 
-                    elif req.status_code == 401:
-                        # Authentication Error
+                    elif req.status_code in [401, 403]:
+                        # Earthdata/CDSE hack from cudem.fetches.fetches: requests strips Authorization
+                        # headers on cross-domain redirects. If the URL changed and we got a 401/403,
+                        # explicitly re-request the new URL with headers.
+                        if self.url != req.url:
+                            logger.debug(
+                                f"Auth dropped during redirect. Re-requesting: {req.url}"
+                            )
+                            return Fetch(
+                                url=req.url,
+                                callback=self.callback,
+                                headers=self.headers,
+                                verify=self.verify,
+                                allow_redirects=self.allow_redirects,
+                            ).fetch_file(
+                                dst_fn=dst_fn,
+                                params=params,
+                                datatype=datatype,
+                                overwrite=overwrite,
+                                timeout=timeout,
+                                read_timeout=read_timeout,
+                                tries=tries,
+                                check_size=check_size,
+                                verbose=verbose,
+                            )
                         raise UnboundLocalError("Authentication Failed")
 
                     elif req.status_code not in [200, 206]:

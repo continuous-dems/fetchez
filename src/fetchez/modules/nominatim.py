@@ -66,20 +66,13 @@ class Nominatim(core.FetchModule):
 
                         self.add_entry_to_results(
                             url=q_url,
+                            # dst_fn="nom_results.json",
                             dst_fn=None,
                             data_type="coords",
                             metadata=results[0],
                             x=x,
                             y=y,
                         )
-                        # self.results.append({
-                        #     'url': q_url,
-                        #     'dst_fn': None,
-                        #     'data_type': 'coords',
-                        #     'metadata': results[0],
-                        #     'x': x,
-                        #     'y': y
-                        # })
                     else:
                         logger.warning(
                             f"Nominatim: No results found for query '{self.query}'"
