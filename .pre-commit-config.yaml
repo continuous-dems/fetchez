@@ -27,4 +27,4 @@ repos:
         args: ['--fix']
       - id: ruff-format
       - id: ruff-format
-        args: ['--diff']
+        args: ['--check']
