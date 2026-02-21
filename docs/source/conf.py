@@ -54,7 +54,10 @@ exclude_patterns = []
 html_theme = "pydata_sphinx_theme"
 # html_static_path = ["_static"]
 
-html_sidebars = {"**": []}
+# html_sidebars = {"**": []}
+html_sidebars = {
+    "modules/*": []
+}
 
 html_theme_options = {
     "github_url": "https://github.com/ciresdem/fetchez",
