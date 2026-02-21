@@ -119,6 +119,29 @@ class FetchezRegistry:
                 "home": "https://data.bris.ac.uk/data/dataset/s5hqmjcdj8yo2ibzi9b4ew3sn"
             },
         },
+        # Copernicus CDSE Direct Node Fetcher
+        "cdse": {
+            "mod": "fetchez.modules.cdse",
+            "cls": "CDSE",
+            "category": "Imagery",
+            "desc": "Copernicus Data Space Ecosystem (CDSE) Direct Node Fetcher",
+            "agency": "ESA",
+            "tags": ["cdse", "copernicus", "esa", "satellite", "odata", "imagery"],
+            "region": "Global",
+            "resolution": "Varies",
+            "license": "Copernicus Open Access",
+            "urls": {
+                "home": "https://dataspace.copernicus.eu/",
+                "auth": "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/account/",
+            },
+        },
+        "sentinel2_jp2": {
+            "inherits": "cdse",
+            "cls": "Sentinel2_CDSE",
+            "desc": "Sentinel-2 RGB Bands (JP2) via CDSE Nodes",
+            "tags": ["sentinel", "sentinel2", "imagery", "jp2", "optical", "rgb"],
+            "resolution": "10m",
+        },
         "sentinel2": {
             "mod": "fetchez.modules.sentinel2",
             "cls": "Sentinel2",
