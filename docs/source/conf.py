@@ -28,7 +28,6 @@ extensions = [
     "sphinx.ext.intersphinx",  # Link to other projects' docs
     "sphinx.ext.viewcode",  # Add links to source code
     "sphinx.ext.githubpages",  # Auto-generate .nojekyll for GH Pages
-    "sphinx.ext.argparse" # argparse
     "myst_parser",  # Parse Markdown files
     "module_table",  # Generate module catalog table
 ]
