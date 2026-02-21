@@ -40,7 +40,6 @@ vector = ["pyshp", "pyproj"]
 bing = ["mercantile"]
 earthdata = ["earthaccess>=0.9.0"]
 stac = ["pystac", "pystac_client"]
-sentinel = ["sentinelsat"]
 
 full = ["fetchez[aws,bing,vector,earthdata,stac]"]
 
