@@ -316,7 +316,7 @@ def get_parser():
     user_presets = presets.get_global_presets()
 
     _usage = "%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]..."
-    
+
     parser = argparse.ArgumentParser(
         description=f"{utils.CYAN}%(prog)s{utils.RESET} ({__version__}) :: Discover and Fetch remote geospatial data",
         formatter_class=argparse.RawTextHelpFormatter,
@@ -464,7 +464,7 @@ CUDEM home page: <http://cudem.colorado.edu>
     # adv_grp.add_argument('--init-presets', action='store_true', help="Export active presets to ./fetchez_presets_template.json (template for customization).")
 
     return parser
-    
+
 def fetchez_cli():
     """Run fetchez from command-line using argparse."""
 
