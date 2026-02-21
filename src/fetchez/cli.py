@@ -310,9 +310,12 @@ def init_hooks(hook_list_strs):
 
 # =============================================================================
 # Command-line Interface(s) (CLI)
+#
+# `get_parser` here was extracted so we can auto-document the cli with Sphinx.
 # =============================================================================
 def get_parser():
     from . import presets
+
     user_presets = presets.get_global_presets()
 
     _usage = "%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]..."
@@ -465,6 +468,7 @@ CUDEM home page: <http://cudem.colorado.edu>
 
     return parser
 
+
 def fetchez_cli():
     """Run fetchez from command-line using argparse."""
 
@@ -564,8 +568,9 @@ def fetchez_cli():
         hook_cls = HookRegistry.get_hook(global_args.hook_info)
         if hook_cls:
             print(f"\n🪝  Hook: {hook_cls.name}")
-            print(f"   Stage: {hook_cls.stage}")
-            print(f"   Type:  {hook_cls.category}\n")
+            print(f"    Origin: {hook_cls.__module__.split('.')[0]}")
+            print(f"    Stage: {hook_cls.stage}")
+            print(f"    Type:  {hook_cls.category}\n")
 
             import inspect
 
@@ -612,8 +617,19 @@ def fetchez_cli():
 
             for name, cls_obj in sorted(grouped_hooks[cat], key=lambda x: x[0]):
                 desc = getattr(cls_obj, "desc", "No description")
-                # stage = getattr(cls_obj, 'stage', 'file')
-                print(f"  {utils.colorize(name, utils.BOLD):<18} : {desc}")
+
+                # Determine the origin of the hook
+                mod_path = getattr(cls_obj, "__module__", "")
+                if mod_path:
+                    origin = mod_path.split(".")[0].capitalize()
+                else:
+                    origin = "User Plugin"
+
+                # Print with origin tag in yellow
+                print(
+                    f"  {utils.colorize(name, utils.BOLD):<18} "
+                    f"{utils.colorize(f'[{origin}]', utils.YELLOW):<13} : {desc}"
+                )
 
         print()
         sys.exit(0)
@@ -634,14 +650,16 @@ def fetchez_cli():
             global_hook_objs.extend(chain)
 
     if global_args.list:
-        from .hooks.basic import ListEntries, DryRun
+        from .hooks.builtins.pipeline.dryrun import DryRun
+        from .hooks.builtins.metadata.list_entries import ListEntries
 
         global_hook_objs.append(ListEntries())
         if not any(h.name == "dryrun" for h in global_hook_objs):
             global_hook_objs.append(DryRun())
 
     if global_args.inventory:
-        from .hooks.basic import Inventory, DryRun
+        from .hooks.builtins.metadata.inventory import Inventory
+        from .hooks.builtins.pipeline.dryrun import DryRun
 
         fmt = global_args.inventory
         global_hook_objs.append(Inventory(format=fmt))
@@ -649,12 +667,14 @@ def fetchez_cli():
             global_hook_objs.append(DryRun())
 
     if global_args.pipe_path:
-        from .hooks.basic import PipeOutput
+        from .hooks.builtins.pipeline.pipe import PipeOutput
 
         global_hook_objs.append(PipeOutput())
 
     if global_args.audit_log:
-        from .hooks.basic import Checksum, MetadataEnrich, Audit
+        from .hooks.builtins.metadata.checksum import Checksum
+        from .hooks.builtins.metadata.enrich import MetadataEnric
+        from .hooks.builtins.metadata.audit import Audit
 
         global_hook_objs.append(Checksum(algo="md5"))
         global_hook_objs.append(MetadataEnrich())
