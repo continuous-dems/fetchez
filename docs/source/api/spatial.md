@@ -6,3 +6,4 @@ Spatial & Regions
    :members:
    :undoc-members:
    :show-inheritance:
+```
