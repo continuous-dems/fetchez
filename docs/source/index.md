@@ -53,8 +53,6 @@ run_fetchez([fetcher])
 :caption: User Guide:
 
 user_guide/installation
-user_guide/quickstart
-user_guide/cli_usage
 ```
 
 ```{toctree}
