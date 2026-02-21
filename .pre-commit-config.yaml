@@ -26,4 +26,5 @@ repos:
       - id: ruff-check
         args: ['--fix']
       - id: ruff-format
-        args: ['-v']
+      - id: ruff-format
+        args: ['--diff']
