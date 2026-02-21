@@ -311,11 +311,46 @@ def init_hooks(hook_list_strs):
 # =============================================================================
 # Command-line Interface(s) (CLI)
 # =============================================================================
-def get_parser():
-    from . import presets
-    user_presets = presets.get_global_presets()
+def fetchez_cli():
+    """Run fetchez from command-line using argparse."""
+
+    try:
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    except AttributeError:
+        # Windows does not strictly support SIGPIPE in the same way
+        pass
 
     _usage = "%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]..."
+
+    registry.FetchezRegistry.load_user_plugins()
+    registry.FetchezRegistry.load_installed_plugins()
+
+    from .hooks.registry import HookRegistry
+    from . import presets
+    from . import config
+
+    HookRegistry.load_builtins()
+    HookRegistry.load_user_plugins()
+
+    # user_presets = presets.load_user_presets()
+    # user_presets = config.load_user_config().get('presets', {})
+    user_presets = presets.get_global_presets()
+    user_mod_presets = config.load_user_config().get("modules", {})
+
+    # Check if first arg exists and ends in .json or yaml. -- project file --
+    if (
+        len(sys.argv) > 1
+        and (sys.argv[1].endswith(".json") or sys.argv[1].endswith(".yaml"))
+        and os.path.isfile(sys.argv[1])
+    ):
+        from . import project
+
+        setup_logging(True)
+
+        project_file = sys.argv[1]
+        run = project.ProjectRun(project_file)
+        run.run()
+        sys.exit(0)
 
     parser = argparse.ArgumentParser(
         description=f"{utils.CYAN}%(prog)s{utils.RESET} ({__version__}) :: Discover and Fetch remote geospatial data",
@@ -462,51 +497,6 @@ CUDEM home page: <http://cudem.colorado.edu>
         help="Generate a default ~/.fetchez/presets.json file.",
     )
     # adv_grp.add_argument('--init-presets', action='store_true', help="Export active presets to ./fetchez_presets_template.json (template for customization).")
-
-    return parser
-
-def fetchez_cli():
-    """Run fetchez from command-line using argparse."""
-
-    try:
-        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-    except AttributeError:
-        # Windows does not strictly support SIGPIPE in the same way
-        pass
-
-    _usage = "%(prog)s [-R REGION] [OPTIONS] MODULE [MODULE-OPTS]..."
-
-    registry.FetchezRegistry.load_user_plugins()
-    registry.FetchezRegistry.load_installed_plugins()
-
-    from .hooks.registry import HookRegistry
-    from . import presets
-    from . import config
-
-    HookRegistry.load_builtins()
-    HookRegistry.load_user_plugins()
-
-    # user_presets = presets.load_user_presets()
-    # user_presets = config.load_user_config().get('presets', {})
-    user_presets = presets.get_global_presets()
-    user_mod_presets = config.load_user_config().get("modules", {})
-
-    # Check if first arg exists and ends in .json or yaml. -- project file --
-    if (
-        len(sys.argv) > 1
-        and (sys.argv[1].endswith(".json") or sys.argv[1].endswith(".yaml"))
-        and os.path.isfile(sys.argv[1])
-    ):
-        from . import project
-
-        setup_logging(True)
-
-        project_file = sys.argv[1]
-        run = project.ProjectRun(project_file)
-        run.run()
-        sys.exit(0)
-
-    parser = get_parser()
 
     # Pre-process Arguments to fix argparses handling of -R
     fixed_argv = spatial.fix_argparse_region(sys.argv[1:])
