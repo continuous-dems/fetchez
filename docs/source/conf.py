@@ -20,6 +20,7 @@ author = "Matthew Love"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 nitpicky = True
+nitpick_ignore = [('py:data', 'typing.Union')]
 
 extensions = [
     "sphinx.ext.autodoc",  # Generate docs from docstrings
