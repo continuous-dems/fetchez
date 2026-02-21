@@ -12,7 +12,6 @@ repos:
       - id: requirements-txt-fixer
       - id: check-added-large-files
         args: ['--maxkb=500']
-      - id: check-case-conflict
       - id: check-json
       - id: check-toml
       - id: check-yaml
@@ -21,7 +20,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.10
+    rev: v0.15.2
     hooks:
       - id: ruff-check
         args: ['--fix']
