@@ -9,6 +9,7 @@
 ## Quickstart
 
 **Installation:**
+
 ```bash
 pip install fetchez
 ```
@@ -36,7 +37,7 @@ fetcher.run()
 run_fetchez([fetcher])
 ```
 
-## 🌎 Key Features
+## Key Features
 
 * ***Unified Interface***: Access 50+ endpoints (OData, REST, THREDDS, FTP) using the exact same syntax.
 
