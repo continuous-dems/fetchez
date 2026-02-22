@@ -568,9 +568,9 @@ def fetchez_cli():
         hook_cls = HookRegistry.get_hook(global_args.hook_info)
         if hook_cls:
             print(f"\n🪝  Hook: {hook_cls.name}")
-            print(f"    Origin: {hook_cls.__module__.split('.')[0]}")
             print(f"    Stage: {hook_cls.stage}")
-            print(f"    Type:  {hook_cls.category}\n")
+            print(f"    Type:  {hook_cls.category}")
+            print(f"    Origin: {hook_cls.__module__}\n")
 
             import inspect
 
