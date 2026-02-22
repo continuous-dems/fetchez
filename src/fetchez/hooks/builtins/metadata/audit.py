@@ -33,6 +33,20 @@ class Audit(FetchHook):
         self.filename = file
         self.format = format.lower()
 
+    def _sanitize(self, entry):
+        """Remove or stringify non-serializable objects like generators."""
+
+        clean = {}
+        for k, v in entry.items():
+            if k in ['stream', 'array_yield']:
+                continue
+
+            if isinstance(v, (dict, list, str, int, float, bool, type(None))):
+                clean[k] = v
+            else:
+                clean[k] = str(v)
+        return clean
+
     def run(self, all_results):
         # all_results is a list of dicts: [{'url':..., 'dst_fn':..., 'status':...}, ...]
 
@@ -40,7 +54,8 @@ class Audit(FetchHook):
             return
 
         try:
-            entry_results = [e for m, e in all_results]
+            entry_results = [self._sanitize(e) for m, e in all_results]
+            # entry_results = [e for m, e in all_results]
             with open(self.filename, "w") as f:
                 if self.format == "json":
                     json.dump(entry_results, f, indent=2)
