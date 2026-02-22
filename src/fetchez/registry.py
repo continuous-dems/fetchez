@@ -45,19 +45,20 @@ class FetchezRegistry:
         "file": {
             "mod": "fetchez.modules.path",
             "cls": "LocalDataset",
-            "category": "Generic",
-            "desc": "Process a local file path through the pipeline.",
+            "category": "Local Data",
+            "desc": "Explicitly pass specific local files (No spatial filtering)",
             "agency": "Local",
-            "tags": ["local", "file", "system", "path"],
+            "tags": ["local", "file"],
             "region": "Global",
         },
-        # Local module - query a local fred geojson
-        "local": {
+        "fred_local": {
             "mod": "fetchez.modules.local",
             "cls": "Local",
-            "category": "User Data",
-            "desc": "Query local or custom FRED indices",
-            "tags": ["local", "custom", "index"],
+            "aliases": ["local_index"],
+            "category": "Local Data",
+            "desc": "Spatially query a pre-built FRED index (.json)",
+            "agency": "Local",
+            "tags": ["local", "index", "database", "fred"],
             "region": "Custom",
             "resolution": "N/A",
         },

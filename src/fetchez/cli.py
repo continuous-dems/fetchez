@@ -673,7 +673,7 @@ def fetchez_cli():
 
     if global_args.audit_log:
         from .hooks.builtins.metadata.checksum import Checksum
-        from .hooks.builtins.metadata.enrich import MetadataEnric
+        from .hooks.builtins.metadata.enrich import MetadataEnrich
         from .hooks.builtins.metadata.audit import Audit
 
         global_hook_objs.append(Checksum(algo="md5"))

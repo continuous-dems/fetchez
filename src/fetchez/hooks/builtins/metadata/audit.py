@@ -38,7 +38,7 @@ class Audit(FetchHook):
 
         clean = {}
         for k, v in entry.items():
-            if k in ['stream', 'array_yield']:
+            if k in ["stream", "array_yield"]:
                 continue
 
             if isinstance(v, (dict, list, str, int, float, bool, type(None))):
