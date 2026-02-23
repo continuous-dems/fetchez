@@ -241,7 +241,10 @@ class CopernicusDEM(core.FetchModule):
             return
 
         with tqdm(
-            total=len(results), desc="Processing Results", disable=self.silent
+            total=len(results),
+            desc="Processing Copernicus Results",
+            disable=self.silent,
+            leave=False,
         ) as pbar:
             for surv in results:
                 pbar.update()
