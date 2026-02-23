@@ -56,7 +56,7 @@ class FocusSink(FetchHook):
 
                         focused_entry = {
                             "url": f"file://{path}",
-                            #"src_fn": entry.get("dst_fn"),
+                            # "src_fn": entry.get("dst_fn"),
                             "dst_fn": path,
                             "status": 0,
                             "data_type": f"{self.target}_artifact",

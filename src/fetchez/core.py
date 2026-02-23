@@ -891,7 +891,7 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
                         except Exception as e:
                             logger.error(f'File hook "{hook.name}" failed: {e}')
 
-                    # --- STREAM DRIVER  ---
+                    # --- STREAM ---
                     # If any hook set up a generator stream (e.g. SimpleStack, Filters),
                     # we must exhaust it here to trigger the processing.
                     processed_entries = []
@@ -978,6 +978,7 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
             utils._log_hook_history(flat_results, hook)
         except Exception as e:
             logger.error(f'Global post-hook "{hook.name}" failed: {e}')
+
 
 # =============================================================================
 # Fetch Module (Base & Default/Test Implementations)
