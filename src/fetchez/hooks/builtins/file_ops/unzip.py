@@ -68,7 +68,7 @@ class Unzip(FetchHook):
                                 os.path.exists(os.path.join(extract_dir, f))
                                 for f in files_to_extract
                             ):
-                                logger.info(
+                                logger.debug(
                                     f"Skipping unzip (files exist): {os.path.basename(file_path)}"
                                 )
                                 out_entries.extend(
@@ -128,7 +128,7 @@ class Unzip(FetchHook):
                                 os.path.exists(os.path.join(extract_dir, f))
                                 for f in files_to_extract
                             ):
-                                logger.info(
+                                logger.debug(
                                     f"Skipping untar (files exist): {os.path.basename(file_path)}"
                                 )
                                 out_entries.extend(
@@ -180,7 +180,7 @@ class Unzip(FetchHook):
                 extracted_path = file_path[:-3]
 
                 if not self.overwrite and os.path.exists(extracted_path):
-                    logger.info(
+                    logger.debug(
                         f"Skipping gunzip (file exists): {os.path.basename(file_path)}"
                     )
                     out_entries.append(
