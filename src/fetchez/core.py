@@ -940,6 +940,7 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
                     logger.error(f"Teardown failed for hook '{hook.name}': {e}")
 
     # --- Post Hooks ---
+    # Module-level Post-Hooks
     results_by_mod: Dict[Any, Any] = {m: [] for m in modules}
     for r_tuple in final_results_with_owner:
         owner_mod, entry = r_tuple
@@ -949,24 +950,34 @@ def run_fetchez(modules: List["FetchModule"], threads: int = 3, global_hooks=Non
     for mod in modules:
         mod_post = [h for h in mod.hooks if h.stage == "post"]
         if mod_post and results_by_mod[mod]:
+            current_mod_entries = results_by_mod[mod]
             for hook in mod_post:
                 try:
-                    hook.run(results_by_mod[mod])
-                    utils._log_hook_history(results_by_mod[mod], hook)
+                    current_mod_entries = hook.run(current_mod_entries)
+                    if current_mod_entries is None:
+                        current_mod_entries = []
+                    utils._log_hook_history(current_mod_entries, hook)
                 except Exception as e:
                     logger.error(
                         f'Module "{mod.name}" post-hook "{hook.name}" failed: {e}'
                     )
+            results_by_mod[mod] = current_mod_entries
 
-    flat_results = final_results_with_owner
+    # Re-flatten the lists after module-level post-hooks have modified them
+    flat_results = []
+    for mod_entries in results_by_mod.values():
+        flat_results.extend(mod_entries)
+
+    # Global-level Post-Hooks
     global_post = [h for h in global_hooks if h.stage == "post"]
     for hook in global_post:
         try:
-            hook.run(flat_results)
+            flat_results = hook.run(flat_results)
+            if flat_results is None:
+                flat_results = []
             utils._log_hook_history(flat_results, hook)
         except Exception as e:
             logger.error(f'Global post-hook "{hook.name}" failed: {e}')
-
 
 # =============================================================================
 # Fetch Module (Base & Default/Test Implementations)
