@@ -445,6 +445,15 @@ class FetchezRegistry:
             "license": "Public Domain",
             "urls": {"home": "https://nauticalcharts.noaa.gov/data/bluetopo.html"},
         },
+        "cusp": {
+            "mod": "fetchez.modules.cusp",
+            "cls": "CUSP",
+            "category": "Reference",
+            "desc": "NOAA Continually Updated Shoreline Product",
+            "agency": "NOAA NGS",
+            "tags": ["shoreline", "cusp", "noaa", "mhw", "vector"],
+            "region": "USA",
+        },
         "ehydro": {
             "mod": "fetchez.modules.ehydro",
             "cls": "eHydro",
