@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Breaks hooks into individual files, out of topical ones.
+- Hooks are now auto-detected from 'builtins', so we don't have to maintain a registry.
+- Adds 'focus' and 'datatype' builtin hooks.
+- The 'unzip' hook now supports tar and gz.
+- Post-hooks in fetchez.core was ignoring entry changes, this fixes that.
+
+## [0.4.2] - 2026-02-21
 ### Added
 - Hook system for fetchez! (--list, --inventory, --pipe-path are now hooks)
 - Users can add their own hooks in ~/.fetchez/hooks

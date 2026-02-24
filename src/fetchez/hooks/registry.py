@@ -26,12 +26,36 @@ class HookRegistry:
 
     @classmethod
     def load_builtins(cls):
-        """Load hooks shipped with fetchez (e.g., fetchez.hooks.basic)."""
+        """Recursively scan and load all built-in hooks from the 'builtins' directory."""
 
-        from . import basic, file_ops
+        # Determine the absolute path to the 'hooks' directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        builtins_dir = os.path.join(current_dir, "builtins")
 
-        cls._register_from_module(basic)
-        cls._register_from_module(file_ops)
+        if not os.path.exists(builtins_dir):
+            logger.debug(f"No builtins directory found at {builtins_dir}")
+            return
+
+        # Walk the directory tree recursively
+        for root, dirs, files in os.walk(builtins_dir):
+            # Prevent scanning hidden directories (like __pycache__)
+            dirs[:] = [d for d in dirs if not d.startswith("_")]
+
+            for f in files:
+                if f.endswith(".py") and not f.startswith("_"):
+                    rel_dir = os.path.relpath(root, current_dir)
+                    mod_path = rel_dir.replace(os.sep, ".")
+                    mod_name = f[:-3]
+
+                    full_mod_name = f"fetchez.hooks.{mod_path}.{mod_name}"
+
+                    try:
+                        mod = importlib.import_module(full_mod_name)
+                        cls._register_from_module(mod)
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to load built-in hook {full_mod_name}: {e}"
+                        )
 
     @classmethod
     def load_user_plugins(cls):
