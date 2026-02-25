@@ -62,6 +62,12 @@ class Pipeline:
         self.name = self.config.get("project", {}).get("name", "Untitled")
         setup_logging(True)
 
+        FetchezRegistry.load_user_plugins()
+        FetchezRegistry.load_installed_plugins()
+
+        HookRegistry.load_builtins()
+        HookRegistry.load_user_plugins()
+
     @classmethod
     def from_file(cls, config_file):
         """Factory method to load pipeline from a YAML/JSON file."""
@@ -100,7 +106,6 @@ class Pipeline:
         if not hook_defs:
             return []
 
-        HookRegistry.load_builtins()
         active_hooks = []
         for h in hook_defs:
             name = h.get("name")
