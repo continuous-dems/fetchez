@@ -22,25 +22,35 @@ There are three stages in the Hook lifecycle:
 # Extract data.tif (via unzip hook)
 # Print /path/to/data.tif (via pipe hook)
 fetchez charts --hook unzip --hook pipe
-🔗 Pipeline Presets (Macros)
+```
+
+## 🔗 Pipeline Presets (Macros)
+
 Tired of typing the same chain of hooks every time? Presets allow you to define reusable workflow macros.
 
 Instead of running this long command:
 
-Bash
+```bash
 fetchez copernicus --hook checksum:algo=sha256 --hook enrich --hook audit:file=log.json
+```
+
 You can define a preset and simply run:
 
-Bash
+```bash
 fetchez copernicus --audit-full
-How to create a Preset:
-Initialize your config: Run this command to generate a starter configuration file at ~/.fetchez/presets.json:
+```
 
-Bash
+### How to create a Preset:
+
+* **Initialize your config:** Run this command to generate a starter configuration file at ~/.fetchez/presets.json:
+
+```bash
 fetchez --init-presets
-Define your workflow: Edit the JSON file to create a named preset. A preset is just a list of hooks with arguments.
+```
 
-JSON
+* **Define your workflow:** Edit the JSON file to create a named preset. A preset is just a list of hooks with arguments.
+
+```json
 "my-clean-workflow": {
   "help": "Unzip files and immediately remove the zip archive.",
   "hooks": [
@@ -48,25 +58,30 @@ JSON
     {"name": "pipe"}
   ]
 }
-Run it: Your new preset automatically appears as a CLI flag!
+```
 
-Bash
+**Run it:** Your new preset automatically appears as a CLI flag!
+
+```bash
 fetchez charts --my-clean-workflow
-🐄 Plugins & Extensions (Bring Your Own Code)
+```
+
+## 🐄 Plugins & Extensions (Bring Your Own Code)
+
 Need to fetch data from a specialized local server? Or maybe run a custom script immediately after every download? You don't need to fork the repo!
 
 Fetchez is designed to be extendable in two ways:
 
-Data Modules (~/.fetchez/plugins/): Add new data sources or APIs.
+* **Data Modules (~/.fetchez/plugins/):** Add new data sources or APIs.
 
-Processing Hooks (~/.fetchez/hooks/): Add new pre, file, or post-processing steps.
+* **Processing Hooks (~/.fetchez/hooks/):** Add new pre, file, or post-processing steps.
 
 Drop your Python scripts into these configuration folders, and they will be automatically registered as native commands.
 
-Quick Start:
+## Quick Start:
 
-Create the folder: mkdir ~/.fetchez/plugins
+Create the folder: `mkdir ~/.fetchez/plugins`
 
 Drop a python script there (e.g., my_data.py containing a class that inherits from FetchModule).
 
-Run it: fetchez my_data
+Run it: `fetchez my_data`
