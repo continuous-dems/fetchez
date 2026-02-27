@@ -69,15 +69,15 @@ def get(
     """Fetch data from a module in one line.
 
     Args:
-        module (str): Module name (e.g., 'nos_hydro', 'tnm').
-        region (list/str): [W, E, S, N] or 'loc:Boulder'.
-        outdir (str): Where to save files (default: ./<module>).
-        threads (int): Parallel download threads.
-        hooks (list): List of hook strings (e.g. ['unzip', 'audit']).
+        module: Module name (e.g., 'nos_hydro', 'tnm').
+        region: [W, E, S, N] or 'loc:Boulder'.
+        outdir: Where to save files (default: ./<module>).
+        threads: Parallel download threads.
+        hooks: List of hook strings (e.g. ['unzip', 'audit']).
         **kwargs: Arguments passed directly to the module (year=..., datatype=...).
 
     Returns:
-        List[str]: A list of absolute paths to the downloaded files.
+        A list of absolute paths to the downloaded files.
     """
 
     FetchezRegistry.load_user_plugins()
