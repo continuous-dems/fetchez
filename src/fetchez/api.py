@@ -65,7 +65,7 @@ def get(
     threads: int = 4,
     hooks: Optional[List[str]] = None,
     **kwargs,
-) -> Optional[List[str]]:
+) -> List[str]:
     """Fetch data from a module in one line.
 
     Args:
@@ -75,6 +75,9 @@ def get(
         threads (int): Parallel download threads.
         hooks (list): List of hook strings (e.g. ['unzip', 'audit']).
         **kwargs: Arguments passed directly to the module (year=..., datatype=...).
+
+    Returns:
+        List[str]: A list of absolute paths to the downloaded files.
     """
 
     FetchezRegistry.load_user_plugins()
