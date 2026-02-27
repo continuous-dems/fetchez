@@ -54,6 +54,7 @@ run_fetchez([fetcher])
 
 user_guide/installation
 user_guide/cli_usage
+user_guide/hooks_and_presets
 ```
 
 ```{toctree}
@@ -69,6 +70,7 @@ modules/index
 :hidden:
 :caption: Python API
 
+api/api
 api/core
 api/registry
 api/hooks
