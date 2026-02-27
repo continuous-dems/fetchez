@@ -3,7 +3,7 @@
 
 """
 fetchez.hooks.__init__
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 This init file also holds the FetchHook super class
 

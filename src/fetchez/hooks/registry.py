@@ -3,7 +3,7 @@
 
 """
 fetchez.hooks.registry
-~~~~~~~~~~~~~---------
+~~~~~~~~~~~~~~~~~~~~~~
 
 This holds the hook registry.
 
