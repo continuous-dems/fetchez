@@ -65,7 +65,7 @@ def get(
     threads: int = 4,
     hooks: Optional[List[str]] = None,
     **kwargs,
-) -> List[str]:
+) -> Optional[List[str]]:
     """Fetch data from a module in one line.
 
     Args:
