@@ -20,7 +20,9 @@ from .spatial import parse_region
 from .registry import FetchezRegistry
 from .hooks.registry import HookRegistry
 from .utils import TqdmLoggingHandler
+from . import config
 from . import presets
+
 logger = logging.getLogger(__name__)
 
 
@@ -100,11 +102,14 @@ class Pipeline:
 
         return os.path.abspath(os.path.join(self.base_dir, path))
 
-    def _init_hooks(self, hook_defs):
+    def _init_hooks(self, hook_defs, mod=None):
         """Initialize hooks from list of dicts."""
 
         if not hook_defs:
             return []
+
+        hook_presets = presets.get_global_presets()
+        hook_mod_presets = config.load_user_config("presets").get("modules", {})
 
         active_hooks = []
         for h in hook_defs:
@@ -128,14 +133,26 @@ class Pipeline:
                 else:
                     kwargs[k] = v
 
-            HookCls = HookRegistry.get_hook(name)
-            if HookCls:
-                try:
-                    active_hooks.append(HookCls(**kwargs))
-                except Exception as e:
-                    logger.error(f"Failed to init hook {name}: {e}")
+            if is_preset:
+                hook_def = hook_presets.get(is_preset, {})
+                if hook_def:
+                    chain = presets.hook_list_from_preset(hook_def)
+                    active_hooks.extend(chain)
+                if mod:
+                    mod_hooks = hook_mod_presets.get(mod, {}).get("presets", {})
+                    hook_def = mod_hooks.get(is_preset, {})
+                    if hook_def:
+                        chain = presets.hook_list_from_preset(hook_def)
+                        active_hooks.extend(chain)
             else:
-                logger.warning(f"Hook '{name}' not found.")
+                HookCls = HookRegistry.get_hook(name)
+                if HookCls:
+                    try:
+                        active_hooks.append(HookCls(**kwargs))
+                    except Exception as e:
+                        logger.error(f"Failed to init hook {name}: {e}")
+                else:
+                    logger.warning(f"Hook '{name}' not found.")
         return active_hooks
 
     def run(self):
@@ -165,7 +182,7 @@ class Pipeline:
             else:
                 mod_key = mod_def.get("module")
                 mod_args = mod_def.get("args", {})
-                mod_hooks = self._init_hooks(mod_def.get("hooks", []))
+                mod_hooks = self._init_hooks(mod_def.get("hooks", []), mod_key)
                 mod_region_def = mod_def.get("region")
 
             mod_regions = (

@@ -462,7 +462,7 @@ CUDEM home page: <http://cudem.colorado.edu>
     adv_grp.add_argument(
         "--init-presets",
         action="store_true",
-        help="Generate a default ~/.fetchez/presets.json file.",
+        help="Generate a default ~/.fetchez/presets.yaml file.",
     )
     # adv_grp.add_argument('--init-presets', action='store_true', help="Export active presets to ./fetchez_presets_template.json (template for customization).")
 
@@ -501,13 +501,13 @@ def fetchez_cli():
         and (sys.argv[1].endswith(".json") or sys.argv[1].endswith(".yaml"))
         and os.path.isfile(sys.argv[1])
     ):
-        from . import project
+        from . import recipe
 
         setup_logging(True)
 
         project_file = sys.argv[1]
-        run = project.ProjectRun(project_file)
-        run.run()
+        recipe = recipe.Recipe.from_file(project_file)
+        recipe.run()
         sys.exit(0)
 
     parser = get_parser()

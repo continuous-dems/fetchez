@@ -13,7 +13,6 @@ Preset 'hook' macros.
 
 import os
 import copy
-import json
 import logging
 
 from . import config
@@ -128,6 +127,7 @@ def get_module_presets(module_name):
 
 def get_global_presets():
     """Return combined user presets AND plugin presets."""
+
     all_presets = _GLOBAL_PRESETS.copy()
     user_presets = load_user_presets()
     all_presets.update(user_presets)

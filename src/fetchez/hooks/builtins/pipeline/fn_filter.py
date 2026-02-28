@@ -87,6 +87,6 @@ class FilenameFilter(FetchHook):
 
         # if self.stage == "pre":
         #     logger.info(
-        #         f"Filename Filter hook filtered files and has kept {len(kept_entries)} matches."
+        #         f"Filename Filter hook filtered files from {mod} and has kept {len(kept_entries)} matches."
         #     )
         return kept_entries
