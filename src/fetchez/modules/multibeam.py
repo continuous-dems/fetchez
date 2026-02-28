@@ -139,7 +139,7 @@ class Multibeam(core.FetchModule):
         req = core.Fetch(NCEI_SEARCH_URL).fetch_req(params=params, timeout=30)
 
         if req is None or req.status_code != 200:
-            utils.echo_error_msg(
+            logger.error(
                 f"Failed to fetch multibeam request: {req.status_code if req else 'None'}"
             )
             return []

@@ -1,10 +1,13 @@
 # tests/test_nasadem.py
 import pytest
 import requests
+import logging
 from fetchez.modules.nasadem import NASADEM
 
 # we need specialized headers for this module.
 from fetchez.modules.nasadem import HEADERS
+
+logger = logging.getLogger(__name__)
 
 # A sample region (Colorado)
 # Region format: (west, east, south, north)
@@ -67,5 +70,5 @@ def test_nasadem_server_alive():
             )
 
         except requests.exceptions.ConnectionError:
-            print(f"Could not connect to {target_url}. Server might be down.")
+            logger.error(f"Could not connect to {target_url}. Server might be down.")
             raise

@@ -35,9 +35,6 @@ class PipeOutput(FetchHook):
         for mod, entry in entries:
             if entry.get("status") == 0:
                 with PRINT_LOCK:
-                    print(
-                        os.path.abspath(entry.get("dst_fn")),
-                        file=sys.stdout,
-                        flush=True,
-                    )
+                    sys.stdout.write(os.path.abspath(entry.get("dst_fn")) + "\n")
+                    sys.stdout.flush()
         return entries

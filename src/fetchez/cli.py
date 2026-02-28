@@ -537,7 +537,7 @@ def fetchez_cli():
         results = registry.FetchezRegistry.search_modules(global_args.search)
 
         if not results:
-            utils.echo_warning_msg(f'No modules found matching "{global_args.search}"')
+            logger.warning(f'No modules found matching "{global_args.search}"')
             sys.exit(0)
 
         print(

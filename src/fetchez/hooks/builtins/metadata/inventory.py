@@ -11,6 +11,7 @@ Generate an inventory of (pre) of the fetchez operation.
 :license: MIT, see LICENSE for more details.
 """
 
+import sys
 import json
 import csv
 import logging
@@ -45,7 +46,7 @@ class Inventory(FetchHook):
             inventory_list.append(item)
 
         if self.format == "json":
-            print(json.dumps(inventory_list, indent=2))
+            sys.stdout.write(json.dumps(inventory_list, indent=2) + "\n")
 
         elif self.format == "csv":
             output = StringIO()
@@ -54,6 +55,7 @@ class Inventory(FetchHook):
                 writer = csv.DictWriter(output, fieldnames=keys)
                 writer.writeheader()
                 writer.writerows(inventory_list)
-            print(output.getvalue())
+            sys.stdout.write(output.getvalue() + "\n")
 
+        sys.stdout.flush()
         return entries

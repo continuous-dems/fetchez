@@ -14,6 +14,7 @@ to fetch real-time or historical time-series data for sites within a region.
 :license: MIT, see LICENSE for more details.
 """
 
+import sys
 import logging
 from urllib.parse import urlencode
 from typing import Optional
@@ -121,8 +122,10 @@ class WaterServices(core.FetchModule):
                 logger.info("No stations found matching criteria.")
                 return
 
-            print(f"\n{'STATION NAME':<30} | {'PARAM':<20} | {'VALUE':<10} | {'TIME'}")
-            print("-" * 80)
+            sys.stdout.write(
+                f"\n{'STATION NAME':<30} | {'PARAM':<20} | {'VALUE':<10} | {'TIME'}\n"
+            )
+            sys.stdout.write("-" * 80 + "\n")
 
             for item in time_series:
                 try:
@@ -145,11 +148,13 @@ class WaterServices(core.FetchModule):
                         val = "N/A"
                         ts = "--:--"
 
-                    print(f"{site_name:<30} | {var_name:<20} | {val:<10} | {ts}")
+                    sys.stdout.write(
+                        f"{site_name:<30} | {var_name:<20} | {val:<10} | {ts} \n"
+                    )
 
                 except (KeyError, IndexError):
                     continue
-            print("-" * 80 + "\n")
+            sys.stdout.write("-" * 80 + "\n")
 
         except Exception as e:
             logger.error(f"Error parsing WaterServices response: {e}")

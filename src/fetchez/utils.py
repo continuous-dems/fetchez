@@ -13,7 +13,6 @@ and basic user interaction. Based on cudem.utils
 """
 
 import os
-import sys
 import datetime
 import getpass
 import logging
@@ -46,48 +45,11 @@ REVERSE = "\033[7m"
 
 # =============================================================================
 # Terminal Printing Helpers
-#
-# Some of these are holdouts from cudem.utils that were used extensively by
-# fetches modules. We're keeping them (or them-like) around for a while
-# for backward compatability. It is now prefered to use logging instead of
-# these `echo` functions.
 # =============================================================================
 def colorize(text: str, color: str) -> str:
     """Wrap text in ANSI color codes."""
 
     return f"{color}{text}{RESET}"
-
-
-def echo_msg(msg: str, leading_line: bool = False):
-    """Print a standard message (alias for print, compatible with scripts)."""
-
-    if leading_line:
-        print("")
-    print(msg)
-
-
-def echo_error_msg(msg: str, prefix: str = "[ ERROR ]"):
-    """Print a standardized error message to stderr."""
-
-    sys.stderr.write(f"{RED}{BOLD}{prefix}{RESET} {msg}\n")
-
-
-def echo_warning_msg(msg: str, prefix: str = "[ WARNING ]"):
-    """Print a standardized warning message."""
-
-    print(f"{YELLOW}{BOLD}{prefix}{RESET} {msg}")
-
-
-def echo_success_msg(msg: str, prefix: str = "[ OK ]"):
-    """Print a standardized success message."""
-
-    print(f"{GREEN}{BOLD}{prefix}{RESET} {msg}")
-
-
-def echo_highlight(msg: str):
-    """Print a bold/highlighted message."""
-
-    print(f"{BOLD}{msg}{RESET}")
 
 
 class TqdmLoggingHandler(logging.Handler):
@@ -255,7 +217,7 @@ def str2inc(inc_str):
         else:
             return float(inc_str)
     except ValueError as e:
-        echo_error_msg(f"Could not parse increment {inc_str}: {e}")
+        logger.error(f"Could not parse increment {inc_str}: {e}")
         return None
 
 
@@ -288,7 +250,7 @@ def remove_glob2(*args):
                 else:
                     os.remove(g)
         except Exception as e:
-            echo_error_msg(e)
+            logger.error(e)
             return -1
     return 0
 

@@ -21,7 +21,7 @@ Usage:
 
 import os
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from .core import run_fetchez
 from .registry import FetchezRegistry
@@ -32,30 +32,24 @@ from .spatial import parse_region
 logger = logging.getLogger(__name__)
 
 
-def search(term: Optional[str] = None) -> None:
+def search(term: Optional[str] = None) -> Dict[Any, Any]:
     """Search available modules by tag, description, or name."""
 
     FetchezRegistry.load_user_plugins()
     FetchezRegistry.load_installed_plugins()
 
     if not term:
-        print("\nAvailable Modules:")
-        for key, meta in FetchezRegistry._modules.items():
-            if isinstance(meta, dict):
-                print(f" - {key}: {meta.get('desc', '')}")
-        return
+        return FetchezRegistry._modules
 
     results = FetchezRegistry.search_modules(term)
     if not results:
-        print(f"No modules found for '{term}'")
-        return
+        return {}
 
-    print(f"\nSearch results for '{term}':")
+    found_results = {}
     for mod_key in results:
         meta = FetchezRegistry.get_info(mod_key)
-        print(
-            f" - {mod_key}: {meta.get('desc', 'N/A')} [{meta.get('agency', 'Unknown')}]"
-        )
+        found_results.update({mod_key: meta})
+    return found_results
 
 
 def get(

@@ -179,7 +179,7 @@ def get_credentials(
                 opener = build_opener(HTTPCookieProcessor())
                 opener.open(req)
             except HTTPError:
-                print(f"{errprefix}Incorrect username or password")
+                logger.error(f"{errprefix}Incorrect username or password")
                 errprefix = ""
                 credentials = None
                 username = None
