@@ -57,7 +57,6 @@ html_static_path = ["_static"]
 html_sidebars = {
     "index": [],
     "modules/*": [],
-    "**": ["sidebar-nav-bs"],
 }
 
 html_theme_options = {
