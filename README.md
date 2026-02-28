@@ -200,46 +200,49 @@ Tired of typing the same chain of hooks every time? Presets allow you to define 
 Instead of running this long command:
 
 ```bash
-
 fetchez copernicus --hook checksum:algo=sha256 --hook enrich --hook audit:file=log.json
 ```
 
-You can simply run:
+You can define a preset and simply run:
 
 ```bash
-
 fetchez copernicus --audit-full
 ```
 
-*** How to use them ***
+### How to create a Preset:
 
-Fetchez comes with a few built-in shortcuts (check fetchez --help to see them), but the real power comes from defining your own.
-
-* Initialize your config: Run this command to generate a starter configuration file at `~/.fetchez/presets.json`:
+* **Initialize your config:** Run this command to generate a starter configuration file at `~/.fetchez/presets.yaml`:
 
 ```bash
-
 fetchez --init-presets
 ```
 
-* Define your workflow: Edit the JSON file to create a named preset. A preset is just a list of hooks with arguments.
+* **Define your workflow:** Edit the `YAML` file to create a named preset. A preset is just a list of hooks with arguments.
 
-```json
-
-"my-clean-workflow": {
-  "help": "Unzip files and immediately remove the zip archive.",
-  "hooks": [
-    {"name": "unzip", "args": {"remove": "true"}},
-    {"name": "pipe"}
-  ]
-}
+```yaml
+presets:
+  audit-full:
+    help: Generate SHA256 hashes, enrichment, and a full JSON audit log.
+    hooks:
+    - name: checksum
+      args:
+        algo: sha256
+    - name: enrich
+    - name: audit
+      args:
+        file: audit_full.json
+  clean-download:
+    help: Unzip files and remove the original archive.
+    hooks:
+    - name: unzip
+      args:
+        remove: 'true'
 ```
 
-* Run it: Your new preset automatically appears as a CLI flag!
+**Run it:** Your new preset automatically appears as a CLI flag!
 
 ```bash
-
-fetchez charts --my-clean-workflow
+fetchez charts --audit-full --clean-download
 ```
 
 ## 🗺 Supported Data Sources
