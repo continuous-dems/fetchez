@@ -63,7 +63,7 @@ html_theme_options = {
     "github_url": "https://github.com/continuous-dems/fetchez",
     "show_prev_next": False,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
-    "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+    # "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
     "icon_links": [
         {
             "name": "PyPI",
