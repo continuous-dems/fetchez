@@ -27,5 +27,5 @@ Clone and install from source
 ```bash
 git clone https://github.com/continuous-dems/fetchez.git
 cd fetchez
-pip install .
+pip install -e .
 ```
