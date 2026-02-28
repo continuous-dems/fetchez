@@ -45,8 +45,8 @@ flowchart LR
         Local[("Local Files<br/>(GeoTIFF, XYZ)")]:::module
         Tools[("Dataset Generation<br/>(Coastlines, SDB)")]:::module
 
-        Local --> Tools
-        Remote --> Tools
+        Local ---> Tools
+        Remote ---> Tools
     end
 
     %% 4. The Pipeline
@@ -66,7 +66,6 @@ flowchart LR
 
         Pre --> File --> Post
 
-        %% Invisible link to force side-by-side rendering inside the subgraph
         HookTypes ~~~ Pre
         Pre <--> HookTypes
         File <--> HookTypes
