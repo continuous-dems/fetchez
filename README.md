@@ -19,10 +19,9 @@
 Geospatial data access is fragmented. You often need one script to scrape a website for tide stations, another to download LiDAR from an S3 bucket, and a third to parse a local directory of shapefiles.
 
 **Fetchez unifies this chaos.**
-* **One Command to Fetch Them All:** Whether you need bathymetry, topography, or water levels, the syntax is always the same: `fetchez [module] -R [region]`.
-* **Streaming First:** Fetchez is built for the cloud-native era. It prefers streaming data through standard pipes over downloading massive archives to disk.
-* **Plugin Architecture:** The core engine is lightweight and agnostic. Data sources are just Python plugins, making it trivial to add support for new APIs or proprietary internal servers without forking the main codebase.
-* **Smart caching:** It handles the boring stuff like retries, caching, and checksum verification, so you can get back to the science.
+* **One Command to Fetch Them All:** The syntax is always the same: `fetchez [module] -R [region]`.
+* **Streaming First:** Fetchez prefers streaming data through standard pipes over downloading massive archives to disk.
+* **Infrastructure as Code:** Define complex data pipelines, cropping, and gridding workflows using simple YAML "Recipes".
 
 ## 🌎 Features
 
@@ -45,26 +44,8 @@ In short: Use Fetchez to get the data so you can crunch the data.
 
 ## 📦 Installation
 
-**From Pip/PyPi**
-
 ```bash
 pip install fetchez
-```
-
-**From Source:**
-
-Download and install git (If you have not already): [git installation](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-
-```bash
-pip install git+https://github.com/continuous-dems/fetchez.git#egg=fetchez
-```
-
-Clone and install from source
-
-```bash
-git clone https://github.com/continuous-dems/fetchez.git
-cd fetchez
-pip install .
 ```
 
 ## 💻 CLI Usage
