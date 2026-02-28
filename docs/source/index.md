@@ -53,8 +53,8 @@ files = fetchez.get("blue_topo", hooks=['unzip', 'filter:match=.tif'])
 :caption: User Guide:
 
 user_guide/index
-modules/index
 api/index
+modules/index
 ```
 
 Indices and tables

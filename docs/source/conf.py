@@ -63,7 +63,7 @@ html_theme_options = {
     "github_url": "https://github.com/continuous-dems/fetchez",
     "show_prev_next": False,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
-    "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+    # "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
     "icon_links": [
         {
             "name": "PyPI",
@@ -71,15 +71,15 @@ html_theme_options = {
             "icon": "fa-solid fa-box",
         },
     ],
-    # "secondary_sidebar_items": [],
+    "secondary_sidebar_items": [],
 }
 
-html_context = {
-    "github_user": "continuous-dems",
-    "github_repo": "fetchez",
-    "github_version": "main",
-    "doc_path": "docs/source",
-}
+# html_context = {
+#     "github_user": "continuous-dems",
+#     "github_repo": "fetchez",
+#     "github_version": "main",
+#     "doc_path": "docs/source",
+# }
 
 # Optional: Add a logo
 # html_logo = "_static/logo.png"
