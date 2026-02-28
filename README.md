@@ -79,7 +79,7 @@ flowchart LR
     API --> Schemas
     Schemas --> Sources
     Sources --> Pipeline
-	Sources --> Out
+	%% Sources --> Out
     Pre <--> Hooks
     Pre --> Out
     File <--> Hooks
