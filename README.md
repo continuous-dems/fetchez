@@ -247,7 +247,7 @@ fetchez charts --audit-full --clean-download
 
 ## 🗺 Supported Data Sources
 
-Fetchez supports over 50 modules categorized by data type. Run ```fetchez --modules``` to see the full list.
+Fetchez supports over [50 modules](https://fetchez.readthedocs.io/en/latest/modules/index.html) categorized by data type. Run `fetchez --modules` to see the full list.
 
 | Category | Example Modules |
 |----|----|
