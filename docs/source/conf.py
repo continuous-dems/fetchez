@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 sys.path.insert(0, os.path.abspath("../_ext"))
 
 project = "Fetchez"
-copyright = "2026, Matthew Love"
+copyright = "2026, The Fetchez Development Team."
 author = "Matthew Love"
 
 # -- General configuration ---------------------------------------------------
@@ -51,20 +51,35 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-# html_theme = 'sphinx_rtd_theme'
-# html_theme = 'alabaster'
 html_theme = "pydata_sphinx_theme"
-# html_static_path = ["_static"]
+ html_static_path = ["_static"]
 
-# html_sidebars = {"**": []}
-html_sidebars = {"modules/*": []}
+html_sidebars = {
+    "index": [],
+    "modules/*": [],
+    "**": ["sidebar-nav-bs"],
+}
 
 html_theme_options = {
     "github_url": "https://github.com/continuous-dems/fetchez",
     "show_prev_next": False,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
-    # "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
-    "secondary_sidebar_items": [],
+    "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+    "icon_links": [
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/fetchez/",
+            "icon": "fa-solid fa-box",
+        },
+    ],
+    # "secondary_sidebar_items": [],
+}
+
+html_context = {
+    "github_user": "continuous-dems",
+    "github_repo": "fetchez",
+    "github_version": "main",
+    "doc_path": "docs/source",
 }
 
 # Optional: Add a logo
