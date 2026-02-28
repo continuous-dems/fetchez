@@ -54,6 +54,7 @@ files = fetchez.get("blue_topo", hooks=['unzip', 'filter:match=.tif'])
 
 user_guide/index
 api/index
+contribute/index
 modules/index
 ```
 
