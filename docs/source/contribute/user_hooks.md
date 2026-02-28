@@ -53,7 +53,7 @@ Submit a Pull Request adding your file to fetchez/modules/ or fetchez/hooks.
 ## 🔗 Developing & Sharing Presets
 Presets (or "Macros") are the easiest way to share complex data engineering workflows without writing Python code. They allow you to bundle multiple processing steps into a single, shareable JSON snippet.
 
-*** The Preset Configuration File ***
+### The Preset Configuration File
 
 Presets are stored in `~/.fetchez/presets.yaml`. You can generate a valid template using `fetchez --init-presets`.
 
