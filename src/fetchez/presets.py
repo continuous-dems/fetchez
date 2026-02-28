@@ -158,11 +158,15 @@ def init_current_presets():
         with open(output_path, "w") as f:
             yaml.dump(export_data, f, sort_keys=False, default_flow_style=False)
 
-        print(f"{utils.GREEN}✅ Exported active presets to: {utils.RESET}{output_path}")
-        print("\nTo use these as your personal defaults:")
-        print("  1. Edit the file to customize your workflows.")
-        print(f"  2. Move it to: {utils.CYAN}~/.fetchez/presets.yaml{utils.RESET}")
-        print("     (Or merge it into your existing config.yaml)")
+        logger.info(
+            f"{utils.GREEN}✅ Exported active presets to: {utils.RESET}{output_path}"
+        )
+        logger.info("\nTo use these as your personal defaults:")
+        logger.info("  1. Edit the file to customize your workflows.")
+        logger.info(
+            f"  2. Move it to: {utils.CYAN}~/.fetchez/presets.yaml{utils.RESET}"
+        )
+        logger.info("     (Or merge it into your existing config.yaml)")
 
     except Exception as exception:
         logger.error(f"Failed to export presets: {exception}")
@@ -177,7 +181,7 @@ def init_presets():
     config_file = os.path.join(config_dir, "presets.yaml")
 
     if os.path.exists(config_file):
-        print(f"Config file already exists at: {config_file}")
+        logger.warning(f"Config file already exists at: {config_file}")
         return
 
     if not os.path.exists(config_dir):

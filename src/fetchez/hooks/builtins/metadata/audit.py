@@ -73,9 +73,9 @@ class Audit(FetchHook):
                         status = "OK" if res.get("status") == 0 else "FAIL"
                         f.write(f"[{status}] {res.get('dst_fn')} < {res.get('url')}\n")
 
-            print(f"Audit log written to {self.filename}")
+            logger.info(f"Audit log written to {self.filename}")
 
         except Exception as e:
-            print(f"Failed to write audit log: {e}")
+            logger.error(f"Failed to write audit log: {e}")
 
         return all_results

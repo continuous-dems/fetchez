@@ -19,7 +19,7 @@ try:
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
 except ImportError:
-    print("ERROR: Requires 'pandas' and 'matplotlib'. Install via pip.")
+    sys.stderr.write("ERROR: Requires 'pandas' and 'matplotlib'. Install via pip.\n")
     sys.exit(1)
 
 from fetchez import core, registry

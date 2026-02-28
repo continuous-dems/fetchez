@@ -11,10 +11,14 @@ List the urls gathered from the module.
 :license: MIT, see LICENSE for more details.
 """
 
+import sys
 import logging
+import threading
 from fetchez.hooks import FetchHook
 
 logger = logging.getLogger(__name__)
+
+PRINT_LOCK = threading.Lock()
 
 
 class ListEntries(FetchHook):
@@ -25,5 +29,7 @@ class ListEntries(FetchHook):
 
     def run(self, entries):
         for mod, entry in entries:
-            print(entry.get("url", ""))
+            with PRINT_LOCK:
+                sys.stdout.write(entry.get("url", "") + "\n")
+                sys.stdout.flush()
         return entries

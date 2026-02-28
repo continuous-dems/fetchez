@@ -29,7 +29,7 @@ try:
 
     HAS_GDAL = True
 except ImportError:
-    print("ERROR: This script requires GDAL (osgeo).")
+    sys.stderr.write("ERROR: This script requires GDAL (osgeo).\n")
     sys.exit(1)
 
 # Import Fetchez
@@ -215,7 +215,7 @@ def main():
         regions = spatial.parse_cli_region([args.region])
         region = regions[0]
     except Exception as e:
-        print(f"Invalid Region: {e}")
+        logger.error(f"Invalid Region: {e}")
         sys.exit(1)
 
     processor = BingProcessor(
