@@ -30,8 +30,6 @@ Geospatial data access is fragmented. You often need one script to scrape a webs
 * Seamlessly mix disparate data types (e.g., fetch Stream Gauges (JSON), DEMs (GeoTIFF), and Coastlines (Shapefile) in one command).
 * Define automated workflows (Hooks) (e.g., download -> unzip -> reproject -> grid) using Python-based Processing Hooks.
 * Save complex processing chains (Presets) as simple reusable flags (e.g., fetchez ... --run-through-waffles).
-* Includes "FRED" (Fetchez Remote Elevation Datalist) to index and query remote or local files spatially without hitting slow APIs or maintianing a database.
-* Minimal dependencies (`requests`, `tqdm`, `lxml`). Optional `shapely` support for precise spatial filtering.
 * Supports user-defined Data Modules *and* Processing Hooks via `~/.fetchez/`.
 
 ---
