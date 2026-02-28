@@ -60,7 +60,7 @@ Ready to do more? Check out our [Official Documentation](https://fetchez.readthe
 
 * **The Python API:** Build custom fetchers into your apps.
 
-* **Recipes & YAML:** Treat your DEMs as code.
+* **Recipes & YAML:** Run custom workflows from a simple YAML configuration.
 
 * **Hooks & Presets:** Automate unzipping, filtering, and processing.
 
