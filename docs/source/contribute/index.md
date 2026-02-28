@@ -84,6 +84,7 @@ For example, you often use fetchez dav (NOAA Digital Coast) but only want to che
 ```{toctree}
 :maxdepth: 2
 
+modules
 user_plugins
 user_hooks
 ```
