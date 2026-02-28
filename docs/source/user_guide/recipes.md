@@ -1,8 +1,8 @@
-# 🗺️ DEM Recipes
+# 🗺️ Recipes
 
 Instead of storing massive, static DEM files, we store the **recipes** used to create them. By treating our Digital Elevation Models as "Infrastructure as Code," we ensure that any team or community member can reproduce, update, or audit a DEM surface from scratch using the `fetchez` and `globato` engines.
 
-# 🚀 How to Launch a Recipe
+## 🚀 How to Launch a Recipe
 Recipes are written in standard YAML. To execute a recipe and build the DEM, simply pass the YAML file to the `fetchez` CLI:
 
 ```bash
@@ -18,7 +18,7 @@ from fetchez.recipe import Recipe
 Recipe.from_file("recipes/socal_template.yaml").run()
 ```
 
-# 📖 Anatomy of a Recipe
+## 📖 Anatomy of a Recipe
 A `fetchez` YAML configuration is broken down into specific operational blocks. Here is the generalized structure:
 
 * **1. Project & Execution Metadata**
@@ -93,7 +93,7 @@ global_hooks:
       output: "final_stack.tif"
 ```
 
-# 🪝 Understanding Hooks and the Lifecycle
+## 🪝 Understanding Hooks and the Lifecycle
 Hooks are the specialized tools that process data. It is critical to understand when they run. `fetchez` processes hooks in three distinct stages:
 
 * **1. PRE Stage:** Runs before downloads begin.
@@ -113,7 +113,7 @@ Hooks are the specialized tools that process data. It is critical to understand 
 
 * **Global Hooks (global_hooks):** Execute on the entire, aggregated dataset from all modules simultaneously.
 
-# 💡 Pro-Tips for Recipe Writers
+## 💡 Pro-Tips for Recipe Writers
 * **1. Keep it DRY with YAML Anchors**
 If multiple modules require the exact same set of hooks (e.g., streaming and cropping), do not copy and paste. Define an anchor (&) and alias it (*):
 
