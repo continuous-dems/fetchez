@@ -70,6 +70,8 @@ Ready to do more? Check out our [Official Documentation](https://fetchez.readthe
 
 * **Custom Plugins:** Write your own data fetchers.
 
+---
+
 ## ⚖ License
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/continuous-dems/fetchez/blob/main/LICENSE) file for details.
