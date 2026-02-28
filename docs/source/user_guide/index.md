@@ -10,4 +10,5 @@ cli_usage
 hooks_and_presets
 plugins_and_extensions
 recipes
+data_persistence
 ```
