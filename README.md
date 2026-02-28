@@ -23,70 +23,72 @@ flowchart LR
     classDef hook fill:#27ae60,stroke:#ecf0f1,stroke-width:2px,color:#fff,rx:5px,ry:5px;
     classDef output fill:#8e44ad,stroke:#ecf0f1,stroke-width:2px,color:#fff,rx:5px,ry:5px;
 
+    %% 1. Inputs
     subgraph Inputs ["Invocation"]
         direction LR
         CLI("CLI Command"):::input
-        Recipe("YAML Recipe"):::input
         API("Python API"):::input
+        Recipe("YAML Recipe"):::input
     end
 
+    %% 2. Orchestration
     subgraph Schemas ["Apply Schemas"]
         direction LR
         Schema{"Schema Rules<br/>(Buffer, Res)"}:::engine
         Presets{"Preset Macros<br/>(--audit-full)"}:::engine
     end
 
+    %% 3. Data Sources
     subgraph Sources ["Data Modules"]
-        direction LR
+        direction TB
         Remote[("Remote APIs<br/>(USGS, NOAA)")]:::module
         Local[("Local Files<br/>(GeoTIFF, XYZ)")]:::module
-		Tools[("Dataset Generation<br/>(Coastlines, SDB)")]:::module
+        Tools[("Dataset Generation<br/>(Coastlines, SDB)")]:::module
 
-		Local --> Tools
+        Local --> Tools
         Remote --> Tools
     end
 
-
+    %% 4. The Pipeline
     subgraph Pipeline ["Hook Assembly Line"]
-        direction LR
+        direction TB
+
+        subgraph HookTypes ["Active Hooks"]
+            direction LR
+            ModHooks(("Module Level")):::hook
+            GlobHooks(("Global Level")):::hook
+            ModHooks --> GlobHooks
+        end
+
         Pre("PRE<br/>(Filter, Mask)"):::engine
-        File(("FILE LOOP<br/>(Fetch, Unzip, Pipe)")):::engine
+        File(("FILE LOOP<br/>(Fetch, Unzip)")):::engine
         Post("POST<br/>(Grid, Crop, Log)"):::engine
 
-        Pre-->File
-        File-->Post
+        Pre --> File --> Post
+
+        %% Invisible link to force side-by-side rendering inside the subgraph
+        HookTypes ~~~ Pre
+        Pre <--> HookTypes
+        File <--> HookTypes
+        Post <--> HookTypes
     end
 
+    %% 5. Outputs
     subgraph Out ["Final Delivery"]
         direction LR
-        Files("Fetched files"):::output
+        Files("Fetched Files"):::output
         Products("Derived Products"):::output
-		Metadata("Metadata"):::output
-        Pipes("Pipes to the outside world"):::output
-    end
-
-    subgraph Hooks ["Hooks"]
-        direction LR
-        ModuleLevelHooks(("Module Level Hooks")):::hook
-        GlobalLevelHooks(("Global Level Hooks")):::hook
-        ModuleLevelHooks-->GlobalLevelHooks
+        Metadata("Metadata Sidecars"):::output
+        Pipes("Pipes (stdout)"):::output
     end
 
     %% Connections
-    CLI --> Sources
-    CLI --> Schemas
-    API --> Sources
-    Recipe --> Schemas
-    API --> Schemas
+    Inputs --> Schemas
+    Inputs --> Sources
     Schemas --> Sources
     Sources --> Pipeline
-	%% Sources --> Out
-    Pre <--> Hooks
-    Pre --> Out
-    File <--> Hooks
-    File --> Out
-    Post <--> Hooks
-    Post --> Out
+    Sources --> Out
+    Pipeline --> Out
 ```
 
 ---
