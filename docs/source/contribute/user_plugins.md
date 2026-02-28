@@ -31,7 +31,7 @@ class CheckPoints3DEP(core.FetchModule):
         # data, etc.
 
         self.add_entry_to_results(
-            url=f'{checkpoints_url}{checkpoints_link}',
+            url=f'{checkpoints_base_url}{checkpoints_link}',
             dst_fn='USGS_CheckPoints.zip',
             data_type='checkpoints',
         )
