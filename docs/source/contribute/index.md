@@ -195,7 +195,7 @@ If you have developed a robust workflow (e.g., "Standard Archival Prep" or "Clou
 
 * Contribute to Core: If a preset is universally useful, you can propose adding it to the `init_presets()` function in `fetchez/presets.py` via a Pull Request.
 
-*** Module-Specific Overrides ***
+***Module-Specific Overrides***
 
 You can use the modules section to create specialized shortcuts for specific datasets.
 
