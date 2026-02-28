@@ -7,6 +7,8 @@ By treating your data pipelines as "Infrastructure as Code," you ensure your dat
 ## 🚀 How to Launch a Recipe
 Recipes are written in standard YAML. To execute a recipe and build the DEM, simply pass the YAML file to the `fetchez` CLI:
 
+***Examples below use [globato](https://github.com/continuous-dems/globato) extensions***
+
 ```bash
 fetchez recipes/socal_template.yaml
 ```
