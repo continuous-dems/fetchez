@@ -13,6 +13,7 @@ config file ~/.fetchez/ ...
 
 import os
 import json
+import yaml
 import logging
 
 home_dir = os.path.expanduser("~")
@@ -21,17 +22,21 @@ CONFIG_PATH = os.path.join(home_dir, ".fetchez")
 logger = logging.getLogger(__name__)
 
 
-def load_user_config():
-    """Load the user's config file."""
+def load_user_config(config_name):
+    """Load the user's config file. Can be yaml or json."""
 
-    config_json = os.path.join(CONFIG_PATH, "presets.json")
-    if not os.path.exists(config_json):
-        return {}
+    exts = [".yaml", ".yml", ".json"]
 
-    try:
-        with open(config_json, "r") as f:
-            data = json.load(f)
-            return data
-    except Exception as e:
-        logger.warning(f"Could not load config file: {e}")
-        return {}
+    for ext in exts:
+        config_file = os.path.join(CONFIG_PATH, config_name + ext)
+        if os.path.exists(config_file):
+            try:
+                with open(config_file, "r") as f:
+                    if config_file.endswith(".json"):
+                        return json.load(f)
+                    else:
+                        return yaml.safe_load(f) or {}
+            except Exception as e:
+                logger.warning(f"Could not load config file {config_file}: {e}")
+
+    return {}

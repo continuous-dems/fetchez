@@ -20,7 +20,7 @@ from .spatial import parse_region
 from .registry import FetchezRegistry
 from .hooks.registry import HookRegistry
 from .utils import TqdmLoggingHandler
-
+from . import presets
 logger = logging.getLogger(__name__)
 
 
@@ -109,6 +109,7 @@ class Pipeline:
         active_hooks = []
         for h in hook_defs:
             name = h.get("name")
+            is_preset = h.get("preset")
             raw_kwargs = h.get("args", {})
             kwargs = {}
 

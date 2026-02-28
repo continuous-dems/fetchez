@@ -47,7 +47,7 @@ def load_user_presets():
         #   "presets": { "name": {...} },
         #   "modules": { "mod_name": { "presets": { "name": {...} } } }
         # }
-        data = config.load_user_config()
+        data = config.load_user_config("presets")
         return data.get("presets", {})
     except Exception as exception:
         logger.warning(f"Could not load user presets: {exception}")
@@ -139,7 +139,9 @@ def get_global_presets():
 def init_current_presets():
     """Export the CURRENT active presets (built-ins + loaded plugins) to a JSON file."""
 
-    output_filename = "fetchez_presets_template.json"
+    import yaml
+
+    output_filename = "fetchez_presets_template.yaml"
     output_path = os.path.abspath(output_filename)
 
     if os.path.exists(output_path):
@@ -154,13 +156,13 @@ def init_current_presets():
 
     try:
         with open(output_path, "w") as f:
-            json.dump(export_data, f, indent=4)
+            yaml.dump(export_data, f, sort_keys=False, default_flow_style=False)
 
         print(f"{utils.GREEN}✅ Exported active presets to: {utils.RESET}{output_path}")
         print("\nTo use these as your personal defaults:")
         print("  1. Edit the file to customize your workflows.")
-        print(f"  2. Move it to: {utils.CYAN}~/.fetchez/presets.json{utils.RESET}")
-        print("     (Or merge it into your existing config.json)")
+        print(f"  2. Move it to: {utils.CYAN}~/.fetchez/presets.yaml{utils.RESET}")
+        print("     (Or merge it into your existing config.yaml)")
 
     except Exception as exception:
         logger.error(f"Failed to export presets: {exception}")
@@ -169,8 +171,10 @@ def init_current_presets():
 def init_presets():
     """Generate a default presets.json file."""
 
+    import yaml
+
     config_dir = config.CONFIG_PATH
-    config_file = os.path.join(config_dir, "presets.json")
+    config_file = os.path.join(config_dir, "presets.yaml")
 
     if os.path.exists(config_file):
         print(f"Config file already exists at: {config_file}")
@@ -213,7 +217,10 @@ def init_presets():
 
     try:
         with open(config_file, "w") as f:
-            json.dump(default_config, f, indent=4)
+            f.write("# Fetchez User Configuration & Presets\n")
+            f.write("# Define your custom workflow macros here.\n\n")
+            yaml.dump(default_config, f, sort_keys=False, default_flow_style=False)
+
         logger.info(f"Created default configuration at: {config_file}")
         logger.info("Edit this file to add your own workflow presets.")
     except Exception as e:

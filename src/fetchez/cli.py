@@ -493,7 +493,7 @@ def fetchez_cli():
     # user_presets = presets.load_user_presets()
     # user_presets = config.load_user_config().get('presets', {})
     user_presets = presets.get_global_presets()
-    user_mod_presets = config.load_user_config().get("modules", {})
+    user_mod_presets = config.load_user_config("presets").get("modules", {})
 
     # Check if first arg exists and ends in .json or yaml. -- project file --
     if (
@@ -857,27 +857,6 @@ def fetchez_cli():
                 threads=global_args.threads,
                 global_hooks=global_hook_objs,
             )
-            # Depreciated threads/queue:
-            # try:
-            #     fr = core.fetch_results(
-            #         x_f,
-            #         n_threads=global_args.threads,
-            #         check_size=check_size,
-            #         attempts=global_args.attempts
-            #     )
-            #     fr.daemon = True
-            #     fr.start()
-            #     fr.join()
-            # except (KeyboardInterrupt, SystemExit):
-            #     logger.error('User breakage... please wait while fetchez exits.')
-            #     x_f.status = -1
-            #     while not fr.fetch_q.empty():
-            #         try:
-            #             fr.fetch_q.get(False)
-            #             fr.fetch_q.task_done()
-            #         except queue.Empty:
-            #             break
-
         except (KeyboardInterrupt, SystemExit):
             logger.error("User breakage... please wait while fetchez exits.")
             sys.exit(0)
