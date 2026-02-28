@@ -25,16 +25,16 @@ fetchez -R loc:"Miami, FL" copernicus multibeam
 ### Python API:
 
 ```python
-from fetchez.core import run_fetchez
-from fetchez.registry import FetchezRegistry
+import fetchez
 
-# Load a module dynamically
-MBModule = FetchezRegistry.load_module('multibeam')
+# Search
+fetchez.search("bathymetry")
 
-# Fetch data for a region
-fetcher = MBModule(src_region=[-80.5, -80.0, 25.5, 26.0])
-fetcher.run()
-run_fetchez([fetcher])
+# Get Data (Returns list of local file paths)
+files = fetchez.get("nos_hydro", region=[-120, -118, 33, 34], year=2020)
+
+# Advanced (With Hooks)
+files = fetchez.get("blue_topo", hooks=['unzip', 'filter:match=.tif'])
 ```
 
 ## Key Features
@@ -52,30 +52,9 @@ run_fetchez([fetcher])
 :hidden:
 :caption: User Guide:
 
-user_guide/installation
-user_guide/cli_usage
-user_guide/hooks_and_presets
-```
-
-```{toctree}
-:maxdepth: 2
-:hidden:
-:caption: Module Catalog
-
+user_guide/index
 modules/index
-```
-
-```{toctree}
-:maxdepth: 2
-:hidden:
-:caption: Python API
-
-api/api
-api/core
-api/registry
-api/hooks
-api/spatial
-api/fred
+api/index
 ```
 
 Indices and tables
@@ -83,4 +62,4 @@ Indices and tables
 
 * {ref}`genindex`
 * {ref}`modindex`
-* :ref:`search`
+* {ref}`search`
