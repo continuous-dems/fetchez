@@ -1,6 +1,8 @@
 # 🗺️ Recipes
 
-Instead of storing massive, static DEM files, we store the **recipes** used to create them. By treating our Digital Elevation Models as "Infrastructure as Code," we ensure that any team or community member can reproduce, update, or audit a DEM surface from scratch using the `fetchez` and `globato` engines.
+Instead of running long, complex CLI commands every time you want to build a DEM, Fetchez allows you to define your entire workflow in a YAML file called a **Recipe**.
+
+By treating your data pipelines as "Infrastructure as Code," you ensure your data is perfectly reproducible, auditable, and easy to share with your team.
 
 ## 🚀 How to Launch a Recipe
 Recipes are written in standard YAML. To execute a recipe and build the DEM, simply pass the YAML file to the `fetchez` CLI:
