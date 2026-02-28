@@ -8,7 +8,7 @@
 conda install -c conda-forge fetchez
 ```
 
-* From PyPI
+## From PyPI
 
 ```bash
 
