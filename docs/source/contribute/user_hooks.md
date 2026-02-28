@@ -84,3 +84,21 @@ presets:
       args:
         remove: 'true'
 ```
+
+***Best Practices for Sharing***
+
+If you have developed a robust workflow (e.g., "Standard Archival Prep" or "Cloud Optimized GeoTIFF Conversion", or whatever), you can share it easily!
+
+* Test your preset: Ensure the hooks run in the correct order (e.g., unzip before filter).
+
+* Add a Help String: The "help" field in the JSON is displayed in the CLI when users run `fetchez --help`. Make it descriptive if you can!
+
+* Share the YAML: You can post your YAML snippet in a GitHub Issue or Discussion or on our Zulip chat.
+
+* Contribute to Core: If a preset is universally useful, you can propose adding it to the `init_presets()` function in `fetchez/presets.py` via a Pull Request.
+
+***Module-Specific Overrides***
+
+You can use the modules section to create specialized shortcuts for specific datasets.
+
+For example, you often use fetchez dav (NOAA Digital Coast) but only want to check if data exists without downloading gigabytes of lidar. Now, you can create a preset that filters for "footprint" files only by writing a series of hooks and then combining them into a preset. Then, when you run `fetchez dav --help`, you will see your custom `--footprint-only` flag listed under "DAV Presets", but it won't clutter the menu for other modules.
