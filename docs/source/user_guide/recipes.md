@@ -1,8 +1,8 @@
 # 🗺️ Recipes
 
-Instead of running long, complex CLI commands every time you want to build a dataset, Fetchez allows you to define your entire workflow in a YAML file called a **Recipe**.
+Instead of running long, complex CLI commands every time you want to build a dataset, `fetchez` allows you to define your entire workflow in a YAML file called a **Recipe**.
 
-By treating your data pipelines as "Infrastructure as Code," you ensure your data pulls are perfectly reproducible, auditable, and easy to share with your team.
+By treating your data pipelines as *Infrastructure as Code*, you ensure your data pulls are perfectly reproducible, auditable, sharable..
 
 ## 🚀 How to Launch a Recipe
 Recipes are written in standard YAML. To execute a recipe and start fetching data, simply pass the YAML file to the `fetchez` CLI:
@@ -40,7 +40,7 @@ The `modules` block lists the data sources `fetchez` will query and ingest. Modu
 
 ```yaml
 modules:
-  # Download USGS National Map Data
+  # Download NOAA Nautical Charts
   - module: charts
     hooks:
       # These hooks ONLY apply to charts data
