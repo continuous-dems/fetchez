@@ -54,10 +54,10 @@ exclude_patterns = []
 html_theme = "pydata_sphinx_theme"
 # html_static_path = ["_static"]
 
-html_sidebars = {
-    "index": [],
-    "modules/*": [],
-}
+# html_sidebars = {
+#     "index": [],
+#     "modules/*": [],
+# }
 
 html_theme_options = {
     "github_url": "https://github.com/continuous-dems/fetchez",
@@ -71,7 +71,7 @@ html_theme_options = {
             "icon": "fa-solid fa-box",
         },
     ],
-    # "secondary_sidebar_items": [],
+    "secondary_sidebar_items": [],
 }
 
 html_context = {
