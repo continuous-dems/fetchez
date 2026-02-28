@@ -1,14 +1,14 @@
-# 🪝 Developing User Hooks (Processing)
+# 🪝 Developing User Hooks
 Hooks allow you to inject custom processing into the fetch pipeline. You can write hooks to process files immediately after they are downloaded, or to run setup/teardown tasks.
 
 ## How it Works
 
-fetchez scans ~/.fetchez/hooks/ at runtime.
+`fetchez` scans `~/.fetchez/hooks/` at runtime.
 
-It registers any class that inherits from fetchez.hooks.FetchHook.
+It registers any class that inherits from `fetchez.hooks.FetchHook`.
 
 ## Example Hook
-Create a file named ~/.fetchez/hooks/audit_log.py to log every download to a file:
+Create a file named `~/.fetchez/hooks/audit_log.py` to log every download to a file:
 
 ```python
 import os
@@ -51,7 +51,7 @@ Did you build a plugin that would be useful for the wider community? We'd love t
 Submit a Pull Request adding your file to fetchez/modules/ or fetchez/hooks.
 
 ## 🔗 Developing & Sharing Presets
-Presets (or "Macros") are the easiest way to share complex data engineering workflows without writing Python code. They allow you to bundle multiple processing steps into a single, shareable JSON snippet.
+Presets (or "Macros") are the easiest way to share complex data engineering workflows without writing Python code. They allow you to bundle multiple processing steps into a single, shareable YAML snippet.
 
 ### The Preset Configuration File
 
@@ -91,9 +91,9 @@ If you have developed a robust workflow (e.g., "Standard Archival Prep" or "Clou
 
 * Test your preset: Ensure the hooks run in the correct order (e.g., unzip before filter).
 
-* Add a Help String: The "help" field in the JSON is displayed in the CLI when users run `fetchez --help`. Make it descriptive if you can!
+* Add a Help String: The "help" field in the YAML is displayed in the CLI when users run `fetchez --help`. Make it descriptive if you can!
 
-* Share the YAML: You can post your YAML snippet in a GitHub Issue or Discussion or on our Zulip chat.
+* Share the YAML: You can post your YAML snippet in a GitHub Issue or Discussion or on our [Zulip chat](https://cudem.zulipchat.com/).
 
 * Contribute to Core: If a preset is universally useful, you can propose adding it to the `init_presets()` function in `fetchez/presets.py` via a Pull Request.
 

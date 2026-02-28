@@ -1,4 +1,4 @@
-# 🐄 Developing User Plugins (Data Modules)
+# 🐄 Developing User Plugins
 
 One of the most powerful features of `fetchez` is its plugin architecture. You can write your own modules to fetch data from custom sources and use them immediately with the full power of the `fetchez` CLI (smart regions, threading, retries, etc.).
 
@@ -37,7 +37,7 @@ class CheckPoints3DEP(core.FetchModule):
         )
 ```
 
-## Testing Your Plugin
+### Testing Your Plugin
 Once you save the file, simply run:
 
 ```bash
