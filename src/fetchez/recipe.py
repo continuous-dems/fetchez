@@ -156,16 +156,19 @@ class Recipe:
 
             # Check for global and mod-specific presets from ~/.fetchez/presets.yaml
             if is_preset:
-                hook_def = hook_presets.get(is_preset, {})
-                if hook_def:
-                    chain = presets.hook_list_from_preset(hook_def)
-                    active_hooks.extend(chain)
-                if mod:
-                    mod_hooks = hook_mod_presets.get(mod, {}).get("presets", {})
-                    hook_def = mod_hooks.get(is_preset, {})
+                try:
+                    hook_def = hook_presets.get(is_preset, {})
                     if hook_def:
                         chain = presets.hook_list_from_preset(hook_def)
                         active_hooks.extend(chain)
+                    if mod:
+                        mod_hooks = hook_mod_presets.get(mod, {}).get("presets", {})
+                        hook_def = mod_hooks.get(is_preset, {})
+                        if hook_def:
+                            chain = presets.hook_list_from_preset(hook_def)
+                            active_hooks.extend(chain)
+                except Exception as e:
+                    logger.error(f"could not load preset {is_preset} into the recipe.")
             else:
                 HookCls = HookRegistry.get_hook(name)
                 if HookCls:
@@ -214,13 +217,13 @@ class Recipe:
 
             if not mod_regions or mod_regions == [None]:
                 logger.warning(
-                    f"Ingredient '{mod_key}' has no target region. Skipping."
+                    f"Module '{mod_key}' has no target region. Skipping."
                 )
                 continue
 
             ModCls = FetchezRegistry.load_module(mod_key)
             if not ModCls:
-                logger.error(f"Unknown ingredient: {mod_key}")
+                logger.error(f"Unknown module: {mod_key}")
                 continue
 
             for region in mod_regions:
@@ -238,7 +241,7 @@ class Recipe:
             return
 
         logger.info(
-            f"Queued {len(modules_to_run)} ingredient queries. Searching pantries..."
+            f"Queued {len(modules_to_run)} module queries. Searching..."
         )
         for mod in modules_to_run:
             try:
