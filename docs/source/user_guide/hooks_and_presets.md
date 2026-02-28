@@ -87,11 +87,3 @@ Fetchez is designed to be extendable in two ways:
 * **Processing Hooks (~/.fetchez/hooks/):** Add new pre, file, or post-processing steps.
 
 Drop your Python scripts into these configuration folders, and they will be automatically registered as native commands.
-
-## Quick Start:
-
-Create the folder: `mkdir ~/.fetchez/plugins`
-
-Drop a python script there (e.g., my_data.py containing a class that inherits from FetchModule).
-
-Run it: `fetchez my_data`
