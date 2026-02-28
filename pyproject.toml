@@ -123,3 +123,13 @@ module = [
     "pystac_client",
 ]
 ignore_missing_imports = true
+
+[tool.ruff.lint]
+# select = ["ALL"]  # Goal :)
+extend-select = [  # Extend the default ruleset:
+    "T20"  # flake8-print <https://docs.astral.sh/ruff/rules/#flake8-print-t20>
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Allow print() statements in CLI module where they are expected
+"src/fetchez/cli.py" = ["T201"]
