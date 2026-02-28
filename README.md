@@ -14,6 +14,78 @@
 
 ---
 
+```mermaid
+flowchart LR
+    %% Custom Styling
+    classDef input fill:#2c3e50,stroke:#ecf0f1,stroke-width:2px,color:#fff,rx:5px,ry:5px;
+    classDef engine fill:#e67e22,stroke:#ecf0f1,stroke-width:2px,color:#fff,rx:5px,ry:5px;
+    classDef module fill:#2980b9,stroke:#ecf0f1,stroke-width:2px,color:#fff,rx:5px,ry:5px;
+    classDef hook fill:#27ae60,stroke:#ecf0f1,stroke-width:2px,color:#fff,rx:5px,ry:5px;
+    classDef output fill:#8e44ad,stroke:#ecf0f1,stroke-width:2px,color:#fff,rx:5px,ry:5px;
+
+    subgraph Inputs ["Invocation"]
+        direction LR
+        CLI("CLI Command"):::input
+        Recipe("YAML Recipe"):::input
+        API("Python API"):::input
+    end
+
+    subgraph Brain ["Orchestrator"]
+        direction LR
+        Schema{"Schema Rules<br/>(Buffer, Res)"}:::engine
+        Presets{"Preset Macros<br/>(--audit-full)"}:::engine
+    end
+
+    subgraph Sources ["Data Modules"]
+        direction LR
+        Remote[("Remote APIs<br/>(USGS, NOAA)")]:::module
+        Local[("Local Files<br/>(GeoTIFF, XYZ)")]:::module
+    end
+
+
+    subgraph Pipeline ["Hook Assembly Line"]
+        direction LR
+        Pre("PRE<br/>(Filter, Mask)"):::engine
+        File(("FILE LOOP<br/>(Fetch, Unzip, Pipe)")):::engine
+        Post("POST<br/>(Grid, Crop, Log)"):::engine
+
+        Pre-->File
+        File-->Post
+
+    end
+
+    subgraph Out ["Final Delivery"]
+        direction LR
+        Files("Fetched files"):::output
+        Products("Derived Products"):::output
+        Pipes("Pipes to the outside world"):::output
+    end
+
+    subgraph Hooks ["Hooks"]
+        direction LR
+        ModuleLevelHooks(("Module Level Hooks")):::hook
+        GlobalLevelHooks(("Global Level Hooks")):::hook
+        ModuleLevelHooks-->GlobalLevelHooks
+    end
+
+    %% Connections
+    CLI --> Sources
+    CLI --> Brain
+    API --> Sources
+    Recipe --> Brain
+    API --> Brain
+    Brain --> Sources
+    Sources --> Pipeline
+    Pre <--> Hooks
+    Pre --> Out
+    File <--> Hooks
+    File --> Out
+    Post <--> Hooks
+    Post --> Out
+```
+
+---
+
 ### ❓ Why Fetchez?
 
 Geospatial data access is fragmented. You often need one script to scrape a website for tide stations, another to download LiDAR from an S3 bucket, and a third to parse a local directory of shapefiles.
