@@ -21,7 +21,7 @@ Recipe.from_file("recipes/my_archive_project.yaml").cook()
 ## 📖 Anatomy of a Recipe
 A `fetchez` YAML configuration is broken down into specific operational blocks. Here is a generalized structure for a project that downloads Topography and Boundary data, unzips it, and audits the result:
 
-1. **Project & Execution Metadata**
+### 1. **Project & Execution Metadata**
 Defines what you are building and how much compute power to use.
 
 ```yaml
@@ -35,7 +35,7 @@ execution:
 region: [-80.5, -80.0, 25.5, 26.0] # The bounding box: [West, East, South, North]
 ```
 
-2. **Modules** (The Data Sources)
+### 2. **Modules** (The Data Sources)
 The `modules` block lists the data sources `fetchez` will query and ingest. Modules are evaluated in order.
 
 ```yaml
@@ -64,7 +64,7 @@ modules:
       ext: ".csv"
 ```
 
-3. **Global Hooks** (The Assembly Line)
+### 3. **Global Hooks** (The Assembly Line)
 The `global_hooks` block defines the processing pipeline. While module hooks only touch specific data, Global Hooks process the combined pool of data from all modules.
 
 ```yaml
@@ -78,15 +78,15 @@ global_hooks:
 ## 🪝 Understanding Hooks and the Lifecycle
 Hooks are the specialized tools that intercept and process your data. It is critical to understand when they run. `fetchez` processes hooks in three distinct stages:
 
-1. **PRE Stage:** Runs before downloads begin.
+### 1. **PRE Stage:** Runs before downloads begin.
 
 *Use case:* Filtering the list of URLs based on regex, limiting the maximum number of files to download, or authenticating tokens.
 
-2. **FILE Stage:** Runs during the download loop on each individual file.
+### 2. **FILE Stage:** Runs during the download loop on each individual file.
 
 *Use case:* Unzipping archives immediately as they arrive, verifying checksums, or piping the file path to standard output.
 
-3. **POST Stage:** Runs after all files have been downloaded and processed.
+### 3. **POST Stage:** Runs after all files have been downloaded and processed.
 
 *Use case:* Generating a JSON audit log, zipping the final output directory into a clean tarball, or sending a Slack notification that the job is done.
 
