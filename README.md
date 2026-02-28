@@ -61,6 +61,7 @@ flowchart LR
         direction LR
         Files("Fetched files"):::output
         Products("Derived Products"):::output
+		Metadata("Metadata"):::output
         Pipes("Pipes to the outside world"):::output
     end
 
