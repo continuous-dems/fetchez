@@ -7,6 +7,4 @@ Welcome to the Fetchez user guide! Here you will find everything you need to kno
 
 installation
 cli_usage
-recipes
-schemas
 hooks_and_presets
