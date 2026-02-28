@@ -40,6 +40,10 @@ flowchart LR
         direction LR
         Remote[("Remote APIs<br/>(USGS, NOAA)")]:::module
         Local[("Local Files<br/>(GeoTIFF, XYZ)")]:::module
+		Tools[("Dataset Generation<br/>(Coastlines, SDB)")]:::module
+
+		Local --> Tools
+        Remote --> Tools
     end
 
 
@@ -51,7 +55,6 @@ flowchart LR
 
         Pre-->File
         File-->Post
-
     end
 
     subgraph Out ["Final Delivery"]
