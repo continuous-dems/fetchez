@@ -7,7 +7,7 @@ By treating your data pipelines as "Infrastructure as Code," you ensure your dat
 ## 🚀 How to Launch a Recipe
 Recipes are written in standard YAML. To execute a recipe and build the DEM, simply pass the YAML file to the `fetchez` CLI:
 
-***Examples below use [globato](https://github.com/continuous-dems/globato) extensions***
+***Examples below use [globato](https://github.com/continuous-dems/globato) extension to show an extensive recipe.***
 
 ```bash
 fetchez recipes/socal_template.yaml
@@ -116,31 +116,3 @@ Hooks are the specialized tools that process data. It is critical to understand 
 * **Module Hooks (modules.hooks):** Only execute on the files fetched by that specific module.
 
 * **Global Hooks (global_hooks):** Execute on the entire, aggregated dataset from all modules simultaneously.
-
-## 💡 Pro-Tips for Recipe Writers
-* **1. Keep it DRY with YAML Anchors**
-If multiple modules require the exact same set of hooks (e.g., streaming and cropping), do not copy and paste. Define an anchor (&) and alias it (*):
-
-```yaml
-_definitions:
-  standard_stream: &standard_stream
-    - name: stream_data
-    - name: spatial_crop
-      args: { buffer: 0.05 }
-
-modules:
-  - module: dav
-    hooks: *standard_stream
-  - module: csb
-    hooks: *standard_stream
-```
-
-* **2. Path Resolution is Automatic**
-When you define a file output in a hook (e.g., output: "stack.tif"), `fetchez` automatically saves it relative to where the YAML file is located. You do not need to hardcode absolute paths!
-
-* **3. Inspect Available Tools**
-Not sure what a hook does or what arguments it takes? Ask the CLI:
-
-* List all hooks: `fetchez --list-hooks`
-
-* Get specific hook documentation: `fetchez --hook-info sm_cudem`
