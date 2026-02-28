@@ -6,8 +6,6 @@ This section details the internal Python API for Fetchez, which is useful if you
 :maxdepth: 2
 
 api
-recipe
-schema
 core
 registry
 hooks
