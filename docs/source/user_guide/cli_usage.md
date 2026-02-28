@@ -1,4 +1,4 @@
-# Command Line Interface
+# 💻 Command Line Interface
 
 The `fetchez` command line tool allows you to chain modules and hooks together.
 
