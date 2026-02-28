@@ -42,28 +42,38 @@ fetchez copernicus --audit-full
 
 ### How to create a Preset:
 
-* **Initialize your config:** Run this command to generate a starter configuration file at ~/.fetchez/presets.json:
+* **Initialize your config:** Run this command to generate a starter configuration file at `~/.fetchez/presets.yaml`:
 
 ```bash
 fetchez --init-presets
 ```
 
-* **Define your workflow:** Edit the JSON file to create a named preset. A preset is just a list of hooks with arguments.
+* **Define your workflow:** Edit the `YAML` file to create a named preset. A preset is just a list of hooks with arguments.
 
-```json
-"my-clean-workflow": {
-  "help": "Unzip files and immediately remove the zip archive.",
-  "hooks": [
-    {"name": "unzip", "args": {"remove": "true"}},
-    {"name": "pipe"}
-  ]
-}
+```yaml
+presets:
+  audit-full:
+    help: Generate SHA256 hashes, enrichment, and a full JSON audit log.
+    hooks:
+    - name: checksum
+      args:
+        algo: sha256
+    - name: enrich
+    - name: audit
+      args:
+        file: audit_full.json
+  clean-download:
+    help: Unzip files and remove the original archive.
+    hooks:
+    - name: unzip
+      args:
+        remove: 'true'
 ```
 
 **Run it:** Your new preset automatically appears as a CLI flag!
 
 ```bash
-fetchez charts --my-clean-workflow
+fetchez charts --audit-full --clean-download
 ```
 
 ## 🐄 Plugins & Extensions (Bring Your Own Code)
