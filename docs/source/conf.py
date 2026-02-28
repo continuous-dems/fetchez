@@ -74,12 +74,12 @@ html_theme_options = {
     "secondary_sidebar_items": [],
 }
 
-html_context = {
-    "github_user": "continuous-dems",
-    "github_repo": "fetchez",
-    "github_version": "main",
-    "doc_path": "docs/source",
-}
+# html_context = {
+#     "github_user": "continuous-dems",
+#     "github_repo": "fetchez",
+#     "github_version": "main",
+#     "doc_path": "docs/source",
+# }
 
 # Optional: Add a logo
 # html_logo = "_static/logo.png"
