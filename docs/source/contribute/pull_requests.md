@@ -1,7 +1,7 @@
 # 📝 Pull Request Guidelines
 
 1.  **Branching:** Create a new branch for your changes (`git checkout -b feature/add-mydata`).
-2.  **Coding Style:**
+2.  **Coding Style:** Refer to out Team Compass policy on [Software Quality](https://continuous-dems-team-compass.readthedocs.io/policies/software-quality/).
     * Follow PEP 8 guidelines.
     * Use type hints where possible.
     * Use `fetchez.spatial` helpers for region parsing; avoid manual coordinate unpacking.
