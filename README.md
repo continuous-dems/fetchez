@@ -30,7 +30,7 @@ flowchart LR
         API("Python API"):::input
     end
 
-    subgraph Brain ["Orchestrator"]
+    subgraph Schemas ["Apply Schemas"]
         direction LR
         Schema{"Schema Rules<br/>(Buffer, Res)"}:::engine
         Presets{"Preset Macros<br/>(--audit-full)"}:::engine
@@ -70,12 +70,13 @@ flowchart LR
 
     %% Connections
     CLI --> Sources
-    CLI --> Brain
+    CLI --> Schemas
     API --> Sources
-    Recipe --> Brain
-    API --> Brain
-    Brain --> Sources
+    Recipe --> Schemas
+    API --> Schemas
+    Schemas --> Sources
     Sources --> Pipeline
+	Sources --> Out
     Pre <--> Hooks
     Pre --> Out
     File <--> Hooks
