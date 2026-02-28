@@ -21,13 +21,13 @@ Geospatial data access is fragmented. You often need one script to scrape a webs
 **Fetchez unifies this chaos.**
 * **One Command to Fetch Them All:** The syntax is always the same: `fetchez [module] -R [region]`.
 * **Streaming First:** Fetchez prefers streaming data through standard pipes over downloading massive archives to disk.
-* **Infrastructure as Code:** Define complex data pipelines, cropping, and gridding workflows using simple YAML "Recipes".
+* **Infrastructure as Code:** Define complex data pipelines, cropping, and gridding workflows using CLI switches or simple YAML "Recipes".
 
 ## 🌎 Features
 
 * One command to fetch data from [50+ different modules](https://fetchez.readthedocs.io/en/latest/modules/index.html), (SRTM, GMRT, NOAA NOS, USGS 3DEP, Copernicus, etc.).
 * Built-in download management handles retries, resume-on-failure, authentication, and mirror switching automatically.
-* Seamlessly mix disparate data types (e.g., fetch Stream Gauges (JSON), DEMs (GeoTIFF), and Coastlines (Shapefile) in one project).
+* Seamlessly mix disparate data types (e.g., fetch Stream Gauges (JSON), DEMs (GeoTIFF), and Coastlines (Shapefile) in one command).
 * Define automated workflows (Hooks) (e.g., download -> unzip -> reproject -> grid) using Python-based Processing Hooks.
 * Save complex processing chains (Presets) as simple reusable flags (e.g., fetchez ... --run-through-waffles).
 * Includes "FRED" (Fetchez Remote Elevation Datalist) to index and query remote or local files spatially without hitting slow APIs or maintianing a database.
@@ -46,7 +46,7 @@ pip install fetchez
 Fetch Copernicus topography and NOAA multibeam bathymetry for a specific bounding box in one command:
 
 ```bash
-fetchez -R loc:"Miami, FL" copernicus multibeam
+fetchez -R loc:"Miami, FL" copernicus multibeam --audit-log miami_audit.json
 ```
 
 Or run a full processing pipeline from a YAML recipe:
