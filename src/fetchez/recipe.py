@@ -168,7 +168,9 @@ class Recipe:
                             chain = presets.hook_list_from_preset(hook_def)
                             active_hooks.extend(chain)
                 except Exception as e:
-                    logger.error(f"could not load preset {is_preset} into the recipe.")
+                    logger.error(
+                        f"could not load preset {is_preset} into the recipe: {e}"
+                    )
             else:
                 HookCls = HookRegistry.get_hook(name)
                 if HookCls:
@@ -216,9 +218,7 @@ class Recipe:
             )
 
             if not mod_regions or mod_regions == [None]:
-                logger.warning(
-                    f"Module '{mod_key}' has no target region. Skipping."
-                )
+                logger.warning(f"Module '{mod_key}' has no target region. Skipping.")
                 continue
 
             ModCls = FetchezRegistry.load_module(mod_key)
@@ -240,9 +240,7 @@ class Recipe:
             logger.warning("Recipe empty. Nothing to execute.")
             return
 
-        logger.info(
-            f"Queued {len(modules_to_run)} module queries. Searching..."
-        )
+        logger.info(f"Queued {len(modules_to_run)} module queries. Searching...")
         for mod in modules_to_run:
             try:
                 mod.run()
