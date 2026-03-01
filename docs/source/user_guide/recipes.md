@@ -9,13 +9,15 @@ Recipes are written in standard YAML. To execute a recipe and start fetching dat
 
 ```bash
 fetchez recipes/my_archive_project.yaml
+```
+
 Alternatively, you can load and launch recipes directly within a Python driver script using the `fetchez.recipe` API:
 
 ```python
 from fetchez.recipe import Recipe
 
 # Load the engine with your recipe and launch
-Recipe.from_file("recipes/my_archive_project.yaml").cook()
+Recipe.from_file("recipes/my_archive_project.yaml").run()
 ```
 
 ## Anatomy of a Recipe
@@ -80,15 +82,15 @@ Hooks are the specialized tools that intercept and process your data. It is crit
 
 ### PRE Stage: Runs before downloads begin.
 
-*Use case:* Filtering the list of URLs based on regex, limiting the maximum number of files to download, or authenticating tokens.
+	*Use case:* Filtering the list of URLs based on regex, limiting the maximum number of files to download, or authenticating tokens.
 
 ### FILE Stage: Runs during the download loop on each individual file.
 
-*Use case:* Unzipping archives immediately as they arrive, verifying checksums, or piping the file path to standard output.
+	*Use case:* Unzipping archives immediately as they arrive, verifying checksums, or piping the file path to standard output.
 
 ### POST Stage: Runs after all files have been downloaded and processed.
 
-*Use case:* Generating a JSON audit log, zipping the final output directory into a clean tarball, or sending a Slack notification that the job is done.
+	*Use case:* Generating a JSON audit log, zipping the final output directory into a clean tarball, or sending a Slack notification that the job is done.
 
 ### Global vs. Module Hooks
 

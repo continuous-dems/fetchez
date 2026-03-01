@@ -1191,9 +1191,9 @@ class FetchezRegistry:
         """Register a new module dynamically (e.g., from a plugin).
 
         Args:
-            mod_key (str): The CLI command name (e.g., 'datum_grids').
+            mod_key: The CLI command name (e.g., 'datum_grids').
             mod_cls: The actual Python class (inheriting from FetchModule).
-            metadata (dict): Optional metadata for discovery (desc, tags, etc.).
+            metadata: Optional metadata for discovery (desc, tags, etc.).
         """
 
         if metadata is None:

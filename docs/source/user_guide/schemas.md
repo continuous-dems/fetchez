@@ -22,7 +22,7 @@ domain:
 By specifying schema: "cudem", the engine intercepts your recipe. It automatically calculates that a CUDEM tile requires a 6-cell overlap at 1/9th arc-second resolution. It expands your fetching bounding box, injects the correct EPSG codes into your gridding hooks, and appends a final raster_crop hook to snap the finished DEM perfectly back to your requested tile.
 
 ## Extending Schemas (Plugins)
-Fetchez is generic. If you are building a custom tool (like a weather predictor or a specialized DEM engine), you can register your own schemas in Python:
+Fetchez is generic. If you are building a custom tool (like a specialized DEM engine), you can register your own schemas in Python:
 
 ```python
 from fetchez.schema import BaseSchema, SchemaRegistry
