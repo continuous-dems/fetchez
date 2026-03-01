@@ -10,5 +10,7 @@ core
 registry
 hooks
 spatial
+recipe
+schema
 fred
 ```
