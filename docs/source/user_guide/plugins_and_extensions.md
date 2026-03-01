@@ -4,7 +4,7 @@ Need to fetch data from a specialized local server? Or maybe run a custom script
 
 There are two ways to extend Fetchez: **Local Plugins** (for quick, personal scripts) and **Full Extensions** (for distributable Python packages).
 
-## 🛠️ Local Plugins (Quick & Easy)
+##  Local Plugins (Quick & Easy)
 
 Local plugins are standalone Python scripts that you drop into your local Fetchez configuration folders. Fetchez automatically scans these folders at runtime and registers any valid classes it finds.
 
