@@ -56,7 +56,7 @@ fetchez recipes/my_dem_project.yaml
 ---
 
 ## 📚 Documentation
-Ready to do more? Check out our [Official Documentation](https://fetchez.readthedocs.io) to learn about:
+Would you like to know more? Check out our [Official Documentation](https://fetchez.readthedocs.io) to learn about:
 
 * **The Python API:** Build custom fetchers into your apps.
 
