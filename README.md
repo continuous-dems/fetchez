@@ -34,8 +34,10 @@ flowchart LR
     %% 2. Orchestration
     subgraph Schemas ["Apply Schemas"]
         direction LR
-        Schema{"Schema Rules<br/>(Buffer, Res)"}:::engine
-        Presets{"Preset Macros<br/>(--audit-full)"}:::engine
+        Schema("Schema Rules<br/>(Buffer, Res)"):::engine
+        Presets("Preset Macros<br/>(--audit-full)"):::engine
+		Plugins("User Plugins<br/>(Hooks, Modules)"):::engine
+        Extensions("External Extensions<br/>(Globat, Transformez)"):::engine
     end
 
     %% 3. Data Sources
@@ -45,13 +47,13 @@ flowchart LR
         Local[("Local Files<br/>(GeoTIFF, XYZ)")]:::module
         Tools[("Dataset Generation<br/>(Coastlines, SDB)")]:::module
 
-        Local ---> Tools
-        Remote ---> Tools
+        Local --> Tools
+        Remote --> Tools
     end
 
     %% 4. The Pipeline
     subgraph Pipeline ["Hook Assembly Line"]
-        direction TB
+        direction LR
 
         subgraph HookTypes ["Active Hooks"]
             direction LR
@@ -83,7 +85,6 @@ flowchart LR
 
     %% Connections
     Inputs --> Schemas
-    Inputs --> Sources
     Schemas --> Sources
     Sources --> Pipeline
     Sources --> Out
