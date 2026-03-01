@@ -24,7 +24,7 @@ There are three stages in the Hook lifecycle:
 fetchez charts --hook unzip --hook pipe
 ```
 
-## 🔗 Pipeline Presets (Macros)
+## Pipeline Presets (Macros)
 
 Tired of typing the same chain of hooks every time? Presets allow you to define reusable workflow macros.
 

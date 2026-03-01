@@ -4,7 +4,7 @@ Instead of running long, complex CLI commands every time you want to build a dat
 
 By treating your data pipelines as *Infrastructure as Code*, you ensure your data pulls are perfectly reproducible, auditable, sharable..
 
-## 🚀 How to Launch a Recipe
+## How to Launch a Recipe
 Recipes are written in standard YAML. To execute a recipe and start fetching data, simply pass the YAML file to the `fetchez` CLI:
 
 ```bash
@@ -18,7 +18,7 @@ from fetchez.recipe import Recipe
 Recipe.from_file("recipes/my_archive_project.yaml").cook()
 ```
 
-## 📖 Anatomy of a Recipe
+## Anatomy of a Recipe
 A `fetchez` YAML configuration is broken down into specific operational blocks. Here is a generalized structure for a project that downloads Topography and Boundary data, unzips it, and audits the result:
 
 ### 1. **Project & Execution Metadata**
@@ -75,7 +75,7 @@ global_hooks:
       file: "miami_data_audit.json"
 ```
 
-## 🪝 Understanding Hooks and the Lifecycle
+## Understanding Hooks and the Lifecycle
 Hooks are the specialized tools that intercept and process your data. It is critical to understand when they run. `fetchez` processes hooks in three distinct stages:
 
 ### PRE Stage: Runs before downloads begin.

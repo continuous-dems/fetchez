@@ -30,7 +30,7 @@ cd fetchez
 pip install -e .
 ```
 
-## 🛟 Module-Specific Dependencies
+## Module-Specific Dependencies
 
 Fetchez is designed to be lightweight. The core installation only includes what is strictly necessary to run the engine.
 
