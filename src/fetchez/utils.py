@@ -693,14 +693,7 @@ def compile_sources(sources):
 
     compiled_modules = []
     for src in sources:
-        if str(src) in BundleRegistry.get_registry().keys():
-            partial_recipe = BundleRegistry.get_yaml(str(src))
-            if "modules" in partial_recipe:
-                compiled_modules.extend(partial_recipe["modules"])
-                logger.debug(
-                    f"Imported {len(partial_recipe['modules'])} modules from {src}"
-                )
-        elif str(src).lower().endswith((".yaml", ".yml")) and Path(src).exists():
+        if str(src).lower().endswith((".yaml", ".yml")) and Path(src).exists():
             try:
                 with open(src, "r") as f:
                     partial_recipe = yaml.safe_load(f)
@@ -718,7 +711,11 @@ def compile_sources(sources):
         elif src == "-":
             continue  # TODO: add stdin support
         else:
-            compiled_modules.append(parse_source_string(src))
+            parsed = parse_source_string(src)
+            name = parsed.get("module")
+            if name in BundleRegistry.get_registry():
+                parsed["bundle"] = parsed.pop("module")
+            compiled_modules.append(parsed)
 
     return compiled_modules
 

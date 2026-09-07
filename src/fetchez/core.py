@@ -405,10 +405,11 @@ class HttpFile(io.IOBase):
         self.size = self._get_size()
 
     def _get_size(self):
-        resp = self.session.head(self.url)
-        if "Content-Length" not in resp.headers:
-            return 0
-        return int(resp.headers["Content-Length"])
+        with self.session.head(self.url, timeout=(10, 60)) as resp:
+            resp.raise_for_status()
+            if "Content-Length" not in resp.headers:
+                raise OSError("HTTP file has no Content-Length")
+            return int(resp.headers["Content-Length"])
 
     def seek(self, offset, whence=io.SEEK_SET):
         if whence == io.SEEK_SET:
@@ -436,10 +437,19 @@ class HttpFile(io.IOBase):
 
         # Fetch ONLY the specific bytes requested
         headers = {"Range": f"bytes={self.offset}-{end}"}
-        response = self.session.get(self.url, headers=headers, timeout=(10, 60))
-        response.raise_for_status()
-
-        data = response.content
+        with self.session.get(
+            self.url, headers=headers, timeout=(10, 60), stream=True
+        ) as response:
+            response.raise_for_status()
+            expected = f"bytes {self.offset}-{end}/{self.size}"
+            if (
+                response.status_code != 206
+                or response.headers.get("Content-Range") != expected
+            ):
+                raise OSError("HTTP server did not honor the requested byte range")
+            data = response.raw.read(end - self.offset + 2, decode_content=True)
+            if len(data) != end - self.offset + 1:
+                raise OSError("HTTP server returned an incomplete byte range")
 
         if self.callback:
             self.callback(len(data))

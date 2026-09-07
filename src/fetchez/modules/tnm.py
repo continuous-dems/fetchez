@@ -20,6 +20,8 @@ from fetchez.modules import FetchModule
 from fetchez import utils
 from fetchez import spatial
 from fetchez import cli
+from fetchez.modules import tnm_ned, tnm_raster
+from fetchez.modules.tnm_wesm import WESM
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +58,19 @@ DATASET_CODES = [
     "US Topo Historical",
     "Land Cover - Woodland",
     "3D Hydrography Program (3DHP)",
+    "Seamless 1-m DEM (S1M)",
 ]
 DATASET_ALIASES = {
     "1m": 2,
     "1_9as": 4,
     "1_3as": 3,
     "1_as": 1,
+    "2_as": 5,
+    "5m": 6,
+    "s1m": 29,
+}
+DATASET_PRODUCTS = {
+    DATASET_CODES[index]: alias for alias, index in DATASET_ALIASES.items()
 }
 
 
@@ -76,6 +85,8 @@ DATASET_ALIASES = {
     q="Free text search query",
     date_start="Start date (YYYY-MM-DD)",
     date_end="End date (YYYY-MM-DD)",
+    strict_datasets="Fail instead of broadening a rejected dataset query",
+    source_coverage="Attach authoritative USGS source coverage",
 )
 class TheNationalMap(FetchModule):
     name = "tnm"
@@ -114,6 +125,8 @@ class TheNationalMap(FetchModule):
         date_start: Optional[str] = None,
         date_end: Optional[str] = None,
         dedupe: bool = True,
+        strict_datasets: bool = False,
+        source_coverage: bool = False,
         **kwargs,
     ):
         super().__init__(name="tnm", **kwargs)
@@ -127,6 +140,12 @@ class TheNationalMap(FetchModule):
         self.dedupe = utils.str2bool(dedupe)
         if self.dedupe is None:
             self.dedupe = True
+        self.strict_datasets = utils.str2bool(strict_datasets)
+        if self.strict_datasets is None:
+            self.strict_datasets = False
+        self.source_coverage = utils.str2bool(source_coverage)
+        if self.source_coverage is None:
+            self.source_coverage = False
 
     def run(self):
         """Run the TNM fetching module."""
@@ -138,7 +157,7 @@ class TheNationalMap(FetchModule):
         bbox_str = f"{w},{s},{e},{n}"
 
         offset = 0
-        total = 0
+        expected_total: Optional[int] = None
 
         # Determine Datasets to query
         dataset_names = []
@@ -160,6 +179,9 @@ class TheNationalMap(FetchModule):
 
         if not dataset_names:
             dataset_names = ["National Elevation Dataset (NED) 1 arc-second"]
+        product = (
+            DATASET_PRODUCTS.get(dataset_names[0]) if len(dataset_names) == 1 else None
+        )
 
         best_tiles = {}
         all_tiles = []
@@ -188,10 +210,12 @@ class TheNationalMap(FetchModule):
             req = core.Fetch(TNM_API_PRODUCTS_URL).fetch_req(params=params)
 
             if (
-                req
+                req is not None
                 and "All dataset queries failed" in req.text
                 and "datasets" in params
             ):
+                if self.strict_datasets or self.source_coverage:
+                    raise RuntimeError("TNM API rejected the strict dataset query")
                 logger.warning(
                     "USGS rejected the strict dataset strings. Retrying with broad text search..."
                 )
@@ -207,24 +231,44 @@ class TheNationalMap(FetchModule):
                 req = core.Fetch(TNM_API_PRODUCTS_URL).fetch_req(params=params)
 
             if req is None or req.status_code != 200:
-                logger.error(
-                    f"TNM API Failed: {req.status_code if req else 'No Response'}"
-                )
-                break
-
-            if req.text.strip().startswith("{errorMessage"):
-                logger.error(f"TNM API Error: {req.text}")
-                break
+                status = req.status_code if req is not None else "no response"
+                raise RuntimeError(f"TNM API request failed: {status}")
 
             try:
-                data = req.json()
-                total = data.get("total", 0)
-                items = data.get("items", [])
+                try:
+                    data = req.json()
+                except Exception as exc:
+                    raise RuntimeError("TNM API returned invalid JSON") from exc
+                if not isinstance(data, dict):
+                    raise RuntimeError("TNM API returned an invalid response")
+                if data.get("errorMessage"):
+                    raise RuntimeError(f"TNM API error: {data['errorMessage']}")
+                if "total" not in data or "items" not in data:
+                    raise RuntimeError("TNM API response is missing total or items")
+                total = int(data["total"])
+                items = data["items"]
+                if total < 0 or not isinstance(items, list):
+                    raise RuntimeError("TNM API returned an invalid result page")
+                if expected_total is None:
+                    expected_total = total
+                elif total != expected_total:
+                    raise RuntimeError(
+                        "TNM API result total changed during pagination: "
+                        f"{expected_total} to {total}"
+                    )
+                if offset > total or len(items) > total - offset:
+                    raise RuntimeError("TNM API returned an invalid result page")
+                if offset < total and not items:
+                    raise RuntimeError(
+                        f"TNM API pagination stopped after {offset} of {total} products"
+                    )
 
                 for item in items:
+                    if not isinstance(item, dict):
+                        raise RuntimeError("TNM API returned an invalid product entry")
                     url = item.get("downloadURL")
-                    if not url:
-                        continue
+                    if not isinstance(url, str) or not url.strip():
+                        raise RuntimeError("TNM product is missing its download URL")
 
                     filename = url.split("/")[-1]
                     fmt = item.get("format", "Unknown")
@@ -279,6 +323,7 @@ class TheNationalMap(FetchModule):
                         "remote_size": item.get("sizeInBytes"),
                         "title": item.get("title"),
                         "tnm_project": project,
+                        "tnm_product": product,
                         "tnm_source_id": item.get("sourceId"),
                         "tnm_publication_date": item.get("publicationDate"),
                         "tnm_last_updated": item.get("lastUpdated"),
@@ -297,15 +342,39 @@ class TheNationalMap(FetchModule):
                         if date and date > existing_date:
                             best_tiles[fn_bn] = item_data
 
-            except Exception as e:
-                logger.exception(f"Error parsing TNM JSON: {e}")
-                break
+            except RuntimeError:
+                raise
+            except Exception as exc:
+                raise RuntimeError("Error parsing TNM API response") from exc
 
-            offset += 100
+            offset += len(items)
             if offset >= total:
                 break
 
-        tiles = best_tiles.values() if self.dedupe else all_tiles
+        tiles = list(best_tiles.values()) if self.dedupe else all_tiles
+        if self.source_coverage and tiles:
+            unsupported = set(dataset_names).difference(
+                {
+                    DATASET_CODES[2],
+                    DATASET_CODES[4],
+                    DATASET_CODES[6],
+                    DATASET_CODES[29],
+                }
+            )
+            if unsupported:
+                raise ValueError(
+                    "TNM source coverage supports only S1M, 1 m, 5 m and 1/9 arc-second DEMs"
+                )
+            if len(dataset_names) != 1:
+                raise ValueError("TNM source coverage requires one dataset per module")
+            if product in {"s1m", "5m"}:
+                tiles = tnm_raster.add_source_coverage(tiles, self.wgs_region)
+            elif product == "1_9as":
+                tiles = tnm_ned.add_source_coverage(tiles, self.wgs_region)
+            else:
+                tiles = WESM.add_source_coverage(
+                    tiles, self.wgs_region, require_year=True
+                )
         for tile_data in tiles:
             self.add_entry_to_results(**tile_data)
 

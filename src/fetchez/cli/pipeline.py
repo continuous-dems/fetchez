@@ -81,6 +81,14 @@ class PipelineExecutor(FetchezMainGroup):
         if bundle_yml:
             help_text = bundle_yml.get("description", "")
             mod_args = []
+            if bundle_yml.get("products"):
+                mod_args.append(
+                    [
+                        "--products",
+                        "Comma-separated products to include (default: all)",
+                        "all",
+                    ]
+                )
 
         @click.command(name=name, help=help_text, hidden=True, cls=FetchezMainCommand)
         @click.option("--weight", type=float, default=1.0)

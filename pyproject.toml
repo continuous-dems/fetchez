@@ -35,6 +35,7 @@ dependencies = [
     "pyproj",
     "shapely",
     "pyogrio",
+    "rasterio>1.4.0",
 ]
 
 keywords = ["Geospatial"]
