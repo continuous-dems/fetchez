@@ -129,6 +129,7 @@ module = [
     "filelock",
     "pyogrio.*",
     "pyogrio.raw",
+    "rasterio",
     "pyproj",
     "sentinelsat",
     "shapefile",
