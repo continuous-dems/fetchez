@@ -19,7 +19,7 @@ import requests
 import zipfile
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Self
 
 from fetchez import cli
 from fetchez import core
@@ -157,7 +157,7 @@ class VDatum(FetchModule):
             minlat = get_value("minlat")
             maxlat = get_value("maxlat")
 
-            if None in (minlon, maxlon, minlat, maxlat):
+            if maxlat is None or minlat is None or maxlon is None or minlon is None:
                 return None
 
             return (
@@ -773,7 +773,7 @@ class VDatum(FetchModule):
 
         return selected
 
-    def run(self):
+    def run(self) -> Self:
         if self.force_update or not self.fred.features:
             self._scrape_and_index()
 
