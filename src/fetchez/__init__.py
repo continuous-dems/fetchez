@@ -76,4 +76,5 @@ __all__ = [
     "list_profiles",
     "search_profiles",
     "run_recipe",
+    "__version__",
 ]
