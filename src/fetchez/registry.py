@@ -185,9 +185,9 @@ class PluginRegistry:
                     if not raw_mod_key.startswith(f"{prefix}.") and use_namespaces:
                         mod_key = f"{prefix}.{raw_mod_key}"
 
-                    logger.debug(
-                        f"🧩 Loaded external plugin: '{mod_key}' from {prefix}"
-                    )
+                    # logger.debug(
+                    #     f"🧩 Loaded external plugin: '{mod_key}' from {prefix}"
+                    # )
 
                     if raw_mod_key in registry and registry[raw_mod_key].get(
                         "import_path", ""
