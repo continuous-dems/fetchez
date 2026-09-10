@@ -2,8 +2,6 @@
 
 **Fetch geospatial data with ease.**
 
-*Fetchez Les Données*
-
 **Fetchez** is a robust, highly modular and extensible Python framework designed to orchestrate complex geospatial data engineering workflows.
 
 Fetchez is part of the [Continuous DEMs Project](https://continuous-dems.readthedocs.io/), an ecosystem of tools for modern, continuous digital elevation model generation.
