@@ -4,6 +4,7 @@ from shapely.geometry import box
 import shapely.wkt
 import shapely.wkb
 
+from fetchez.modules.base import FetchModule
 from fetchez.hooks.spatial_cull import SpatialCullHook
 
 
@@ -72,3 +73,50 @@ def test_cull_parses_raw_wkb_and_bbox():
     # The BBOX tile should be successfully parsed, evaluated, and dropped because it is fully covered by WKB_Tile
     assert len(culled) == 1
     assert culled[0][1]["title"] == "WKB_Tile"
+
+
+def test_hook_resolves_nested_metadata_keys():
+    """
+    Proves that a hook correctly extracts custom keys that FetchModule
+    automatically tucks into the 'metadata' sub-dictionary during ingestion.
+    """
+    # 1. Instantiate a bare FetchModule
+    mod = FetchModule(name="test_mod", use_cache=False)
+
+    # 2. Add entries using the standard ingestion method.
+    # 'custom_priority' is a non-standard key, so FetchModule will nest it.
+    geom = box(0, 0, 10, 10)
+
+    mod.add_entry_to_results(
+        url="http://test.com/low.tif",
+        dst_fn="low.tif",
+        data_type="test",
+        geometry=geom,
+        date="2010",
+        custom_priority=10,
+    )
+    mod.add_entry_to_results(
+        url="http://test.com/high.tif",
+        dst_fn="high.tif",
+        data_type="test",
+        date="2010",
+        geometry=geom,
+        custom_priority=99,
+    )
+
+    # Sanity check: Ensure the base module actually nested the key
+    assert "date" not in mod.results[0]
+    assert mod.results[0]["metadata"]["date"] == "2010"
+    assert mod.results[0]["custom_priority"] == 10
+
+    # 3. Format the payload exactly as the pipeline runner does
+    hook_payload = [(mod, entry) for entry in mod.results]
+
+    # 4. Execute the hook using the custom nested key
+    hook = SpatialCullHook(sort_by="custom_priority", reverse=True, min_coverage=0.99)
+    culled = hook.run(hook_payload)
+
+    # 5. If the hook failed to check the metadata dict, get_sort_val would return ""
+    # for both, and the stable sort would keep 'low.tif' instead of 'high.tif'.
+    assert len(culled) == 1
+    assert culled[0][1]["custom_priority"] == 99
