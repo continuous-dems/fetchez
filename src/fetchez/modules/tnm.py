@@ -11,9 +11,10 @@ Fetch elevation data from The National Map (TNM) API.
 :license: MIT, see LICENSE for more details.
 """
 
-import hashlib
 import logging
 from typing import Optional
+
+from shapely.geometry import box
 
 from fetchez import core
 from fetchez.modules import FetchModule
@@ -113,7 +114,6 @@ class TheNationalMap(FetchModule):
         date_type: Optional[str] = "dateCreated",
         date_start: Optional[str] = None,
         date_end: Optional[str] = None,
-        dedupe: bool = True,
         **kwargs,
     ):
         super().__init__(name="tnm", **kwargs)
@@ -124,9 +124,6 @@ class TheNationalMap(FetchModule):
         self.date_type = date_type
         self.date_start = date_start
         self.date_end = date_end
-        self.dedupe = utils.str2bool(dedupe)
-        if self.dedupe is None:
-            self.dedupe = True
 
     def run(self):
         """Run the TNM fetching module."""
@@ -161,8 +158,6 @@ class TheNationalMap(FetchModule):
         if not dataset_names:
             dataset_names = ["National Elevation Dataset (NED) 1 arc-second"]
 
-        best_tiles = {}
-        all_tiles = []
         while True:
             params = {
                 "bbox": bbox_str,
@@ -231,6 +226,7 @@ class TheNationalMap(FetchModule):
 
                     item_bbox = item.get("boundingBox", {})
                     bounds = None
+                    geom = None
                     if item_bbox:
                         bounds = (
                             item_bbox.get("minX"),
@@ -238,64 +234,51 @@ class TheNationalMap(FetchModule):
                             item_bbox.get("minY"),
                             item_bbox.get("maxY"),
                         )
+                        geom = box(bounds[0], bounds[2], bounds[1], bounds[3])
 
                     # Extract the tile footprint or project ID based on dataset type
+                    # this is all redundant now, but keeping in case useful.
                     if (
                         "ned19" in filename.lower()
                         or "opr" in filename.lower()
                         or "lpc" in filename.lower()
                     ):
-                        fn_bn = "_".join(filename.split("_")[:-1])
+                        _fn_bn = "_".join(filename.split("_")[:-1])
                     elif bounds:
-                        fn_bn = f"{round(bounds[0], 4)}_{round(bounds[1], 4)}_{round(bounds[2], 4)}_{round(bounds[3], 4)}"
+                        _fn_bn = f"{round(bounds[0], 4)}_{round(bounds[1], 4)}_{round(bounds[2], 4)}_{round(bounds[3], 4)}"
                     else:
-                        fn_bn = item.get("title", filename)
+                        _fn_bn = item.get("title", filename)
 
-                    # date = item.get("publicationDate", "")
-                    # if bounds:
-                    #     bounds_str = f"{round(bounds[0], 4)}_{round(bounds[1], 4)}_{round(bounds[2], 4)}_{round(bounds[3], 4)}"
-                    #     project_id = "/".join(item.get("title", ""))
-                    #     fn_bn = f"{bounds_str}_{project_id}"
-                    # else:
-                    #     fn_bn = item.get("title", filename)
+                    date = item.get("publicationDate", "")
+                    if bounds:
+                        _bounds_str = f"{round(bounds[0], 4)}_{round(bounds[1], 4)}_{round(bounds[2], 4)}_{round(bounds[3], 4)}"
+                        _project_id = "/".join(item.get("title", ""))
+                        _fn_bn = f"{_bounds_str}_{_project_id}"
+                    else:
+                        _fn_bn = item.get("title", filename)
 
                     date = item.get("publicationDate", "")
                     project = None
                     if "/Projects/" in url:
                         project = url.split("/Projects/", 1)[1].split("/", 1)[0]
 
-                    dst_fn = filename
-                    if not self.dedupe:
-                        url_hash = hashlib.sha256(url.encode()).hexdigest()[:12]
-                        dst_fn = f"{url_hash}/{filename}"
-
-                    item_data = {
-                        "url": url,
-                        "dst_fn": dst_fn,
-                        "data_type": "tnm",
-                        "format": fmt,
-                        "bounds": bounds,
-                        "date": date,
-                        "remote_size": item.get("sizeInBytes"),
-                        "title": item.get("title"),
-                        "tnm_project": project,
-                        "tnm_source_id": item.get("sourceId"),
-                        "tnm_publication_date": item.get("publicationDate"),
-                        "tnm_last_updated": item.get("lastUpdated"),
-                        "tnm_meta_url": item.get("metaUrl"),
-                        "tnm_vendor_meta_url": item.get("vendorMetaUrl"),
-                    }
-                    if not self.dedupe:
-                        all_tiles.append(item_data)
-                        continue
-
-                    # Check if we already have this tile and compare dates
-                    if fn_bn not in best_tiles:
-                        best_tiles[fn_bn] = item_data
-                    else:
-                        existing_date = best_tiles[fn_bn]["date"]
-                        if date and date > existing_date:
-                            best_tiles[fn_bn] = item_data
+                    self.add_entry_to_results(
+                        url=url,
+                        dst_fn=filename,
+                        data_type="tnm",
+                        format=fmt,
+                        bounds=bounds,
+                        geometry=geom,
+                        date=date,
+                        remote_size=item.get("sizeInBytes"),
+                        title=item.get("title"),
+                        tnm_project=project,
+                        tnm_source_id=item.get("sourceId"),
+                        tnm_publication_date=item.get("publicationDate"),
+                        tnm_last_updated=item.get("lastUpdated"),
+                        tnm_meta_url=item.get("metaUrl"),
+                        tnm_vendor_meta_url=item.get("vendorMetaUrl"),
+                    )
 
             except Exception as e:
                 logger.exception(f"Error parsing TNM JSON: {e}")
@@ -304,10 +287,6 @@ class TheNationalMap(FetchModule):
             offset += 100
             if offset >= total:
                 break
-
-        tiles = best_tiles.values() if self.dedupe else all_tiles
-        for tile_data in tiles:
-            self.add_entry_to_results(**tile_data)
 
         return self
 
