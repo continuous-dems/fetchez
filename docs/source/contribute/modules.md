@@ -2,12 +2,6 @@
 
 The most common contribution is adding support for a new data source. Because Fetchez uses dynamic discovery, you do not need to register your module in any central repository!
 
-## 🏛️ Core vs. Extensions: Where should my module live?
-Before submitting a Pull Request, consider whether your module belongs in the `fetchez` core repository or in a dedicated extension (like `globato` or your own custom Python package).
-
-* **Lightweight Core:** The `fetchez` core repository acts strictly as a universal orchestrator. Modules submitted to core should be as lightweight as possible—essentially just "scan an API and return endpoints."
-* **Heavy Extensions:** Not every new module needs to go into `fetchez`! If your module requires heavy, domain-specific processing (e.g., complex Shapely footprint intersections, bespoke provider naming rules, or unique CLI flags), it is better suited for an extension. Because of dynamic discovery, extension packages can host and register their own `FetchModule` classes that integrate seamlessly into the user's CLI alongside the core modules.
-
 ---
 
 ## 🛠️ Steps to Create a Module
