@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 from unittest.mock import patch
 from fetchez.recipe import Recipe
+from fetchez.registry import BundleRegistry
+from fetchez.utils import compile_sources
 
 
 def test_recipe_initialization():
@@ -46,6 +48,22 @@ def test_get_module_signature():
     assert sig_1 != sig_3
 
 
+def test_module_signature_distinguishes_single_dataset_filters():
+    orange_county = {
+        "module": "ncei_thredds",
+        "args": {"dataset": "orange_county_13_navd88_2015"},
+    }
+    santa_monica = {
+        "module": "ncei_thredds",
+        "args": {"dataset": "santa_monica_13_navd88_2010"},
+    }
+
+    orange_signature = BundleRegistry.get_module_signature(orange_county)
+    santa_monica_signature = BundleRegistry.get_module_signature(santa_monica)
+
+    assert orange_signature != santa_monica_signature
+
+
 @patch("fetchez.registry.BundleRegistry.get_yaml")
 def test_expand_modules_recursive_and_deduplucate(mock_get_bundle):
     """Test that bundles expand recursively and parent definitions override child arguments."""
@@ -74,6 +92,55 @@ def test_expand_modules_recursive_and_deduplucate(mock_get_bundle):
     assert final_mod["module"] == "ehydro"
     assert final_mod["args"]["weight"] == 5.0
     assert final_mod["hooks"][0]["name"] == "unzip"
+
+
+@patch("fetchez.registry.BundleRegistry.get_yaml")
+def test_bundle_products_select_children_in_bundle_order(mock_get_bundle):
+    mock_get_bundle.return_value = {
+        "products": ["fine", "medium", "coarse"],
+        "modules": [
+            {"module": "tnm", "args": {"datasets": "fine"}},
+            {"module": "tnm", "args": {"datasets": "medium"}},
+            {"module": "tnm", "args": {"datasets": "coarse"}},
+        ],
+    }
+
+    expanded = BundleRegistry.expand_modules(
+        [{"bundle": "test", "args": {"products": "coarse,fine"}}]
+    )
+
+    assert [module["args"]["datasets"] for module in expanded] == [
+        "fine",
+        "coarse",
+    ]
+
+
+@patch("fetchez.registry.BundleRegistry.get_yaml")
+def test_bundle_products_reject_unknown_product(mock_get_bundle):
+    mock_get_bundle.return_value = {
+        "products": ["fine"],
+        "modules": [{"module": "tnm", "args": {"datasets": "fine"}}],
+    }
+
+    with pytest.raises(ValueError, match="Unknown product.*missing"):
+        BundleRegistry.expand_modules(
+            [{"bundle": "test", "args": {"products": "missing"}}]
+        )
+
+
+@patch("fetchez.registry.BundleRegistry.get_registry")
+def test_compile_sources_preserves_bundle_arguments(mock_registry):
+    mock_registry.return_value = {"test-bundle": {}}
+
+    compiled = compile_sources(["test-bundle:products=fine/coarse"])
+
+    assert compiled == [
+        {
+            "bundle": "test-bundle",
+            "args": {"products": "fine/coarse"},
+            "hooks": [],
+        }
+    ]
 
 
 def test_to_cli_translation():
@@ -127,3 +194,24 @@ def test_to_json_translation():
 def test_recipe_utils():
     resolved_path = Recipe({})._resolve_path("./test")
     assert Path(resolved_path) == Path.cwd() / "test"
+
+
+@patch("fetchez.registry.BundleRegistry.get_registry")
+@patch("fetchez.registry.BundleRegistry.get_yaml")
+def test_product_bundle_rejects_truncated_comma_source(get_yaml, get_registry):
+    get_registry.return_value = {"test-products": {}}
+    get_yaml.return_value = {
+        "products": ["s1m", "1m", "1_as"],
+        "modules": [
+            {"module": "tnm", "args": {"datasets": product}}
+            for product in ["s1m", "1m", "1_as"]
+        ],
+    }
+    with pytest.raises(ValueError, match="Use products="):
+        Recipe({})._expand_modules(
+            compile_sources(["test-products:products=s1m,1m,1_as"])
+        )
+    modules = Recipe({})._expand_modules(
+        compile_sources(["test-products:products=s1m/1m/1_as"])
+    )
+    assert [module["args"]["datasets"] for module in modules] == ["s1m", "1m", "1_as"]

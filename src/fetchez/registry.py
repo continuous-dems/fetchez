@@ -680,6 +680,7 @@ class BundleRegistry(YamlRegistry):
             f"{key}={args[key]}"
             for key in [
                 "datatype",
+                "dataset",
                 "datasets",
                 "formats",
                 "layer",
@@ -729,7 +730,40 @@ class BundleRegistry(YamlRegistry):
                         bundle_def = recipe_meta.get("config", {})
 
                 if bundle_def:
-                    child_modules = bundle_def.get("modules", [])
+                    child_modules = copy.deepcopy(bundle_def.get("modules", []))
+                    products = bundle_def.get("products")
+                    selected = user_args.get("products")
+                    if products:
+                        unknown_args = set(user_args).difference({"products", "weight"})
+                        if unknown_args:
+                            raise ValueError(
+                                f"Unknown bundle argument(s): {', '.join(sorted(unknown_args))}. "
+                                "Use products=s1m/1m/1_as in source strings."
+                            )
+                    if products and selected and str(selected).lower() != "all":
+                        selected_products = {
+                            value.strip()
+                            for value in str(selected).replace(",", "/").split("/")
+                            if value.strip()
+                        }
+                        unknown = selected_products.difference(products)
+                        if unknown:
+                            raise ValueError(
+                                f"Unknown product(s) for {target}: "
+                                f"{', '.join(sorted(unknown))}"
+                            )
+                        child_modules = [
+                            child
+                            for child in child_modules
+                            if child.get("args", {}).get("datasets")
+                            in selected_products
+                        ]
+                    start_hook = bundle_def.get("product_start_hook")
+                    if products and child_modules and start_hook:
+                        for hook in child_modules[0].get("hooks", []):
+                            if hook.get("name") == start_hook:
+                                hook.setdefault("args", {})["start"] = True
+                                break
                     child_expanded = cls.expand_modules(child_modules, current_weight)
 
                     for child_mod in child_expanded:

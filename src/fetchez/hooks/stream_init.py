@@ -14,6 +14,10 @@ This turns files into streams.
 import math
 import logging
 
+from pyproj import CRS
+from pyproj.crs import CompoundCRS
+from pyproj.exceptions import CRSError
+
 from fetchez.spatial import Region
 from fetchez.hooks import FetchHook
 from fetchez.registry import ReaderRegistry, ProfileRegistry
@@ -124,8 +128,20 @@ class DataStream(FetchHook):
                         base_srs = reader.get_srs() or base_srs
 
                     vert_srs = kwargs_copy.get("vert_srs")
-                    if vert_srs and "+" not in base_srs:
-                        base_srs = f"{base_srs}+{vert_srs}"
+                    if vert_srs:
+                        try:
+                            horizontal = CRS.from_user_input(base_srs)
+                            vertical = CRS.from_user_input(vert_srs)
+                        except CRSError:
+                            # Retain custom vertical references such as global:mss.
+                            if "+" not in base_srs:
+                                base_srs = f"{base_srs}+{vert_srs}"
+                        else:
+                            if len(horizontal.axis_info) == 2:
+                                base_srs = CompoundCRS(
+                                    f"{horizontal.name} + {vertical.name}",
+                                    [horizontal, vertical],
+                                ).to_wkt()
 
                     logger.debug(f"[{self.name}] Using SRS: {base_srs}")
 
