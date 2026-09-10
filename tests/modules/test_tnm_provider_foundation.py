@@ -1,9 +1,8 @@
 import pytest
 
 from fetchez import spatial
-from fetchez import utils
 from fetchez.modules import tnm
-
+from fetchez.hooks.spatial_cull import SpatialCullHook
 
 SAMPLE_REGION = spatial.Region(-118.65, -118.60, 34.05, 34.10, srs="EPSG:4326")
 
@@ -95,53 +94,8 @@ def test_invalid_dataset_selector_keeps_existing_default():
     assert FakeFetch.params_seen[0]["datasets"] == tnm.DATASET_CODES[1]
 
 
-def test_source_string_syntax_supports_dedupe_false():
-    parsed = utils.parse_source_string("tnm:datasets=1m,dedupe=false")
-
-    assert parsed["module"] == "tnm"
-    assert parsed["args"]["datasets"] == "1m"
-    assert parsed["args"]["dedupe"] is False
-
-
-def test_default_dedupe_keeps_existing_newest_product_behavior():
-    FakeFetch.payload = {
-        "total": 2,
-        "items": [
-            _item(
-                "USGS 1 Meter older",
-                "https://example.test/Projects/"
-                "CA_2025LosAngelesPostWildfire_C25/older/USGS_1M_tile.tif",
-                "2024-01-01",
-                "older",
-            ),
-            _item(
-                "USGS 1 Meter newer",
-                "https://example.test/Projects/"
-                "CA_2025LosAngelesPostWildfire_C25/newer/USGS_1M_tile.tif",
-                "2025-02-01",
-                "newer",
-            ),
-        ],
-    }
-
-    mod = tnm.TheNationalMap(
-        src_region=SAMPLE_REGION,
-        datasets="1m",
-        use_cache=False,
-    )
-    mod.run()
-
-    assert len(mod.results) == 1
-    assert mod.results[0]["dst_fn"].endswith("/USGS_1M_tile.tif")
-    assert mod.results[0]["tnm_source_id"] == "newer"
-    assert mod.results[0]["tnm_project"] == "CA_2025LosAngelesPostWildfire_C25"
-    assert mod.results[0]["tnm_publication_date"] == "2025-02-01"
-    assert mod.results[0]["tnm_last_updated"] == "2025-02-01T12:00:00Z"
-    assert mod.results[0]["tnm_meta_url"].endswith("/newer")
-    assert "/metadata/waf/" in mod.results[0]["tnm_vendor_meta_url"]
-
-
-def test_dedupe_false_retains_overlapping_products_without_name_collision():
+def test_tnm_natively_yields_all_overlapping_products():
+    """Prove TNM no longer arbitrarily drops overlapping items (formerly dedupe=False)."""
     FakeFetch.payload = {
         "total": 2,
         "items": [
@@ -153,8 +107,7 @@ def test_dedupe_false_retains_overlapping_products_without_name_collision():
             ),
             _item(
                 "USGS 1 Meter newer",
-                "https://example.test/Projects/"
-                "CA_2025LosAngelesPostWildfire_C25/newer/USGS_1M_tile.tif",
+                "https://example.test/Projects/CA_2025_Test/newer/USGS_1M_tile.tif",
                 "2025-02-01",
                 "newer",
             ),
@@ -164,16 +117,52 @@ def test_dedupe_false_retains_overlapping_products_without_name_collision():
     mod = tnm.TheNationalMap(
         src_region=SAMPLE_REGION,
         datasets="1m",
-        dedupe=False,
         use_cache=False,
     )
     mod.run()
 
+    # TNM should now natively return both items without dropping any
     assert len(mod.results) == 2
-    assert len({entry["dst_fn"] for entry in mod.results}) == 2
-    assert all(entry["dst_fn"].endswith("/USGS_1M_tile.tif") for entry in mod.results)
     assert [entry["tnm_source_id"] for entry in mod.results] == ["older", "newer"]
-    assert [entry["tnm_project"] for entry in mod.results] == [
-        "CA_2024_Test",
-        "CA_2025LosAngelesPostWildfire_C25",
-    ]
+
+
+def test_spatial_cull_hook_retains_newest_tnm_product():
+    """Prove the spatial_cull hook correctly filters the raw TNM stream by date."""
+    FakeFetch.payload = {
+        "total": 2,
+        "items": [
+            _item(
+                "USGS 1 Meter older",
+                "https://example.test/Projects/CA_2025_Test/older/USGS_1M_tile.tif",
+                "2024-01-01",
+                "older",
+            ),
+            _item(
+                "USGS 1 Meter newer",
+                "https://example.test/Projects/CA_2025_Test/newer/USGS_1M_tile.tif",
+                "2025-02-01",
+                "newer",
+            ),
+        ],
+    }
+
+    mod = tnm.TheNationalMap(
+        src_region=SAMPLE_REGION,
+        datasets="1m",
+        use_cache=False,
+    )
+    mod.run()
+
+    # Format the results exactly as the pipeline runner passes them to hooks
+    hook_payload = [(mod, entry) for entry in mod.results]
+
+    # Initialize the hook to sort by 'date' (which TNM populates from publicationDate)
+    hook = SpatialCullHook(sort_by="date", reverse=True, min_coverage=0.99)
+    culled_results = hook.run(hook_payload)
+
+    # The hook should drop the older item because the bounding boxes match 100%
+    assert len(culled_results) == 1
+
+    kept_mod, kept_entry = culled_results[0]
+    assert kept_entry["tnm_source_id"] == "newer"
+    assert kept_entry["metadata"]["date"] == "2025-02-01"

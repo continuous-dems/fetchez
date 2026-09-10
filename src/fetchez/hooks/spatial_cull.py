@@ -38,11 +38,22 @@ class SpatialCullHook(FetchHook):
         if not entries:
             return entries
 
-        # Sort entries to ensure highest priority items build the mask first
         def get_sort_val(item):
             _, entry = item
+
+            # Check top-level entry first, then fallback to nested metadata
             val = entry.get(self.sort_by)
-            return float(val) if val is not None else 0.0
+            if val is None and "metadata" in entry:
+                val = entry["metadata"].get(self.sort_by)
+
+            if val is None:
+                return ""
+
+            # Prioritize numeric sorting if possible, fallback to string sorting for dates
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return str(val)
 
         sorted_items = sorted(entries, key=get_sort_val, reverse=self.reverse)
 
