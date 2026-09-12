@@ -1105,23 +1105,21 @@ def run_fetchez(
 
                     active_stream_hooks = utils.merge_hooks(ls_hooks, gs_hooks)
 
-                    # make sure 'stream-init' is the first stream hook to be run!
-                    active_stream_hooks.sort(
-                        key=lambda hook: 0 if hook.name == "stream-init" else 1
-                    )
-
-                    active_hooks_full.append(active_stream_hooks)
                     if active_stream_hooks:
-                        # If stream hooks exist but no stream is active.
+                        # Check if a stream is already attached to any entry
                         has_stream = any(
                             item.get("stream") is not None
                             for _, item in current_entries
                         )
-                        # Make sure a custom stream-init isn't set by the entry
-                        has_stream_init = "stream-init" in [
-                            item.name for item in active_stream_hooks
-                        ]
 
+                        # Check if a stream initiator hook is already in the list
+                        has_stream_init = any(
+                            hook.name in ["stream-init", "stream_data"]
+                            for hook in active_stream_hooks
+                        )
+
+                        # If we are about to run stream hooks, but there is no stream
+                        # and no init hook scheduled, inject it dynamically right now!
                         if not has_stream and not has_stream_init:
                             try:
                                 from fetchez.registry import HookRegistry
@@ -1131,13 +1129,19 @@ def run_fetchez(
                                 init_hook_cls = HookRegistry.get_class("stream-init")
                                 if init_hook_cls:
                                     logger.debug(
-                                        f"Auto-initializing stream for {mod.name}"
+                                        f"Auto-initializing stream for {file_name}"
                                     )
-                                    current_entries = init_hook_cls().run(
-                                        current_entries
-                                    )
+                                    # Insert it at the absolute front of the stream hooks list
+                                    active_stream_hooks.insert(0, init_hook_cls())
                             except Exception as e:
                                 logger.warning(f"Could not auto-initialize stream: {e}")
+
+                        # Sort the hooks to guarantee 'stream-init' runs first
+                        active_stream_hooks.sort(
+                            key=lambda hook: (
+                                0 if hook.name in ["stream-init", "stream_data"] else 1
+                            )
+                        )
 
                         # Run the stream transforms
                         for hook in active_stream_hooks:
