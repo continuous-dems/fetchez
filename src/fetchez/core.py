@@ -457,9 +457,10 @@ class HttpFile(io.IOBase):
                 != "identity"
             ):
                 raise OSError("HTTP server returned an encoded byte range")
-            data = response.raw.read(end - self.offset + 2, decode_content=False)
-            if len(data) != end - self.offset + 1:
-                raise OSError("HTTP server returned an incomplete byte range")
+            requested_size = end - self.offset + 1
+            data = response.raw.read(requested_size + 1, decode_content=False)
+            if len(data) != requested_size:
+                raise OSError("HTTP server returned an unexpected byte-range length")
 
         if self.callback:
             self.callback(len(data))

@@ -105,7 +105,7 @@ def test_truncated_or_oversized_range_is_rejected(body):
     session = Session()
     session.get_response = Response(206, {"Content-Range": "bytes 0-2/10"}, body)
     with HttpFile("https://example.test/archive.zip", session) as remote:
-        with pytest.raises(OSError, match="incomplete byte range"):
+        with pytest.raises(OSError, match="unexpected byte-range length"):
             remote.read(3)
         assert remote.tell() == 0
     assert session.get_response.closed
