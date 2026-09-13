@@ -1031,7 +1031,7 @@ def run_fetchez(
         f"Starting parallel fetch: {total_files} files with {threads} threads."
     )
     final_results_with_owner = []
-    active_hooks_full = []
+    runtime_hooks = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         try:
@@ -1088,7 +1088,6 @@ def run_fetchez(
                     lf_hooks = [h for h in mod.hooks if h.stage == "file"]
 
                     active_file_hooks = utils.merge_hooks(lf_hooks, gf_hooks)
-                    active_hooks_full.append(active_file_hooks)
 
                     current_entries = [(mod, original_entry)]
 
@@ -1125,23 +1124,24 @@ def run_fetchez(
                     ls_hooks = [h for h in mod.hooks if h.stage == "stream"]
 
                     active_stream_hooks = utils.merge_hooks(ls_hooks, gs_hooks)
+                    stream_init_names = {"stream-init", "stream_data"}
 
-                    # make sure 'stream-init' is the first stream hook to be run!
+                    # Ensure explicit stream initializers run before other stream hooks.
                     active_stream_hooks.sort(
-                        key=lambda hook: 0 if hook.name == "stream-init" else 1
+                        key=lambda hook: hook.name not in stream_init_names
                     )
 
-                    active_hooks_full.append(active_stream_hooks)
                     if active_stream_hooks:
-                        # If stream hooks exist but no stream is active.
+                        # Do not inject the default initializer when one is already configured.
                         has_stream = any(
                             item.get("stream") is not None
                             for _, item in current_entries
                         )
-                        # Make sure a custom stream-init isn't set by the entry
-                        has_stream_init = "stream-init" in [
-                            item.name for item in active_stream_hooks
-                        ]
+
+                        has_stream_init = any(
+                            hook.name in stream_init_names
+                            for hook in active_stream_hooks
+                        )
 
                         if not has_stream and not has_stream_init:
                             try:
@@ -1154,13 +1154,14 @@ def run_fetchez(
                                     logger.debug(
                                         f"Auto-initializing stream for {mod.name}"
                                     )
-                                    current_entries = init_hook_cls().run(
-                                        current_entries
-                                    )
+                                    init_hook = init_hook_cls()
+                                    active_stream_hooks.insert(0, init_hook)
+                                    runtime_hooks.append(init_hook)
+
                             except Exception as e:
                                 logger.warning(f"Could not auto-initialize stream: {e}")
 
-                        # Run the stream transforms
+                        # Run the stream transforms.
                         for hook in active_stream_hooks:
                             try:
                                 current_entries = hook.run(current_entries)
@@ -1210,9 +1211,6 @@ def run_fetchez(
                                 logger.error(f"[{mod.name}] {err_msg}")
                                 item["status"] = "failed"
                                 item["error_message"] = str(e)
-                                # logger.exception(
-                                #     f"Stream processing error in {Path(item.get('dst_fn', '')).name}: {e}"
-                                # )
 
                         processed_entries.append((owner, item))
 
@@ -1229,14 +1227,20 @@ def run_fetchez(
             # --- Teardown The Hook(s) ---
             logger.debug("Running teardown for all hooks...")
 
-            all_possible_hooks = active_hooks_full
-            for h in global_hooks:
-                all_possible_hooks.append(h)
-            for m in modules:
-                for h in m.hooks:
-                    all_possible_hooks.append(h)
+            all_hooks = [*runtime_hooks, *global_hooks]
 
-            for hook in all_possible_hooks:
+            for module in modules:
+                all_hooks.extend(module.hooks)
+
+            seen = set()
+
+            for hook in all_hooks:
+                hook_id = id(hook)
+                if hook_id in seen:
+                    continue
+
+                seen.add(hook_id)
+
                 if hasattr(hook, "teardown"):
                     try:
                         hook.teardown()
