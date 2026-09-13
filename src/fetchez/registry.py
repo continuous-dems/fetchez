@@ -189,6 +189,8 @@ class PluginRegistry:
                     #     f"🧩 Loaded external plugin: '{mod_key}' from {prefix}"
                     # )
 
+                    # Maybe check `cls.builtin_pkg` here too instead of hard-coding the
+                    # `fetchez` namespace, to make this more generic.
                     if raw_mod_key in registry and registry[raw_mod_key].get(
                         "import_path", ""
                     ).startswith("fetchez."):
