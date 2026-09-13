@@ -391,6 +391,31 @@ class iso_xml:
             return None
 
 
+# =============================================================================
+# Remote Resource Helpers
+# =============================================================================
+def gdal_vsi_path(url: str, *, streaming: bool = False) -> str:
+    """Return a GDAL VSI path for a local or remote resource.
+
+    HTTP/HTTPS/FTP resources are exposed through GDAL's virtual filesystem
+    so GDAL-backed consumers can perform range-based random access without
+    downloading the complete resource.
+
+    Existing VSI paths and local paths are returned unchanged.
+    """
+
+    if url.startswith("/vsi"):
+        return url
+
+    parsed = urllib.parse.urlparse(url)
+
+    if parsed.scheme in {"http", "https", "ftp"}:
+        handler = "/vsicurl_streaming/" if streaming else "/vsicurl/"
+        return f"{handler}{url}"
+
+    return url
+
+
 class HttpFile(io.IOBase):
     """A file-like object backed by an HTTP URL.
 
