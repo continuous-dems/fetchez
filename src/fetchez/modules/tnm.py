@@ -11,8 +11,10 @@ Fetch elevation data from The National Map (TNM) API.
 :license: MIT, see LICENSE for more details.
 """
 
+import hashlib
 import logging
 from typing import Optional
+from urllib.parse import unquote, urlsplit
 
 from shapely.geometry import box
 
@@ -57,12 +59,19 @@ DATASET_CODES = [
     "US Topo Historical",
     "Land Cover - Woodland",
     "3D Hydrography Program (3DHP)",
+    "Seamless 1-m DEM (S1M)",
 ]
 DATASET_ALIASES = {
     "1m": 2,
     "1_9as": 4,
     "1_3as": 3,
     "1_as": 1,
+    "2_as": 5,
+    "5m": 6,
+    "s1m": 29,
+}
+DATASET_PRODUCTS = {
+    DATASET_CODES[index]: alias for alias, index in DATASET_ALIASES.items()
 }
 
 
@@ -77,6 +86,8 @@ DATASET_ALIASES = {
     q="Free text search query",
     date_start="Start date (YYYY-MM-DD)",
     date_end="End date (YYYY-MM-DD)",
+    products="Elevation products: s1m/1m/1_9as/1_3as/1_as/5m/2_as (strict queries)",
+    strict_datasets="Raise on rejected or incomplete queries instead of returning partial results",
 )
 class TheNationalMap(FetchModule):
     name = "tnm"
@@ -114,6 +125,8 @@ class TheNationalMap(FetchModule):
         date_type: Optional[str] = "dateCreated",
         date_start: Optional[str] = None,
         date_end: Optional[str] = None,
+        products: Optional[str] = None,
+        strict_datasets: bool = False,
         **kwargs,
     ):
         super().__init__(name="tnm", **kwargs)
@@ -124,6 +137,21 @@ class TheNationalMap(FetchModule):
         self.date_type = date_type
         self.date_start = date_start
         self.date_end = date_end
+        self.products = None
+        if products is not None:
+            if datasets is not None:
+                raise ValueError("Use either products or datasets, not both")
+            selected = products.split("/") if isinstance(products, str) else products
+            self.products = list(
+                dict.fromkeys(str(value).lower() for value in selected)
+            )
+            if not self.products or any(
+                value not in DATASET_ALIASES for value in self.products
+            ):
+                raise ValueError(f"Unknown TNM products: {products}")
+        self.strict_datasets = self.products is not None or bool(
+            utils.str2bool(strict_datasets)
+        )
 
     def run(self):
         """Run the TNM fetching module."""
@@ -131,15 +159,13 @@ class TheNationalMap(FetchModule):
         if self.wgs_region is None or not spatial.region_valid_p(self.wgs_region):
             return []
 
-        w, e, s, n = self.wgs_region
-        bbox_str = f"{w},{s},{e},{n}"
-
-        offset = 0
-        total = 0
-
         # Determine Datasets to query
         dataset_names = []
-        if self.datasets is not None:
+        if self.products is not None:
+            dataset_names = [
+                DATASET_CODES[DATASET_ALIASES[value]] for value in self.products
+            ]
+        elif self.datasets not in (None, "None"):
             try:
                 ds_indices = []
                 for x in self.datasets.split("/"):
@@ -147,16 +173,44 @@ class TheNationalMap(FetchModule):
                         ds_indices.append(DATASET_ALIASES[x.lower()])
                     else:
                         ds_indices.append(int(x))
+                if self.strict_datasets and any(
+                    i < 0 or i >= len(DATASET_CODES) for i in ds_indices
+                ):
+                    raise ValueError("Dataset index out of range")
                 dataset_names = [
                     DATASET_CODES[i] for i in ds_indices if 0 <= i < len(DATASET_CODES)
                 ]
             except (ValueError, IndexError):
+                if self.strict_datasets:
+                    raise ValueError(f"Invalid TNM datasets: {self.datasets}") from None
                 logger.warning(
                     f"Could not parse datasets '{self.datasets}'. Using default."
                 )
 
         if not dataset_names:
             dataset_names = ["National Elevation Dataset (NED) 1 arc-second"]
+
+        start = len(self.results)
+        try:
+            # Query products separately so each entry has an unambiguous product label.
+            if self.products is not None:
+                for dataset in dataset_names:
+                    self._run_query([dataset])
+            else:
+                self._run_query(dataset_names)
+        except Exception:
+            del self.results[start:]
+            raise
+        return self
+
+    def _run_query(self, dataset_names):
+        w, e, s, n = self.wgs_region
+        bbox_str = f"{w},{s},{e},{n}"
+        offset = 0
+        expected_total = None
+        seen_urls = set()
+        dataset = dataset_names[0] if len(dataset_names) == 1 else None
+        product = DATASET_PRODUCTS.get(dataset)
 
         while True:
             params = {
@@ -183,10 +237,12 @@ class TheNationalMap(FetchModule):
             req = core.Fetch(TNM_API_PRODUCTS_URL).fetch_req(params=params)
 
             if (
-                req
+                req is not None
                 and "All dataset queries failed" in req.text
                 and "datasets" in params
             ):
+                if self.strict_datasets:
+                    raise RuntimeError("TNM API rejected the requested dataset")
                 logger.warning(
                     "USGS rejected the strict dataset strings. Retrying with broad text search..."
                 )
@@ -200,14 +256,22 @@ class TheNationalMap(FetchModule):
                 params["q"] = fallback_q
 
                 req = core.Fetch(TNM_API_PRODUCTS_URL).fetch_req(params=params)
+                # A broad text search cannot establish a specific product identity.
+                product = None
+                dataset = None
 
             if req is None or req.status_code != 200:
+                if self.strict_datasets:
+                    status = req.status_code if req is not None else "no response"
+                    raise RuntimeError(f"TNM API request failed: {status}")
                 logger.error(
                     f"TNM API Failed: {req.status_code if req else 'No Response'}"
                 )
                 break
 
             if req.text.strip().startswith("{errorMessage"):
+                if self.strict_datasets:
+                    raise RuntimeError(f"TNM API error: {req.text}")
                 logger.error(f"TNM API Error: {req.text}")
                 break
 
@@ -215,13 +279,39 @@ class TheNationalMap(FetchModule):
                 data = req.json()
                 total = data.get("total", 0)
                 items = data.get("items", [])
+                if self.strict_datasets:
+                    if (
+                        data.get("errorMessage")
+                        or "total" not in data
+                        or "items" not in data
+                        or not isinstance(total, int)
+                        or total < 0
+                        or not isinstance(items, list)
+                        or offset + len(items) > total
+                        or (offset < total and not items)
+                    ):
+                        raise ValueError(
+                            "TNM API returned an incomplete or invalid page"
+                        )
+                    if expected_total is not None and total != expected_total:
+                        raise ValueError("TNM result total changed during pagination")
+                    expected_total = total
 
                 for item in items:
                     url = item.get("downloadURL")
                     if not url:
+                        if self.strict_datasets:
+                            raise ValueError("TNM product has no download URL")
                         continue
+                    if self.strict_datasets:
+                        if url in seen_urls:
+                            raise ValueError(
+                                "TNM API repeated a download URL during pagination"
+                            )
+                        seen_urls.add(url)
 
-                    filename = url.split("/")[-1]
+                    path = urlsplit(url).path
+                    filename = path.rsplit("/", 1)[-1]
                     fmt = item.get("format", "Unknown")
 
                     item_bbox = item.get("boundingBox", {})
@@ -236,35 +326,22 @@ class TheNationalMap(FetchModule):
                         )
                         geom = box(bounds[0], bounds[2], bounds[1], bounds[3])
 
-                    # Extract the tile footprint or project ID based on dataset type
-                    # this is all redundant now, but keeping in case useful.
-                    if (
-                        "ned19" in filename.lower()
-                        or "opr" in filename.lower()
-                        or "lpc" in filename.lower()
-                    ):
-                        _fn_bn = "_".join(filename.split("_")[:-1])
-                    elif bounds:
-                        _fn_bn = f"{round(bounds[0], 4)}_{round(bounds[1], 4)}_{round(bounds[2], 4)}_{round(bounds[3], 4)}"
-                    else:
-                        _fn_bn = item.get("title", filename)
-
-                    date = item.get("publicationDate", "")
-                    if bounds:
-                        _bounds_str = f"{round(bounds[0], 4)}_{round(bounds[1], 4)}_{round(bounds[2], 4)}_{round(bounds[3], 4)}"
-                        _project_id = "/".join(item.get("title", ""))
-                        _fn_bn = f"{_bounds_str}_{_project_id}"
-                    else:
-                        _fn_bn = item.get("title", filename)
-
                     date = item.get("publicationDate", "")
                     project = None
-                    if "/Projects/" in url:
-                        project = url.split("/Projects/", 1)[1].split("/", 1)[0]
+                    if "/Projects/" in path:
+                        project = unquote(
+                            path.split("/Projects/", 1)[1].split("/", 1)[0]
+                        )
+
+                    dst_fn = filename
+                    if self.products is not None:
+                        # Different projects/versions can share a filename.
+                        digest = hashlib.sha256(url.encode()).hexdigest()[:12]
+                        dst_fn = f"{product}/{digest}/{filename}"
 
                     self.add_entry_to_results(
                         url=url,
-                        dst_fn=filename,
+                        dst_fn=dst_fn,
                         data_type="tnm",
                         format=fmt,
                         bounds=bounds,
@@ -273,6 +350,8 @@ class TheNationalMap(FetchModule):
                         remote_size=item.get("sizeInBytes"),
                         title=item.get("title"),
                         tnm_project=project,
+                        tnm_product=product,
+                        tnm_dataset=dataset,
                         tnm_source_id=item.get("sourceId"),
                         tnm_publication_date=item.get("publicationDate"),
                         tnm_last_updated=item.get("lastUpdated"),
@@ -281,10 +360,12 @@ class TheNationalMap(FetchModule):
                     )
 
             except Exception as e:
+                if self.strict_datasets:
+                    raise RuntimeError(f"Unable to complete TNM discovery: {e}") from e
                 logger.exception(f"Error parsing TNM JSON: {e}")
                 break
 
-            offset += 100
+            offset += len(items) if self.strict_datasets else 100
             if offset >= total:
                 break
 
