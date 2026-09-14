@@ -9,7 +9,7 @@ installation
 cli_usage
 modules_and_bundles
 hooks_and_presets
-remote_raster_footprint
+remote_archive_footprint
 streams
 recipes
 plugins_and_extensions
