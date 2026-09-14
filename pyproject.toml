@@ -40,6 +40,7 @@ dependencies = [
 keywords = ["Geospatial"]
 
 [project.optional-dependencies]
+raster = ["rasterio"]
 aws = ["boto3"]
 bing = ["mercantile"]
 earthdata = ["earthaccess>=0.9.0"]
@@ -60,6 +61,7 @@ dev = [
 test = [
     "pytest",
     "pytest-cov",
+    "rasterio",
 ]
 docs = [
     "sphinx<9.0.0",  # temp pin for sphinx-click
@@ -119,6 +121,7 @@ exclude = ["^build/", "^dist/", "^\\.venv/"]
 
 [[tool.mypy.overrides]]
 module = [
+    "rasterio.*",
     "shapely.*",
     "lxml.*",
     "boto3",
