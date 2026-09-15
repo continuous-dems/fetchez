@@ -64,7 +64,7 @@ class USGS_DS781(FetchModule):
                         ".xml", ".zip"
                     )
                     if "metadata" in zip_url:
-                        zip_url = zip_url.replace("metadata/", "")
+                        zip_url = zip_url.replace("metadata/", "data/")
 
                     dataset_name = (
                         xml_url.split("/")[-1]
