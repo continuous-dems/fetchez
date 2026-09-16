@@ -1082,3 +1082,52 @@ def _linspace(start, stop, num=50):
 
     # Generate the list
     return [start + i * step for i in range(num)]
+
+
+def wgs84_to_utm_zone(region):
+    """
+    Determine UTM zone(s) for a WGS84 bounding box with EPSG codes.
+
+    Args:
+        region: region obj
+
+    Returns:
+        dict with zone info and EPSG codes
+    """
+    import math
+
+    lon_min, lon_max, lat_min, lat_max = region
+
+    # Calculate UTM zone numbers from longitude
+    zone_min = int(math.floor((lon_min + 180) / 6)) + 1
+    zone_max = int(math.floor((lon_max + 180) / 6)) + 1
+
+    # Handle antimeridian crossing
+    if zone_min > zone_max:
+        zone_min, zone_max = 1, zone_max
+
+    # Determine hemisphere
+    is_north = lat_min >= 0
+    hemisphere = "N" if is_north else "S"
+
+    # Build EPSG codes
+    def make_epsg_code(zone_num, is_north_hemisphere):
+        prefix = 326 if is_north_hemisphere else 327
+        return f"EPSG:{prefix}{zone_num:02d}"
+
+    crosses_zones = zone_min != zone_max
+
+    result = {
+        "zone_min": zone_min,
+        "zone_max": zone_max,
+        "hemi": hemisphere,
+        "crosses_zones": crosses_zones,
+        "epsg_min": make_epsg_code(zone_min, is_north),
+        "epsg_max": make_epsg_code(zone_max, is_north),
+    }
+
+    if not crosses_zones:
+        result["primary_zone"] = zone_min
+        result["primary_epsg"] = f"EPSG:{326 if is_north else 327}{zone_min:02d}"
+
+    return result
