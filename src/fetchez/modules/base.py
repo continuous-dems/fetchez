@@ -293,7 +293,7 @@ class FetchModule:
                 logger.debug(
                     f"[{self.name}] Loaded {len(self.results)} results from cache."
                 )
-                return
+                return self
             # logger.info(f"[{self.name}] Cached results are empty, creating a new one.")
             except Exception as e:
                 logger.warning(f"[{self.name}] Cache corrupted, ignoring: {e}")
@@ -345,6 +345,8 @@ class FetchModule:
                 except Exception as e:
                     logger.debug(f"Unable to remove cache_file: {cache_file}: {e}")
                     pass
+
+        return self
 
     def fetch_entry(self, entry, check_size=True, retries=5, verbose=True):
         """Standardized method for fetching a single result entry."""
