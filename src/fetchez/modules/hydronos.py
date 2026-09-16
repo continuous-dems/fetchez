@@ -251,7 +251,7 @@ class HydroNOS(FetchModule):
                 #         )
         if self.datatype is None or "grid" in self.datatype.lower():
             bags_exist = str(attrs.get("BAGS_EXIST", "")).upper()
-            if bags_exist not in ["TRUE", "Y", "YES"] or self.datatype is not None:
+            if bags_exist not in ["TRUE", "Y", "YES"]:  # and self.datatype is not None:
                 # Check for Grid_Data folder or files
                 xyz_page = core.Fetch(data_link).fetch_html()
 
