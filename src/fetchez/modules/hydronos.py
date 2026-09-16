@@ -249,3 +249,34 @@ class HydroNOS(FetchModule):
                 #             date=str(year),
                 #             license="Public Domain",
                 #         )
+        if self.datatype is None or "grid" in self.datatype.lower():
+            bags_exist = str(attrs.get("BAGS_EXIST", "")).upper()
+            if bags_exist not in ["TRUE", "Y", "YES"] or self.datatype is not None:
+                # Check for Grid_Data folder or files
+                xyz_page = core.Fetch(data_link).fetch_html()
+
+                if xyz_page is not None:
+                    gridded_links = xyz_page.xpath(
+                        '//a[contains(@href, "Gridded_Data")]/@href'
+                    )
+                    if gridded_links:
+                        gridded_page = core.Fetch(
+                            f"{data_link}Gridded_Data/"
+                        ).fetch_html()
+                        xyz_links = gridded_page.xpath(
+                            '//a[contains(@href, ".gz")]/@href'
+                        )
+                        for xyz_filename in xyz_links:
+                            xyz_link = f"{data_link}Gridded_Data/{xyz_filename}"
+                            dt = "nos-gridded"
+
+                            # Verify the data file exists (HEAD request)
+                            if core.Fetch(xyz_link).fetch_req(timeout=5) is not None:
+                                self.add_entry_to_results(
+                                    url=xyz_link,
+                                    dst_fn=xyz_filename,
+                                    data_type=dt,
+                                    agency="NOAA NOS",
+                                    date=str(year),
+                                    license="Public Domain",
+                                )
