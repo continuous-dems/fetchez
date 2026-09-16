@@ -39,7 +39,7 @@ class MGDS(FetchModule):
     meta_category = "Bathymetry"
     meta_desc = "Marine Geoscience Data System (MGDS)"
     meta_agency = "IEDA / NSF"
-    meta_tags = ["mgds", "bathymetry", "marine", "swath", "geophysics"]
+    meta_tags = ["mgds", "bathymetry", "marine", "swath", "geophysics", "multibeam"]
     meta_region = "Global / Marine"
     meta_resolution = "Various"
     meta_license = "Public / Academic"
