@@ -301,7 +301,7 @@ def get(
 
     try:
         mod_instance = ModCls(
-            src_region=src_region, hook=active_hooks, outdir=str(outdir), **kwargs
+            src_region=src_region, hook=active_hooks, outdir=outdir, **kwargs
         )
     except Exception as e:
         logger.error(f"Failed to initialize {module}: {e}")
