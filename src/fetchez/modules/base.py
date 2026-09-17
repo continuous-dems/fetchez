@@ -170,6 +170,10 @@ class FetchModule:
                 f"Hook {hook_obj} does not appear to be a valid FetchHook class."
             )
 
+    def clear_hooks(self):
+        self.internal_hooks = []
+        self.external_hooks = []
+
     def run(self):
         """Override this method in a subclass to populate `self.results`."""
 
