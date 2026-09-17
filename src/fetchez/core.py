@@ -515,20 +515,20 @@ class fetchezSession(requests.Session):
 
 
 class Fetch:
-    """Fetch class to fetch ftp/http data files"""
+    """Fetch ftp/http data files with an instance-owned copy of the headers."""
 
     def __init__(
         self,
         url: str,
         callback=fetches_callback,
-        headers: Dict = R_HEADERS,
+        headers: Optional[Dict] = None,
         verify: bool = True,
         allow_redirects: bool = True,
         auth: Optional[Any] = None,
     ):
         self.url = url
         self.callback = callback
-        self.headers = headers
+        self.headers = dict(R_HEADERS if headers is None else headers)
         self.verify = verify
         self.allow_redirects = allow_redirects
         self.auth = auth
@@ -720,7 +720,9 @@ class Fetch:
                         )
                         return 0
 
+                headers = self.headers.copy()
                 for attempt in range(tries):
+                    req_headers = headers.copy()
                     resume_byte_pos = 0
                     mode = "wb"
 
@@ -728,7 +730,7 @@ class Fetch:
                     if Path(part_fn).exists():
                         resume_byte_pos = Path(part_fn).stat().st_size
                         if resume_byte_pos > 0:
-                            self.headers["Range"] = f"bytes={resume_byte_pos}-"
+                            req_headers["Range"] = f"bytes={resume_byte_pos}-"
                             mode = "ab"
 
                     try:
@@ -740,7 +742,7 @@ class Fetch:
                             # data=data,
                             # json=json,
                             auth=self.auth,
-                            headers=self.headers,
+                            headers=req_headers,
                             timeout=(timeout, read_timeout),
                             verify=self.verify,
                             allow_redirects=self.allow_redirects,
@@ -777,8 +779,7 @@ class Fetch:
                                 )
                                 mode = "wb"
                                 resume_byte_pos = 0
-                                if "Range" in self.headers:
-                                    del self.headers["Range"]
+                                headers.pop("Range", None)
 
                             # Error Codes
                             if req.status_code == 416:
@@ -789,8 +790,7 @@ class Fetch:
                                 )
                                 if Path(part_fn).exists():
                                     Path(part_fn).unlink()
-                                if "Range" in self.headers:
-                                    del self.headers["Range"]
+                                headers.pop("Range", None)
                                 continue
 
                             elif req.status_code in [401, 403]:

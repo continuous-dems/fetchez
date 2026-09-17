@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add readable TNM elevation aliases while keeping the existing numeric selectors.
 - Preserve TNM source metadata and allow `dedupe=false` to retain overlapping products.
 
+### BUGFIX
+- Keep download resume headers from leaking into other requests or caller-provided headers.
+
 ## [0.8.5 - 2026-08-19]
 ### ADDED
 - Sandbox (namespace) loaded external registry entries if they conflict with builtins.
