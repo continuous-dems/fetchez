@@ -980,7 +980,7 @@ def run_fetchez(
         threads: Number of parallel download threads.
         global_hooks: List of hooks to run globally across all entries.
         ignore_failures: If False (default), raises an exception on any failure.
-                        If True, tags failed entries with status='failed' and continues.
+                         If True, tags failed entries with status='failed' and continues.
     """
 
     STOP_EVENT.clear()
