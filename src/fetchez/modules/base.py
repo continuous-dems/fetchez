@@ -302,6 +302,12 @@ class FetchModule:
         logger.debug(f"[{self.name}] Querying remote API...")
         self._original_run()
 
+        # A module sets this when discovery failed without raising. Its results
+        # are then not an answer, and caching them would replay the failure.
+        if getattr(self, "_discovery_failed", False):
+            logger.debug(f"[{self.name}] Discovery failed; results not cached.")
+            return self
+
         def _json_fallback(obj):
             """Safely serialize custom objects like Region."""
             if type(obj).__name__ == "Region":
