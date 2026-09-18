@@ -92,17 +92,30 @@ class SpatialCullHook(FetchHook):
                 intersection = cumulative_mask.intersection(geom)
                 coverage = intersection.area / geom.area if geom.area > 0 else 0
 
+                title = self._get_entry_val(entry, "title") or "item"
+                dst_fn = entry.get("dst_fn") or ""
+
                 if coverage >= self.min_coverage:
                     dropped_count += 1
-                    title = (
-                        self._get_entry_val(entry, "title")
-                        or entry.get("dst_fn")
-                        or "item"
-                    )
                     logger.debug(
-                        f"[spatial_cull] Dropping '{title}' ({coverage:.1%} covered)"
+                        "[spatial_cull] Dropping '%s' | %s "
+                        "(%.1f%% covered, %.1f%% unique)",
+                        title,
+                        dst_fn,
+                        coverage * 100,
+                        (1.0 - coverage) * 100,
                     )
                     continue
+
+                if coverage > 0:
+                    logger.debug(
+                        "[spatial_cull] Retaining '%s' | %s "
+                        "(%.1f%% covered, %.1f%% unique)",
+                        title,
+                        dst_fn,
+                        coverage * 100,
+                        (1.0 - coverage) * 100,
+                    )
 
                 cumulative_mask = cumulative_mask.union(geom)
 
