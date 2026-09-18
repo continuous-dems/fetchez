@@ -148,7 +148,7 @@ def copy_preset(name):
         sys.exit(1)
 
     # Use the registry's built-in user folder mapping!
-    user_dir = Path(f"~/.fetchez/{PresetRegistry.user_folder}").expanduer()
+    user_dir = Path(f"~/.fetchez/{PresetRegistry.user_folder}").expanduser()
     user_dir.mkdir(parents=True, exist_ok=True)
 
     out_path = user_dir / f"{name}.yaml"
