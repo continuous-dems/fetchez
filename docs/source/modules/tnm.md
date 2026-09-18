@@ -25,6 +25,14 @@ run are removed before the error is raised. A failed query must not be treated
 as evidence that a higher-resolution product has no coverage. A successful
 query returning zero products is allowed.
 
+An API outage is never reported as zero products. If the API does not
+respond, answers with a non-200 status, a non-JSON page, or a JSON body that
+carries an error or lacks the `total` and `items` fields, the query is treated
+as failed: strict queries raise, other queries log an error and return what
+was collected so far. The results of a failed query are not written to the
+results cache, so a later run asks the API again instead of replaying the
+outage as an empty answer.
+
 The existing `datasets` argument and default one-arc-second query remain
 available. Do not combine `products` and `datasets`. Use
 `--strict-datasets true` with `datasets` to request the same error handling;
