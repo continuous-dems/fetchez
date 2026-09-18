@@ -95,6 +95,10 @@ class FetchModule:
         self.status = 0
         self.results = []
         self.use_cache = use_cache
+        # A module sets this when discovery failed without raising (for
+        # example an API outage). The results are then not an answer and
+        # `_cached_run` will not cache them.
+        self._discovery_failed = False
 
         # Store the parameters used to invoke this module for hashing
         self._init_kwargs = kwargs.copy()
@@ -250,6 +254,7 @@ class FetchModule:
     def _cached_run(self):
         """Intercepts run() to check the cache before querying remote APIs."""
 
+        self._discovery_failed = False
         if not self.use_cache:
             return self._original_run()
 
@@ -305,6 +310,10 @@ class FetchModule:
         # Cache file didn't exist, so we create a new one here.
         logger.debug(f"[{self.name}] Querying remote API...")
         self._original_run()
+
+        if getattr(self, "_discovery_failed", False):
+            logger.debug(f"[{self.name}] Discovery failed; results not cached.")
+            return self
 
         def _json_fallback(obj):
             """Safely serialize custom objects like Region."""

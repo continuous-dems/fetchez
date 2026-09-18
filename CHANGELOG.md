@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### BUGFIX
 - Keep download resume headers from leaking into other requests or caller-provided headers.
+- Report a TNM API outage as an error instead of zero products, and never cache the results of a failed TNM query.
 
 ## [0.8.5 - 2026-08-19]
 ### ADDED

@@ -203,6 +203,18 @@ class TheNationalMap(FetchModule):
             raise
         return self
 
+    def _api_failed(self, message):
+        """Report a TNM API request that did not produce a usable answer.
+
+        Strict queries raise. Other queries log the failure as an error and
+        mark discovery as failed, so whatever was collected is never cached
+        as if the API had answered "no products here".
+        """
+        if self.strict_datasets:
+            raise RuntimeError(message)
+        logger.error(message)
+        self._discovery_failed = True
+
     def _run_query(self, dataset_names):
         w, e, s, n = self.wgs_region
         bbox_str = f"{w},{s},{e},{n}"
@@ -261,22 +273,35 @@ class TheNationalMap(FetchModule):
                 dataset = None
 
             if req is None or req.status_code != 200:
-                if self.strict_datasets:
-                    status = req.status_code if req is not None else "no response"
-                    raise RuntimeError(f"TNM API request failed: {status}")
-                logger.error(
-                    f"TNM API Failed: {req.status_code if req else 'No Response'}"
-                )
+                status = req.status_code if req is not None else "no response"
+                self._api_failed(f"TNM API request failed: {status}")
                 break
 
             if req.text.strip().startswith("{errorMessage"):
-                if self.strict_datasets:
-                    raise RuntimeError(f"TNM API error: {req.text}")
-                logger.error(f"TNM API Error: {req.text}")
+                self._api_failed(f"TNM API error: {req.text}")
                 break
 
             try:
                 data = req.json()
+            except ValueError as e:
+                self._api_failed(f"TNM API returned a non-JSON response: {e}")
+                break
+
+            # An outage can answer HTTP 200 with a body such as {"error": ...}.
+            # Without this check that reads as "no products" and is cached as such.
+            if (
+                not isinstance(data, dict)
+                or "error" in data
+                or "errorMessage" in data
+                or "total" not in data
+                or "items" not in data
+            ):
+                self._api_failed(
+                    f"TNM API returned an error response: {req.text.strip()[:200]}"
+                )
+                break
+
+            try:
                 total = data.get("total", 0)
                 items = data.get("items", [])
                 if self.strict_datasets:
@@ -363,6 +388,7 @@ class TheNationalMap(FetchModule):
                 if self.strict_datasets:
                     raise RuntimeError(f"Unable to complete TNM discovery: {e}") from e
                 logger.exception(f"Error parsing TNM JSON: {e}")
+                self._discovery_failed = True
                 break
 
             offset += len(items) if self.strict_datasets else 100
