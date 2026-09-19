@@ -10,6 +10,7 @@ Spatially culls overlapping entries based on a prioritization attribute
 Supports generic sub-grouping to prevent distinct datasets from culling each other.
 """
 
+import re
 import logging
 from collections import defaultdict
 from shapely.geometry import Polygon, box
@@ -83,10 +84,30 @@ class SpatialCullHook(FetchHook):
                 culled_entries.append((mod, entry))
                 continue
 
-            if isinstance(geom, (bytes, bytearray)):
-                geom = shapely.wkb.loads(geom)
-            elif isinstance(geom, str):
-                geom = shapely.wkt.loads(geom)
+            try:
+                if isinstance(geom, (bytes, bytearray)):
+                    geom = shapely.wkb.loads(geom)
+                elif isinstance(geom, str):
+                    # Workaround for some shapefiles that have weird geometries.
+                    if re.search(r"B['\"].*?['\"]", geom, re.IGNORECASE):
+                        match = re.search(r"B['\"](.*)['\"]", geom, re.IGNORECASE)
+                        raw_content = match.group(1)
+                        raw_content = raw_content.strip("'\"")
+
+                        normalized_content = raw_content.replace("\\X", "\\x")
+                        actual_bytes = (
+                            normalized_content.encode("utf-8")
+                            .decode("unicode_escape")
+                            .encode("latin1")
+                        )
+
+                        geom = shapely.wkb.loads(actual_bytes)
+                    else:
+                        geom = shapely.wkt.loads(geom)
+
+            except Exception as e:
+                logger.warning(f"Failed to parse entry geometry: {e}")
+                continue
 
             if cumulative_mask.is_valid and geom.is_valid:
                 intersection = cumulative_mask.intersection(geom)

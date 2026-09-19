@@ -560,7 +560,7 @@ class Recipe:
             base_outdir = Path(outdir).resolve()
 
         # State Tracking
-        state_file = Path(original_cwd / ".fetchez_batch_state.json")
+        state_file = Path(base_outdir / "fetchez_batch_state.json")
         completed_tiles = []
         if state_file.exists() and not overwrite:
             try:
