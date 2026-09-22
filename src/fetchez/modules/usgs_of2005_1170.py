@@ -140,7 +140,7 @@ class USGS_OF2005_1170(FetchModule):
 
     def __init__(self, datatype: str = "cntr10m", update: bool = False, **kwargs):
         super().__init__(**kwargs)
-        self.datatype = str_or(datatype, "cntr10m").lower()
+        self.datatype = str_or(datatype.lower(), "cntr10m")
         self.force_update = update
 
         # Initialize the local feature registry
@@ -165,26 +165,19 @@ class USGS_OF2005_1170(FetchModule):
 
             # Regex to find FGDC Bounding Coordinates
             try:
-                w = float(
-                    re.search(
-                        r"West_Bounding_Coordinate:\s*([-\d\.]+)", text_content
-                    ).group(1)
-                )
-                e = float(
-                    re.search(
-                        r"East_Bounding_Coordinate:\s*([-\d\.]+)", text_content
-                    ).group(1)
-                )
-                n = float(
-                    re.search(
-                        r"North_Bounding_Coordinate:\s*([-\d\.]+)", text_content
-                    ).group(1)
-                )
-                s = float(
-                    re.search(
-                        r"South_Bounding_Coordinate:\s*([-\d\.]+)", text_content
-                    ).group(1)
-                )
+                _w = re.search(r"West_Bounding_Coordinate:\s*([-\d\.]+)", text_content)
+                _e = re.search(r"East_Bounding_Coordinate:\s*([-\d\.]+)", text_content)
+
+                _n = re.search(r"North_Bounding_Coordinate:\s*([-\d\.]+)", text_content)
+                _s = re.search(r"South_Bounding_Coordinate:\s*([-\d\.]+)", text_content)
+
+                if _w is None or _e is None or _n is None or _s is None:
+                    raise ValueError("Could not parse bounds from FGDC")
+                else:
+                    w = _w.group(1)
+                    e = _e.group(1)
+                    n = _n.group(1)
+                    s = _s.group(1)
 
                 # Create a GeoJSON polygon dict using Shapely
                 return mapping(box(w, s, e, n))
