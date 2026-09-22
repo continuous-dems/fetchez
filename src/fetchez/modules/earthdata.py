@@ -121,6 +121,7 @@ class EarthData(FetchModule):
         )
 
         # Authentication
+        self.auth: Optional[EarthdataAuth] = None
         credentials = core.get_credentials(
             url="https://urs.earthdata.nasa.gov",
             authenticator_url="https://urs.earthdata.nasa.gov",
@@ -135,7 +136,6 @@ class EarthData(FetchModule):
             self.auth = EarthdataAuth(credentials)
         else:
             self.headers = {}
-            self.auth = None
             logger.warning(
                 "Could not retrieve EarthData credentials. Public data might fail."
             )
