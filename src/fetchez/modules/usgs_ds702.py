@@ -68,7 +68,7 @@ class USGS_DS702(FetchModule):
 
     def __init__(self, datatype: str = "all", update: bool = False, **kwargs):
         super().__init__(**kwargs)
-        self.datatype = str_or(datatype, "all").lower()
+        self.datatype = str_or(datatype.lower(), "all")
         self.force_update = update
 
         self.FRED = fred.FRED(name=self.name)
