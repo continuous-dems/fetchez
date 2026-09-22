@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ADDED
 - Add readable TNM elevation aliases while keeping the existing numeric selectors.
 - Preserve TNM source metadata and allow `dedupe=false` to retain overlapping products.
+- Add usgs_ds704 and usgs_of2005_1170 modules
 
 ### CHANGED
 - Change the recipe batch_state output to live in `base_outdir` instead of `cwd`
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Keep download resume headers from leaking into other requests or caller-provided headers.
 - Report a TNM API outage as an error instead of zero products, and never cache the results of a failed TNM query.
 - Spatial cull corrects invalid geometries incorrectly read from shapefiles.
+- Fix unzip hook checking for .tar.gz and .tgz compression.
 
 ## [0.8.5 - 2026-08-19]
 ### ADDED

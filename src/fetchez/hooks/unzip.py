@@ -110,7 +110,7 @@ class Unzip(FetchHook):
                     out_entries.append((mod, entry))
 
             # --- .TAR / .TAR.GZ / .TGZ ARCHIVES ---
-            elif file_path.suffix.lower() in [".tar", "tar.gz", "tgz"]:
+            elif file_path.name.lower().endswith((".tar", ".tar.gz", ".tgz")):
                 extract_dir = file_path.parent
                 try:
                     # 'r:*' automatically detects compression (gzip, bzip2, etc.)
