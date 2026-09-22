@@ -332,6 +332,9 @@ class EarthData(FetchModule):
                     f"Harmony status url: {HARMONY_BASE_URL}/jobs/{self.subset_job_id}"
                 )
             else:
+                # No job means no answer; do not let the empty result be
+                # cached as if Harmony had said there is nothing here.
+                self._discovery_failed = True
                 return
 
         if self.subset_job_id:
@@ -381,6 +384,7 @@ class EarthData(FetchModule):
                             logger.error(
                                 f"Harmony Job {state}: {status.get('message', '')}"
                             )
+                            self._discovery_failed = True
                             break
 
                         elif state == "complete_with_errors":
@@ -388,6 +392,7 @@ class EarthData(FetchModule):
                                 f"Harmony Job completed with errors: {status.get('message', '')}. "
                                 f"Partial results may be available."
                             )
+                            self._discovery_failed = True
                             break
 
                         elif state == "running":
@@ -419,6 +424,7 @@ class EarthData(FetchModule):
                                 f"Harmony Job returned unrecognised status '{state}'; "
                                 f"stopping poll."
                             )
+                            self._discovery_failed = True
                             break
 
                     except Exception as e:
