@@ -52,7 +52,7 @@ class USGS_SIM3324(FetchModule):
         :param update: Force an update of the local FRED spatial index.
         """
         super().__init__(**kwargs)
-        self.datatype = str_or(datatype, "all").lower()
+        self.datatype = str_or(datatype.lower(), "all")
         self.force_update = update
 
         # Initialize the local feature registry
@@ -73,26 +73,19 @@ class USGS_SIM3324(FetchModule):
             text_content = str(response)
 
         try:
-            w = float(
-                re.search(
-                    r"West_Bounding_Coordinate:\s*([-\d\.]+)", text_content
-                ).group(1)
-            )
-            e = float(
-                re.search(
-                    r"East_Bounding_Coordinate:\s*([-\d\.]+)", text_content
-                ).group(1)
-            )
-            n = float(
-                re.search(
-                    r"North_Bounding_Coordinate:\s*([-\d\.]+)", text_content
-                ).group(1)
-            )
-            s = float(
-                re.search(
-                    r"South_Bounding_Coordinate:\s*([-\d\.]+)", text_content
-                ).group(1)
-            )
+            _w = re.search(r"West_Bounding_Coordinate:\s*([-\d\.]+)", text_content)
+            _e = re.search(r"East_Bounding_Coordinate:\s*([-\d\.]+)", text_content)
+
+            _n = re.search(r"North_Bounding_Coordinate:\s*([-\d\.]+)", text_content)
+            _s = re.search(r"South_Bounding_Coordinate:\s*([-\d\.]+)", text_content)
+
+            if _w is None or _e is None or _n is None or _s is None:
+                raise ValueError("Could not parse bounds from FGDC")
+            else:
+                w = _w.group(1)
+                e = _e.group(1)
+                n = _n.group(1)
+                s = _s.group(1)
 
             return mapping(box(w, s, e, n))
         except (AttributeError, ValueError) as exc:
