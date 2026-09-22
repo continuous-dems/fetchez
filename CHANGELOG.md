@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Change the recipe batch_state output to live in `base_outdir` instead of `cwd`
 
 ### BUGFIX
+- Skip the preview of a large Harmony job instead of abandoning it. Harmony answers a job over its preview threshold with the status `previewing`, which the poll did not recognise, so it stopped and the request came back empty; the job now has its preview skipped and is polled to completion.
 - Keep download resume headers from leaking into other requests or caller-provided headers.
 - Report a TNM API outage as an error instead of zero products, and never cache the results of a failed TNM query.
 - Spatial cull corrects invalid geometries incorrectly read from shapefiles.
