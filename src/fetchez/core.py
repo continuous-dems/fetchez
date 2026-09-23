@@ -1172,13 +1172,10 @@ def run_fetchez(
                                 from fetchez.hooks.stream_init import DataStream
 
                                 init_hook_cls = DataStream
-                                if init_hook_cls:
-                                    logger.debug(
-                                        f"Auto-initializing stream for {mod.name}"
-                                    )
-                                    init_hook = init_hook_cls()
-                                    active_stream_hooks.insert(0, init_hook)
-                                    runtime_hooks.append(init_hook)
+                                logger.debug(f"Auto-initializing stream for {mod.name}")
+                                init_hook = init_hook_cls()
+                                active_stream_hooks.insert(0, init_hook)
+                                runtime_hooks.append(init_hook)
 
                             except Exception as e:
                                 logger.warning(f"Could not auto-initialize stream: {e}")
