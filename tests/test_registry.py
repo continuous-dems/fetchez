@@ -8,7 +8,12 @@ from pathlib import Path
 
 import fetchez.modules
 import fetchez.hooks
-from fetchez.registry import PluginRegistry, ModuleRegistry, HookRegistry
+from fetchez.registry import (
+    PluginRegistry,
+    ModuleRegistry,
+    HookRegistry,
+    PresetRegistry,
+)
 
 # ReaderRegistry, ProfileRegistry, BundleRegistry, SchemaRegistry
 from fetchez.hooks import FetchHook
@@ -401,3 +406,42 @@ def test_load_fast_uses_load_all_cache_semantics():
 
     assert second is first
     assert registry_cls.calls == calls_after_first_load
+
+
+def test_yaml_load_all_is_cached():
+    loaded = PresetRegistry.load_all()
+
+    assert loaded
+
+    reloaded = PresetRegistry.load_all()
+
+    assert reloaded
+    assert loaded is reloaded
+
+
+def test_yaml_reload_all_reloads():
+    loaded = PresetRegistry.load_all()
+    reloaded = PresetRegistry.reload_all()
+
+    assert loaded
+    assert reloaded
+    assert loaded is not reloaded
+
+
+def test_get_yaml_returns_independent_copy():
+    PresetRegistry.load_all()
+
+    first = PresetRegistry.get_yaml("list-only")
+    first["hooks"].clear()
+
+    second = PresetRegistry.get_yaml("list-only")
+    assert second["hooks"]
+
+
+def test_hook_mutation():
+    HookRegistry.load_all()
+
+    info = HookRegistry.get_info("audit")
+    info["desc"] = "mutated"
+
+    assert HookRegistry.get_info("audit")["desc"] != "mutated"
