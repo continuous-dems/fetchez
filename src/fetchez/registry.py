@@ -265,12 +265,11 @@ class PluginRegistry:
 
     @classmethod
     def get_info(cls, mod_key: str) -> Dict[str, Any]:
-        return cls.get_registry().get(mod_key, {})
+        return copy.deepcopy(cls.get_registry().get(mod_key, {}))
 
     @classmethod
-    def _get_class(cls, mod_key: str):
-        meta = cls.get_registry().get(mod_key)
-        return meta.get("_class_obj") if meta else None
+    def list_all(cls) -> Dict[str, Any]:
+        return copy.deepcopy(cls.get_registry())
 
     @classmethod
     def get_class(cls, name: str):
@@ -308,10 +307,6 @@ class PluginRegistry:
     load_module = get_class  # alias for backward compatability
 
     @classmethod
-    def list_all(cls) -> Dict[str, Any]:
-        return cls.get_registry()
-
-    @classmethod
     def search_modules(cls, term: str):
         """Search modules by name, description, agency, or tags."""
 
@@ -336,6 +331,7 @@ class YamlRegistry:
     """A registry for discovering and loading yaml configuration files (recipes and hook presets)."""
 
     _registry: Dict[str, Any]
+    _loaded_registry: Optional[Dict[str, Any]] = None
 
     # These must be defined by the subclasses
     base_class: Optional[Type] = None
@@ -344,16 +340,17 @@ class YamlRegistry:
     user_folder: str = ""
 
     @classmethod
-    def get_registry(cls) -> Dict[str, Any]:
-
-        if not hasattr(cls, "_registry"):
+    def get_registry(cls, clear_registry: bool = False) -> Dict[str, Any]:
+        if not hasattr(cls, "_registry") or clear_registry:
             cls._registry = {}
-
         return cls._registry
 
     @classmethod
     def load_all(cls):
-        cls.get_registry()
+        registry = cls.get_registry()
+
+        if cls.__dict__.get("_loaded_registry") is registry:
+            return registry
 
         try:
             eps = importlib.metadata.entry_points(group=cls.entry_point_group)
@@ -375,7 +372,7 @@ class YamlRegistry:
                 logger.warning(f"Failed to load yamls from package {pkg_name}: {e}")
 
         builtin_module = importlib.import_module(cls.builtin_pkg)
-        builtin_path = builtin_module.__path__
+        builtin_path = list(builtin_module.__path__)
         home_dir = Path.home() / ".fetchez" / cls.user_folder
         builtin_path.append(home_dir)
         for fdir in builtin_path:
@@ -388,6 +385,16 @@ class YamlRegistry:
                                 cls._register_yaml("fetchez", f.read(), f_dir)
                         except Exception as e:
                             logger.warning(f"Failed to load yaml {fn}: {e}")
+
+        registry = cls.get_registry()
+        cls._loaded_registry = registry
+        return registry
+
+    @classmethod
+    def reload_all(cls):
+        cls.get_registry(clear_registry=True)
+        cls._loaded_registry = None
+        return cls.load_all()
 
     load_fast = load_all  # temp for lingering load_fast calls
 
@@ -408,7 +415,7 @@ class YamlRegistry:
 
     @classmethod
     def get_yaml(cls, name: str) -> Optional[Dict[str, Any]]:
-        return cls.get_registry().get(name)
+        return copy.deepcopy(cls.get_registry().get(name))
 
     # Temporary for backwards compatibility
     get_preset = get_yaml
@@ -823,7 +830,7 @@ class BundleRegistry(YamlRegistry):
 
 # Profiles extend Streams
 class ProfileRegistry(YamlRegistry):
-    """A registry for discovering and loading Format Profilesx."""
+    """A registry for discovering and loading Format Profiles."""
 
     builtin_pkg = "fetchez.streams.profiles"
     entry_point_group = "fetchez.streams.profiles"
