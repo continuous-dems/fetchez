@@ -21,8 +21,16 @@ class DummyRegistry(PluginRegistry):
 @pytest.fixture(autouse=True)
 def clean_registry():
     DummyRegistry._registry = {}
+
+    if "_loaded_registry" in DummyRegistry.__dict__:
+        delattr(DummyRegistry, "_loaded_registry")
+
     yield
+
     DummyRegistry._registry = {}
+
+    if "_loaded_registry" in DummyRegistry.__dict__:
+        delattr(DummyRegistry, "_loaded_registry")
 
 
 def make_plugin_module(

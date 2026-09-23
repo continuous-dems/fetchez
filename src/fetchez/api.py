@@ -23,6 +23,7 @@ Usage::
 :license: MIT, see LICENSE for more details.
 """
 
+import copy
 import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
@@ -52,7 +53,7 @@ def _search_registry(registry_cls, term: Optional[str] = None) -> Dict[str, Any]
     """Helper to load and search a specific registry."""
 
     registry_cls.load_all()
-    full_reg = registry_cls.get_registry()
+    full_reg = copy.deepcopy(registry_cls.get_registry())
 
     if not term:
         return full_reg
@@ -60,16 +61,16 @@ def _search_registry(registry_cls, term: Optional[str] = None) -> Dict[str, Any]
     found = {}
     term_lower = term.lower()
     for name, meta in full_reg.items():
-        desc = meta.get("desc", meta.get("desc", ""))
+        desc = meta.get("desc", "")
         tags = [t.lower() for t in meta.get("tags", [])]
         aliases = [a.lower() for a in meta.get("aliases", [])]
-        category = meta.get("category", meta.get("category", ""))
+        category = meta.get("category", "")
 
         if (
             term_lower in name.lower()
             or term_lower in desc.lower()
-            or term_lower in tags
-            or term_lower in aliases
+            or any(term_lower in tag for tag in tags)
+            or any(term_lower in alias for alias in aliases)
             or term_lower in category.lower()
         ):
             found[name] = meta
