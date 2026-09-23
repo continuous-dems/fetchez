@@ -148,16 +148,13 @@ class USGS_OF2014_1094(FetchModule):
 
                 archive_url = urljoin(OFR2014_1094_CATALOG_URL, archive_href)
 
-                # Use XPath to find the .txt link located within the same table row <tr>
                 geom = None
                 txt_url = None
 
-                # Attempt 1: Look in the same table row
                 txt_hrefs = page.xpath(
                     f'//a[@href="{archive_href}"]/ancestor::tr//a[contains(@href, ".txt")]/@href'
                 )
 
-                # Attempt 2: Direct substitution (common if metadata is in a separate column/folder)
                 if not txt_hrefs:
                     txt_fallback = archive_href.replace(".zip", ".txt").replace(
                         "data/", "metadata/"
@@ -172,8 +169,6 @@ class USGS_OF2014_1094(FetchModule):
                 if geom is None:
                     geom = mapping(box(-125.0, 32.0, -117.0, 42.0))
 
-                # Simple heuristic for data types
-                # dataset_lower = dataset_name.lower()
                 dataset_lower = archive_href.lower()
                 if "bathy" in dataset_lower:
                     data_type = "bathymetry"

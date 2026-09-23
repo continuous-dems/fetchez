@@ -878,8 +878,8 @@ class Fetch:
                             time.sleep(wait_time)
                         else:
                             logger.debug(f"Failed to download {self.url}: {e}")
-                            return -1
-                            # req.raise_for_status()
+                            # return -1
+                            req.raise_for_status()
 
         except filelock.Timeout:
             logger.error(
