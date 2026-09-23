@@ -41,6 +41,7 @@ class PluginRegistry:
     """Base class for dynamically discovering and registering plugins."""
 
     _registry: Dict[str, Any]
+    _loaded_registry: Optional[Dict[str, Any]] = None
 
     # These must be defined by the subclasses
     base_class: Optional[Type] = None
@@ -143,11 +144,32 @@ class PluginRegistry:
     def load_all(cls):
         """Load all plugins: builtins, user plugins, and pip extensions."""
 
+        registry = cls.get_registry()
+
+        if cls.__dict__.get("_loaded_registry") is registry:
+            return registry
+
         cls.load_builtins()
         cls.load_user_plugins()
         cls.load_installed_plugins()
 
+        registry = cls.get_registry()
+        cls._loaded_registry = registry
+        return registry
+
     load_fast = load_all  # temp in case we forgot to update any calls to the depreciated `load_fast`
+
+    @classmethod
+    def reload_all(cls):
+        "Force rediscovery of all plugin sources."
+
+        cls.load_builtins()
+        cls.load_user_plugins()
+        cls.load_installed_plugins()
+
+        registry = cls.get_registry()
+        cls._loaded_registry = registry
+        return registry
 
     @classmethod
     def _register_from_module(cls, module, use_namespaces=False):
@@ -555,14 +577,18 @@ class PresetRegistry(YamlRegistry):
             logger.debug(f"Failed to parse preset YAML {file_path}: {e}")
 
     @classmethod
-    def expand_hooks(
+    def expand_hooks(cls, hook_defs, parent_hooks=None):
+        cls.load_all()
+        return cls._expand_hooks(hook_defs, parent_hooks)
+
+    @classmethod
+    def _expand_hooks(
         cls,
         hook_defs: List[Dict[str, Any]],
         parent_hooks: Optional[List[Dict[str, Any]]] = None,
     ) -> List[Dict[str, Any]]:
         """Recursively expands preset references in a list of hook definitions into a flat list of hook dictionary configs."""
 
-        cls.load_all()
         expanded_list = []
         parent_hooks = parent_hooks or []
 
@@ -615,8 +641,9 @@ class PresetRegistry(YamlRegistry):
                         else:
                             combined_overrides.append(u_arg)
 
-                    expanded_child_hooks = cls.expand_hooks(
-                        preset_hooks, parent_hooks=combined_overrides
+                    expanded_child_hooks = cls._expand_hooks(
+                        preset_hooks,
+                        parent_hooks=combined_overrides,
                     )
                     expanded_list.extend(expanded_child_hooks)
                 else:
@@ -697,15 +724,25 @@ class BundleRegistry(YamlRegistry):
 
     @classmethod
     def expand_modules(
-        cls, raw_modules: List[Any], parent_weight: float = 1.0
+        cls,
+        raw_modules: List[Any],
+        parent_weight: float = 1.0,
     ) -> List[Dict[str, Any]]:
-        """Recursively flattens bundles/recipes, calculates stacked weights, and deduplicates/merges modules."""
+        """Expand bundles/recipes into concrete module definitions."""
 
         cls.load_all()
-        ModuleRegistry.load_all()
-        BundleRegistry.load_all()
         RecipeRegistry.load_all()
         PresetRegistry.load_all()
+
+        return cls._expand_modules(raw_modules, parent_weight)
+
+    @classmethod
+    def _expand_modules(
+        cls,
+        raw_modules: List[Any],
+        parent_weight: float = 1.0,
+    ) -> List[Dict[str, Any]]:
+        """Recursive implementation; assumes registries are already loaded."""
 
         expanded_dict: dict[str, Any] = {}
 
@@ -719,25 +756,33 @@ class BundleRegistry(YamlRegistry):
                     continue
 
             target = mod_dict.get("bundle") or mod_dict.get("recipe")
+
             if target:
                 user_args = mod_dict.get("args", {})
                 user_hooks = mod_dict.get("hooks", [])
+
                 current_weight = float(user_args.get("weight", 1.0)) * parent_weight
 
                 bundle_def = cls.get_yaml(target)
+
                 if not bundle_def:
                     recipe_meta = RecipeRegistry.get_yaml(target)
                     if recipe_meta:
                         bundle_def = recipe_meta.get("config", {})
 
                 if bundle_def:
-                    child_modules = bundle_def.get("modules", [])
-                    child_expanded = cls.expand_modules(child_modules, current_weight)
+                    child_modules = copy.deepcopy(bundle_def.get("modules", []))
+
+                    child_expanded = cls._expand_modules(
+                        child_modules,
+                        current_weight,
+                    )
 
                     for child_mod in child_expanded:
                         if user_hooks:
                             child_mod["hooks"] = PresetRegistry.expand_hooks(
-                                child_mod.get("hooks", []), user_hooks
+                                child_mod.get("hooks", []),
+                                user_hooks,
                             )
 
                         sig = cls.get_module_signature(child_mod)
@@ -753,9 +798,14 @@ class BundleRegistry(YamlRegistry):
 
                 if sig in expanded_dict and isinstance(expanded_dict[sig], dict):
                     existing = expanded_dict[sig]
+
                     merged_args = existing.get("args", {}).copy()
                     merged_args.update(mod_dict.get("args", {}))
-                    merged_hooks = mod_dict.get("hooks", existing.get("hooks", []))
+
+                    merged_hooks = mod_dict.get(
+                        "hooks",
+                        existing.get("hooks", []),
+                    )
 
                     expanded_dict[sig] = {
                         "module": mod_dict["module"],
@@ -764,6 +814,7 @@ class BundleRegistry(YamlRegistry):
                     }
                 else:
                     expanded_dict[sig] = mod_dict
+
             else:
                 logger.error(f"Invalid module definition: {mod_dict}")
 
