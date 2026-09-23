@@ -13,7 +13,7 @@ DS781_BASE_URL = "https://pubs.usgs.gov/ds/781/"
 
 class USGS_DS781(FetchModule):
     name = "usgs_ds781"
-    meta_category = "Topography"
+    meta_category = "Bathymetry"
     meta_desc = "USGS Data Series 781: California State Waters Map Series"
     meta_agency = "USGS"
     meta_resolution = "Varies"
