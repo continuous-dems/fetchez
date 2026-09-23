@@ -255,7 +255,10 @@ class PluginRegistry:
 
     @classmethod
     def get_info(cls, mod_key: str) -> Dict[str, Any]:
-        return cls.get_registry().get(mod_key, {})
+        """Return a copy of a plugin's metadata, so the registry, which is
+        only loaded once per process, stays as loaded (see ``get_yaml``)."""
+
+        return copy.deepcopy(cls.get_registry().get(mod_key, {}))
 
     @classmethod
     def _get_class(cls, mod_key: str):
@@ -299,7 +302,7 @@ class PluginRegistry:
 
     @classmethod
     def list_all(cls) -> Dict[str, Any]:
-        return cls.get_registry()
+        return copy.deepcopy(cls.get_registry())
 
     @classmethod
     def search_modules(cls, term: str):

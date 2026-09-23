@@ -23,6 +23,7 @@ Usage::
 :license: MIT, see LICENSE for more details.
 """
 
+import copy
 import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
@@ -54,8 +55,9 @@ def _search_registry(registry_cls, term: Optional[str] = None) -> Dict[str, Any]
     registry_cls.load_all()
     full_reg = registry_cls.get_registry()
 
+    # Copies, so callers can't edit the registry, which is only loaded once.
     if not term:
-        return full_reg
+        return copy.deepcopy(full_reg)
 
     found = {}
     term_lower = term.lower()
@@ -74,7 +76,7 @@ def _search_registry(registry_cls, term: Optional[str] = None) -> Dict[str, Any]
         ):
             found[name] = meta
 
-    return found
+    return copy.deepcopy(found)
 
 
 def list_modules() -> Dict[str, Any]:
