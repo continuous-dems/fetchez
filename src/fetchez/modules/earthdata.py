@@ -61,7 +61,7 @@ class EarthdataAuth(AuthBase):
     time_end="End Date (ISO 8601: 2020-02-01T00:00:00Z)",
     subset="Use Harmony API for subsetting (if supported)",
     filename_filter="Filter granules by filename pattern (wildcards supported)",
-    harmony_ping="Harmony ping query, ['status', 'pause', 'resume', 'cancel']",
+    harmony_ping="Harmony ping query, ['status', 'pause', 'resume', 'cancel', 'skip-preview']",
 )
 class EarthData(FetchModule):
     name = "earthdata"
@@ -112,7 +112,7 @@ class EarthData(FetchModule):
         self.filename_filter = filename_filter
         self.subset = subset
         self.subset_job_id = subset_job_id
-        self.harmony_ping = harmony_ping  # 'status', 'pause', 'resume', 'cancel'
+        self.harmony_ping = harmony_ping  # see harmony_ping_for_status
 
         # URLs
         self._cmr_url = CMR_SEARCH_URL
@@ -121,6 +121,7 @@ class EarthData(FetchModule):
         )
 
         # Authentication
+        self.auth: Optional[EarthdataAuth] = None
         credentials = core.get_credentials(
             url="https://urs.earthdata.nasa.gov",
             authenticator_url="https://urs.earthdata.nasa.gov",
@@ -135,7 +136,6 @@ class EarthData(FetchModule):
             self.auth = EarthdataAuth(credentials)
         else:
             self.headers = {}
-            # self.auth = None
             logger.warning(
                 "Could not retrieve EarthData credentials. Public data might fail."
             )
@@ -167,7 +167,7 @@ class EarthData(FetchModule):
     ) -> Optional[Dict]:
         """Check status of a Harmony Job."""
 
-        valid_requests = ["status", "pause", "resume", "cancel"]
+        valid_requests = ["status", "pause", "resume", "cancel", "skip-preview"]
         base_url = f"{HARMONY_BASE_URL}/jobs/{job_id}"
 
         if ping_request in valid_requests[1:]:
@@ -332,13 +332,22 @@ class EarthData(FetchModule):
                     f"Harmony status url: {HARMONY_BASE_URL}/jobs/{self.subset_job_id}"
                 )
             else:
+                # No job means no answer; do not let the empty result be
+                # cached as if Harmony had said there is nothing here.
+                self._discovery_failed = True
                 return
 
         if self.subset_job_id:
             logger.debug(f"Polling Harmony Job {self.subset_job_id}...")
 
             # States where Harmony is still working and polling should continue.
-            _IN_PROGRESS_STATES = {"running", "paused", "accepted", "queued"}
+            _IN_PROGRESS_STATES = {
+                "running",
+                "paused",
+                "previewing",
+                "accepted",
+                "queued",
+            }
 
             with tqdm(total=100) as pbar:
                 while True:
@@ -375,6 +384,7 @@ class EarthData(FetchModule):
                             logger.error(
                                 f"Harmony Job {state}: {status.get('message', '')}"
                             )
+                            self._discovery_failed = True
                             break
 
                         elif state == "complete_with_errors":
@@ -382,6 +392,7 @@ class EarthData(FetchModule):
                                 f"Harmony Job completed with errors: {status.get('message', '')}. "
                                 f"Partial results may be available."
                             )
+                            self._discovery_failed = True
                             break
 
                         elif state == "running":
@@ -390,6 +401,19 @@ class EarthData(FetchModule):
                             time.sleep(15)
                         elif state == "paused":
                             self.harmony_ping_for_status(self.subset_job_id, "resume")
+                            time.sleep(10)
+                        elif state == "previewing":
+                            # A job over Harmony's preview threshold processes a
+                            # small batch first and then pauses until told to go
+                            # on. Skip the preview so it runs straight through.
+                            # If the skip is refused the job still ends up
+                            # paused, and the resume above picks it up.
+                            logger.debug(
+                                "Harmony Job is previewing; skipping the preview."
+                            )
+                            self.harmony_ping_for_status(
+                                self.subset_job_id, "skip-preview"
+                            )
                             time.sleep(10)
                         elif state in _IN_PROGRESS_STATES:
                             logger.debug(f"Harmony Job Status: {state}")
@@ -400,6 +424,7 @@ class EarthData(FetchModule):
                                 f"Harmony Job returned unrecognised status '{state}'; "
                                 f"stopping poll."
                             )
+                            self._discovery_failed = True
                             break
 
                     except Exception as e:
