@@ -1169,18 +1169,13 @@ def run_fetchez(
 
                         if not has_stream and not has_stream_init:
                             try:
-                                from fetchez.registry import HookRegistry
+                                from fetchez.hooks.stream_init import DataStream
 
-                                HookRegistry.load_builtins()
-
-                                init_hook_cls = HookRegistry.get_class("stream-init")
-                                if init_hook_cls:
-                                    logger.debug(
-                                        f"Auto-initializing stream for {mod.name}"
-                                    )
-                                    init_hook = init_hook_cls()
-                                    active_stream_hooks.insert(0, init_hook)
-                                    runtime_hooks.append(init_hook)
+                                init_hook_cls = DataStream
+                                logger.debug(f"Auto-initializing stream for {mod.name}")
+                                init_hook = init_hook_cls()
+                                active_stream_hooks.insert(0, init_hook)
+                                runtime_hooks.append(init_hook)
 
                             except Exception as e:
                                 logger.warning(f"Could not auto-initialize stream: {e}")

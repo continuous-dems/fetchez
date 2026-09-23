@@ -243,20 +243,9 @@ def test_stream_init_is_auto_injected_before_other_stream_hooks(monkeypatch):
 
             return entries
 
-    from fetchez.registry import HookRegistry
+    from fetchez.hooks import stream_init
 
-    monkeypatch.setattr(
-        HookRegistry,
-        "load_builtins",
-        classmethod(lambda cls: None),
-    )
-    monkeypatch.setattr(
-        HookRegistry,
-        "get_class",
-        classmethod(
-            lambda cls, name: AutoStreamInit if name == "stream-init" else None
-        ),
-    )
+    monkeypatch.setattr(stream_init, "DataStream", AutoStreamInit)
 
     transform = RecordingHook(
         "stream-transform",
@@ -284,26 +273,14 @@ def test_explicit_stream_initializer_prevents_auto_injection(
     initializer_name,
 ):
     events = []
-    auto_init_calls = 0
 
-    class AutoStreamInit(RecordingHook):
+    class UnexpectedDataStream:
         def __init__(self):
-            nonlocal auto_init_calls
-            auto_init_calls += 1
-            super().__init__("stream-init", "stream", events)
+            pytest.fail("DataStream should not be auto-injected")
 
-    from fetchez.registry import HookRegistry
+    from fetchez.hooks import stream_init
 
-    monkeypatch.setattr(
-        HookRegistry,
-        "load_builtins",
-        classmethod(lambda cls: None),
-    )
-    monkeypatch.setattr(
-        HookRegistry,
-        "get_class",
-        classmethod(lambda cls, name: AutoStreamInit),
-    )
+    monkeypatch.setattr(stream_init, "DataStream", UnexpectedDataStream)
 
     explicit_init = RecordingHook(
         initializer_name,
@@ -327,7 +304,6 @@ def test_explicit_stream_initializer_prevents_auto_injection(
         ignore_failures=False,
     )
 
-    assert auto_init_calls == 0
     assert events.count(initializer_name) == 1
     assert events.index(initializer_name) < events.index("transform")
 
@@ -336,24 +312,13 @@ def test_existing_stream_prevents_auto_initialization(monkeypatch):
     events = []
     auto_init_calls = 0
 
-    class AutoStreamInit(RecordingHook):
+    class UnexpectedDataStream:
         def __init__(self):
-            nonlocal auto_init_calls
-            auto_init_calls += 1
-            super().__init__("stream-init", "stream", events)
+            pytest.fail("DataStream should not be auto-injected")
 
-    from fetchez.registry import HookRegistry
+    from fetchez.hooks import stream_init
 
-    monkeypatch.setattr(
-        HookRegistry,
-        "load_builtins",
-        classmethod(lambda cls: None),
-    )
-    monkeypatch.setattr(
-        HookRegistry,
-        "get_class",
-        classmethod(lambda cls, name: AutoStreamInit),
-    )
+    monkeypatch.setattr(stream_init, "DataStream", UnexpectedDataStream)
 
     module = DummyModule(
         events,
@@ -376,7 +341,7 @@ def test_existing_stream_prevents_auto_initialization(monkeypatch):
 def test_auto_stream_init_failure_honors_ignore_failures_false(monkeypatch):
     events = []
 
-    class FailingStreamInit(RecordingHook):
+    class FailingDataStream(RecordingHook):
         def __init__(self):
             super().__init__(
                 "stream-init",
@@ -385,18 +350,9 @@ def test_auto_stream_init_failure_honors_ignore_failures_false(monkeypatch):
                 fail=True,
             )
 
-    from fetchez.registry import HookRegistry
+    from fetchez.hooks import stream_init
 
-    monkeypatch.setattr(
-        HookRegistry,
-        "load_builtins",
-        classmethod(lambda cls: None),
-    )
-    monkeypatch.setattr(
-        HookRegistry,
-        "get_class",
-        classmethod(lambda cls, name: FailingStreamInit),
-    )
+    monkeypatch.setattr(stream_init, "DataStream", FailingDataStream)
 
     module = DummyModule(
         events,
@@ -562,18 +518,9 @@ def test_auto_injected_stream_init_is_torn_down(monkeypatch):
 
             return entries
 
-    from fetchez.registry import HookRegistry
+    from fetchez.hooks import stream_init
 
-    monkeypatch.setattr(
-        HookRegistry,
-        "load_builtins",
-        classmethod(lambda cls: None),
-    )
-    monkeypatch.setattr(
-        HookRegistry,
-        "get_class",
-        classmethod(lambda cls, name: AutoStreamInit),
-    )
+    monkeypatch.setattr(stream_init, "DataStream", AutoStreamInit)
 
     module = DummyModule(
         events,
