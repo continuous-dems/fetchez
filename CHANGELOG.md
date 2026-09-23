@@ -11,14 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add readable TNM elevation aliases while keeping the existing numeric selectors.
 - Preserve TNM source metadata and allow `dedupe=false` to retain overlapping products.
 - Add usgs_ds704 and usgs_of2005_1170 modules
+- Added explicit registry reload support while preserving dynamic plugin registrations and safely detecting registries that have been rebuilt or cleared.
+- Added explicit yaml registry reload support in line with the PluginRegistry reload functionality.
 
 ### CHANGED
 - Change the recipe batch_state output to live in `base_outdir` instead of `cwd`
 - Improved registry performance by avoiding repeated plugin discovery when an already fully loaded registry is reused.
-- Added explicit registry reload support while preserving dynamic plugin registrations and safely detecting registries that have been rebuilt or cleared.
 - Reduced redundant registry loading during nested bundle and preset expansion.
 - Improved expansion safety so recursive bundle processing does not modify registry-owned YAML definitions.
 - Expanded registry lifecycle and YAML composition tests to protect dynamic loading, recursive expansion, and cache invalidation behavior.
+- api.py uses deepcopy to return loaded registry.
 
 
 ### BUGFIX
