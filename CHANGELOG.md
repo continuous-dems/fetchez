@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### CHANGED
 - Change the recipe batch_state output to live in `base_outdir` instead of `cwd`
+- Improved registry performance by avoiding repeated plugin discovery when an already fully loaded registry is reused.
+- Added explicit registry reload support while preserving dynamic plugin registrations and safely detecting registries that have been rebuilt or cleared.
+- Reduced redundant registry loading during nested bundle and preset expansion.
+- Improved expansion safety so recursive bundle processing does not modify registry-owned YAML definitions.
+- Expanded registry lifecycle and YAML composition tests to protect dynamic loading, recursive expansion, and cache invalidation behavior.
+
 
 ### BUGFIX
 - Never cache the empty result of a Harmony job that did not succeed. A job that failed, was canceled, completed with errors, stopped on an unrecognised status, or was never created left an empty entry in the results cache, and every later run of the same request replayed that empty answer instead of polling the job again.
