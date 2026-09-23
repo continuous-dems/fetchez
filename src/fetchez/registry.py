@@ -62,6 +62,9 @@ class PluginRegistry:
         """Recursively scan and load all built-in plugins."""
 
         registry = cls.get_registry(clear_registry=True)
+        # The user and pip plugins were just cleared too; let the next
+        # load_all() bring them back.
+        cls._loaded = False
         if registry:
             return
 
@@ -401,7 +404,11 @@ class YamlRegistry:
 
     @classmethod
     def get_yaml(cls, name: str) -> Optional[Dict[str, Any]]:
-        return cls.get_registry().get(name)
+        """Return a copy of a definition; callers edit what they get (a recipe
+        run writes its region and modifiers into the config), and the registry
+        is only read once per process, so the stored one must stay as loaded."""
+
+        return copy.deepcopy(cls.get_registry().get(name))
 
     # Temporary for backwards compatibility
     get_preset = get_yaml
