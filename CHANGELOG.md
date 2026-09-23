@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add usgs_ds704 and usgs_of2005_1170 modules
 
 ### CHANGED
+- Registries load their plugins and YAML definitions once per process. `load_all()` used to import and inspect every plugin module, and re-read every bundle, preset, recipe and profile file, each time it was called, and the API and hooks call it on every request; a program streaming file after file through `fetchez`/`globato` paid about a second per file for it. `load_all(reload=True)` scans everything again.
 - Change the recipe batch_state output to live in `base_outdir` instead of `cwd`
 
 ### BUGFIX

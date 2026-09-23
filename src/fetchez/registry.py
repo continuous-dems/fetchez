@@ -140,12 +140,21 @@ class PluginRegistry:
             )
 
     @classmethod
-    def load_all(cls):
-        """Load all plugins: builtins, user plugins, and pip extensions."""
+    def load_all(cls, reload=False):
+        """Load all plugins: builtins, user plugins, and pip extensions.
 
+        Loading imports and inspects every plugin module, so it is done once
+        per registry per process; the API and the hooks call this on every
+        request, and a program that reads file after file paid for it each
+        time. ``reload=True`` scans everything again.
+        """
+
+        if cls.__dict__.get("_loaded") and not reload:
+            return
         cls.load_builtins()
         cls.load_user_plugins()
         cls.load_installed_plugins()
+        cls._loaded = True
 
     load_fast = load_all  # temp in case we forgot to update any calls to the depreciated `load_fast`
 
@@ -330,8 +339,14 @@ class YamlRegistry:
         return cls._registry
 
     @classmethod
-    def load_all(cls):
+    def load_all(cls, reload=False):
+        """Load every YAML definition, once per registry per process (see
+        ``PluginRegistry.load_all``); ``reload=True`` reads them all again."""
+
+        if cls.__dict__.get("_loaded") and not reload:
+            return
         cls.get_registry()
+        cls._loaded = True
 
         try:
             eps = importlib.metadata.entry_points(group=cls.entry_point_group)
