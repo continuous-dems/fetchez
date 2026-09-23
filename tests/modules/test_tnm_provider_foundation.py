@@ -1,7 +1,9 @@
+import json
+
 import pytest
 
 from fetchez import spatial
-from fetchez.modules import tnm
+from fetchez.modules import tnm, tnm_page
 from fetchez.hooks.spatial_cull import SpatialCullHook
 
 SAMPLE_REGION = spatial.Region(-118.65, -118.60, 34.05, 34.10, srs="EPSG:4326")
@@ -13,9 +15,15 @@ class FakeResponse:
 
     def __init__(self, payload):
         self.payload = payload
+        self.text = json.dumps(payload)
+        self.content = self.text.encode()
+        self.closed = False
 
     def json(self):
         return self.payload
+
+    def close(self):
+        self.closed = True
 
 
 class FakeFetch:
@@ -172,6 +180,7 @@ def test_spatial_cull_hook_retains_newest_tnm_product():
 
 
 def _pages(monkeypatch, payloads):
+    monkeypatch.setattr(tnm_page.time, "sleep", lambda _: None)
     pages = iter(payloads)
 
     def fetch_req(self, params=None):
@@ -286,12 +295,16 @@ def test_strict_query_rejection_does_not_broaden(monkeypatch):
 )
 def test_incomplete_discovery_rolls_back_results(monkeypatch, second):
     item = _item("tile", "https://example.test/tile.tif", "2020", "id")
-    _pages(monkeypatch, [{"total": 2, "items": [item]}, second])
+    payloads = [{"total": 2, "items": [item]}, second]
+    if not second.get("errorMessage"):
+        payloads.extend([second, second])
+    _pages(monkeypatch, payloads)
     mod = tnm.TheNationalMap(src_region=SAMPLE_REGION, products="1m", use_cache=False)
     with pytest.raises(RuntimeError):
         mod.run()
     assert mod.results == []
-    assert FakeFetch.params_seen[1]["offset"] == 1
+    expected_offsets = [0, 1] if second.get("errorMessage") else [0, 1, 1, 1]
+    assert [call["offset"] for call in FakeFetch.params_seen] == expected_offsets
 
 
 def test_short_pages_are_not_skipped(monkeypatch):
@@ -307,7 +320,7 @@ def test_short_pages_are_not_skipped(monkeypatch):
 
 def test_repeated_page_is_rejected(monkeypatch):
     item = _item("tile", "https://example.test/tile.tif", "2020", "id")
-    _pages(monkeypatch, [{"total": 2, "items": [item]}] * 2)
+    _pages(monkeypatch, [{"total": 2, "items": [item]}] * 4)
     mod = tnm.TheNationalMap(src_region=SAMPLE_REGION, products="1m", use_cache=False)
     with pytest.raises(RuntimeError, match="repeated"):
         mod.run()

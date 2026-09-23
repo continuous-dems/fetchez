@@ -694,6 +694,8 @@ class Recipe:
                     global_hooks = self._init_hooks(iteration_config["global_hooks"])
                 except Exception as e:
                     logger.error(f"Could not initialize recipe global hooks: {e}")
+                    if not ignore_failures:
+                        raise
                     continue
 
                 try:
@@ -704,6 +706,8 @@ class Recipe:
                     )
                 except Exception as e:
                     logger.error(f"Could not initialize recipe modules: {e}")
+                    if not ignore_failures:
+                        raise
                     continue
 
                 if not modules_to_run:

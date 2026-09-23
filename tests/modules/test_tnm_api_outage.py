@@ -26,6 +26,11 @@ class FakeResponse:
         self.text = text
         self._payload = payload
         self._json_error = json_error
+        self.content = text.encode("utf-8")
+        self.closed = False
+
+    def close(self):
+        self.closed = True
 
     def json(self):
         if self._json_error is not None:

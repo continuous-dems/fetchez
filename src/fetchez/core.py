@@ -550,6 +550,7 @@ class Fetch:
         """Fetch src_url and return the requests object (iterative retry)."""
 
         req = None
+        last_failure: Exception | None = None
         current_timeout = timeout
         current_read_timeout = read_timeout
 
@@ -577,6 +578,8 @@ class Fetch:
 
                 # Check status codes
                 if req.status_code == 504:  # Gateway Timeout
+                    last_failure = requests.HTTPError("504 Gateway Timeout")
+                    req.close()
                     time.sleep(2)
                     ## Increase timeouts next loop
                     if current_timeout:
@@ -586,7 +589,9 @@ class Fetch:
                     continue
 
                 elif req.status_code == 429:  # Too Many Requests
+                    last_failure = requests.HTTPError("429 Too Many Requests")
                     retry_after = req.headers.get("Retry-After")
+                    req.close()
                     wait_time = (
                         int(retry_after)
                         if retry_after and retry_after.isdigit()
@@ -613,6 +618,9 @@ class Fetch:
                     # return req
 
             except Exception as e:
+                last_failure = e
+                if req is not None:
+                    req.close()
                 logger.debug(f"Attempt {attempt + 1}/{tries} failed: {e}")
                 if current_timeout:
                     current_timeout *= 2
@@ -621,7 +629,14 @@ class Fetch:
                 time.sleep(1)
 
         logger.error(f"Connection failed after {tries} attempts: {self.url}")
-        raise ConnectionError("Maximum attempts at connecting have failed.")
+        detail = (
+            f"{type(last_failure).__name__}: {last_failure}"
+            if last_failure is not None
+            else "no response"
+        )
+        raise ConnectionError(
+            f"Maximum attempts at connecting have failed: {self.url} ({detail})"
+        ) from last_failure
 
     def fetch_html(self, timeout=2):
         """Fetch src_url and return it as an HTML object."""
