@@ -720,6 +720,7 @@ class BundleRegistry(YamlRegistry):
                 "formats",
                 "layer",
                 "product",
+                "products",
                 "survey_id",
                 "url",
                 "path",

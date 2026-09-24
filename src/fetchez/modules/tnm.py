@@ -21,6 +21,7 @@ from shapely.geometry import box
 
 from fetchez import cli, core, spatial, utils
 from fetchez.modules import FetchModule
+from fetchez.modules.tnm_page import fetch_strict_page
 
 logger = logging.getLogger(__name__)
 
@@ -246,7 +247,22 @@ class TheNationalMap(FetchModule):
                 )
                 params["dateType"] = self.date_type
 
-            req = core.Fetch(TNM_API_PRODUCTS_URL).fetch_req(params=params)
+            if self.strict_datasets:
+                try:
+                    req = fetch_strict_page(
+                        core.Fetch(TNM_API_PRODUCTS_URL).fetch_req,
+                        params,
+                        offset,
+                        expected_total,
+                        seen_urls,
+                        dataset,
+                    )
+                except ValueError as exc:
+                    raise RuntimeError(
+                        f"Unable to complete TNM discovery: {exc}"
+                    ) from exc
+            else:
+                req = core.Fetch(TNM_API_PRODUCTS_URL).fetch_req(params=params)
 
             if (
                 req is not None
@@ -305,34 +321,15 @@ class TheNationalMap(FetchModule):
                 total = data.get("total", 0)
                 items = data.get("items", [])
                 if self.strict_datasets:
-                    if (
-                        data.get("errorMessage")
-                        or "total" not in data
-                        or "items" not in data
-                        or not isinstance(total, int)
-                        or total < 0
-                        or not isinstance(items, list)
-                        or offset + len(items) > total
-                        or (offset < total and not items)
-                    ):
-                        raise ValueError(
-                            "TNM API returned an incomplete or invalid page"
-                        )
-                    if expected_total is not None and total != expected_total:
-                        raise ValueError("TNM result total changed during pagination")
+                    # fetch_strict_page already validated page shape and total.
                     expected_total = total
 
                 for item in items:
                     url = item.get("downloadURL")
                     if not url:
-                        if self.strict_datasets:
-                            raise ValueError("TNM product has no download URL")
                         continue
                     if self.strict_datasets:
-                        if url in seen_urls:
-                            raise ValueError(
-                                "TNM API repeated a download URL during pagination"
-                            )
+                        # fetch_strict_page checked URL presence and uniqueness.
                         seen_urls.add(url)
 
                     path = urlsplit(url).path
