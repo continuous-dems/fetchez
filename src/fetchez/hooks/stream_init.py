@@ -67,7 +67,7 @@ class DataStream(FetchHook):
                 "data_type",
                 "status",
                 "stream",
-                "src_srs",
+                # "src_srs",
                 "stream_type",
                 "history",
                 "weight",
