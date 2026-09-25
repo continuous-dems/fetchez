@@ -401,7 +401,7 @@ class MBDB(FetchModule):
         self._mb_features_query_url = f"{MBDB_FEATURES_URL}/{self.layer}/query?"
         self.want_check = want_check
 
-    def check_inf_region(self, mb_url: str):
+    def check_inf_region(self, mb_url: str) -> Tuple[str, Optional[Tuple]]:
         """Fetch remote .inf file and parse its coverage mask geometry."""
 
         src_mb = utils.str_or(mb_url)
@@ -414,38 +414,14 @@ class MBDB(FetchModule):
                     return inf_url, _parse_mbsystem_inf_geometry(f)
         return "", None
 
-    # def check_inf_region(self, mb_url: str) -> Tuple[str, Optional[Tuple]]:
-    #     """Fetch remote .inf file and parse its region."""
-
-    #     # Try finding the inf file
-    #     src_mb = utils.str_or(mb_url)
-    #     if src_mb:
-    #         inf_url = f"{src_mb.replace('.gz', '')}.inf"
-
-    #         req = core.Fetch(inf_url).fetch_req()
-
-    #         inf_region = None
-    #         if req is not None and req.status_code == 200:
-    #             with StringIO(req.text) as f:
-    #                 inf_region = _parse_mbsystem_inf_bounds(f)
-
-    #         return inf_url, inf_region
-    #     return "", None
-
     def check_for_generated_data(self, base_url: str) -> bool:
         """Check if a 'generated' directory exists for processed data."""
 
         try:
-            # req = core.Fetch(base_url).fetch_req()
-            # if req is None or req.status_code == 404:
             parts = base_url.split("/")
             parts.insert(-1, "generated")
             gen_url = "/".join(parts)
             return self.check_for_200(gen_url)
-            # response = requests.head(gen_url, timeout=5, allow_redirects=True)
-            # if response is not None and response.status_code in [200, 302]:
-            #     return True
-            # return False
         except Exception:
             return False
 
@@ -454,7 +430,6 @@ class MBDB(FetchModule):
 
         try:
             response = requests.head(data_url, timeout=5, allow_redirects=True)
-            # print(data_url, response.status_code)
             if response is not None and response.status_code in [200, 302]:
                 return True
             return False
@@ -467,7 +442,6 @@ class MBDB(FetchModule):
         if self.wgs_region is None:
             return []
 
-        # self.where = "MBIO_FORMAT_ID=71"
         w, e, s, n = self.wgs_region
         params = {
             "where": self.where,
@@ -482,7 +456,6 @@ class MBDB(FetchModule):
 
         logger.debug("Querying MBDB ArcGIS Server...")
         req = core.Fetch(self._mb_features_query_url).fetch_req(params=params)
-        # print(req.text)
         if req is None:
             return []
 
