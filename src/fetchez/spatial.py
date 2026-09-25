@@ -374,10 +374,18 @@ class Region:
     def geo_transform(
         self, x_inc: float = 0, y_inc: Optional[float] = None, node: str = "grid"
     ):
-        """Return dimensions and a geotransform based on the region and a cellsize.
+        """Return raster dimensions and geotransform for a region.
 
-        Returns:
-          list: [xcount, ycount, geot]
+        Notes
+        -----
+        ``node="grid"`` is the historical/default convention used when deriving
+        raster dimensions from geographic extents. It applies the grid-node
+        rounding behavior in ``_geo2pixel`` and avoids losing a row or column when
+        an extent that is mathematically an exact multiple of the resolution is
+        represented slightly below that integer by floating-point arithmetic.
+
+        ``node="pixel"`` performs direct pixel-index truncation and should not be
+        substituted when calculating the dimensions of Globato processing grids.
         """
 
         if y_inc is None:
