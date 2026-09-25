@@ -47,6 +47,70 @@ R2R_PRODUCT_URL = "https://service.rvdata.us/api/product/?"
 # =============================================================================
 # Helper Functions
 # =============================================================================
+def _parse_mbsystem_inf_geometry(inf_text: StringIO):
+    """Parse spatial bounds and the 10x10 coverage mask into a Shapely geometry."""
+
+    from shapely.geometry import box
+    from shapely.ops import unary_union
+
+    minmax = [0.0, 0.0, 0.0, 0.0]  # xmin, xmax, ymin, ymax
+    found_bounds = False
+    mask_rows = []
+
+    for line in inf_text:
+        parts = line.split()
+        if not parts:
+            continue
+
+        # Parse Bounds
+        if len(parts) > 1 and parts[0] == "Minimum":
+            try:
+                min_val = utils.float_or(parts[2])
+                max_val = utils.float_or(parts[5])
+                if min_val and max_val:
+                    if parts[1] == "Longitude:":
+                        minmax[0] = min_val  # xmin
+                        minmax[1] = max_val  # xmax
+                        found_bounds = True
+                    elif parts[1] == "Latitude:":
+                        minmax[2] = min_val  # ymin
+                        minmax[3] = max_val  # ymax
+                        found_bounds = True
+            except (IndexError, ValueError):
+                continue
+
+        # Parse Coverage Mask Grid
+        elif parts[0] == "CM:":
+            mask_rows.append(parts[1:])
+
+    if not found_bounds:
+        return None
+
+    xmin, xmax, ymin, ymax = minmax
+
+    # If the mask is missing or incomplete, fall back to the bounding box
+    if len(mask_rows) != 10 or any(len(row) != 10 for row in mask_rows):
+        return box(xmin, ymin, xmax, ymax)
+
+    # Generate Polygons for the Mask
+    x_step = (xmax - xmin) / 10.0
+    y_step = (ymax - ymin) / 10.0
+    polygons = []
+
+    for r_idx, row in enumerate(mask_rows):
+        for c_idx, val in enumerate(row):
+            if val == "1":
+                cell_xmin = xmin + (c_idx * x_step)
+                cell_xmax = cell_xmin + x_step
+                # top-to-bottom (North-to-South)
+                cell_ymax = ymax - (r_idx * y_step)
+                cell_ymin = cell_ymax - y_step
+                polygons.append(box(cell_xmin, cell_ymin, cell_xmax, cell_ymax))
+
+    # Union all the smaller boxes into a single footprint
+    return unary_union(polygons) if polygons else box(xmin, ymin, xmax, ymax)
+
+
 def _parse_mbsystem_inf_bounds(
     inf_text: StringIO,
 ) -> Optional[Tuple[float, float, float, float]]:
@@ -338,37 +402,26 @@ class MBDB(FetchModule):
         self.want_check = want_check
 
     def check_inf_region(self, mb_url: str) -> Tuple[str, Optional[Tuple]]:
-        """Fetch remote .inf file and parse its region."""
+        """Fetch remote .inf file and parse its coverage mask geometry."""
 
-        # Try finding the inf file
         src_mb = utils.str_or(mb_url)
         if src_mb:
-            inf_url = f"{src_mb.replace('.gz', '')}.inf"
-
+            inf_url = src_mb.replace(".fbt", ".inf")
             req = core.Fetch(inf_url).fetch_req()
 
-            inf_region = None
             if req is not None and req.status_code == 200:
                 with StringIO(req.text) as f:
-                    inf_region = _parse_mbsystem_inf_bounds(f)
-
-            return inf_url, inf_region
+                    return inf_url, _parse_mbsystem_inf_geometry(f)
         return "", None
 
     def check_for_generated_data(self, base_url: str) -> bool:
         """Check if a 'generated' directory exists for processed data."""
 
         try:
-            # req = core.Fetch(base_url).fetch_req()
-            # if req is None or req.status_code == 404:
             parts = base_url.split("/")
             parts.insert(-1, "generated")
             gen_url = "/".join(parts)
             return self.check_for_200(gen_url)
-            # response = requests.head(gen_url, timeout=5, allow_redirects=True)
-            # if response is not None and response.status_code in [200, 302]:
-            #     return True
-            # return False
         except Exception:
             return False
 
@@ -377,7 +430,6 @@ class MBDB(FetchModule):
 
         try:
             response = requests.head(data_url, timeout=5, allow_redirects=True)
-            # print(data_url, response.status_code)
             if response is not None and response.status_code in [200, 302]:
                 return True
             return False
@@ -390,7 +442,6 @@ class MBDB(FetchModule):
         if self.wgs_region is None:
             return []
 
-        # self.where = "MBIO_FORMAT_ID=71"
         w, e, s, n = self.wgs_region
         params = {
             "where": self.where,
@@ -405,7 +456,6 @@ class MBDB(FetchModule):
 
         logger.debug("Querying MBDB ArcGIS Server...")
         req = core.Fetch(self._mb_features_query_url).fetch_req(params=params)
-        # print(req.text)
         if req is None:
             return []
 
@@ -442,12 +492,16 @@ class MBDB(FetchModule):
             if not self.check_for_200(download_url):
                 continue
 
+            _, mask_geom = self.check_inf_region(download_url)
+
+            # Pass the geometry to the entry
             self.add_entry_to_results(
                 url=download_url,
                 dst_fn=os.path.basename(download_url),
                 data_type="mbs",
                 agency="NOAA NCEI",
                 license="Public Domain",
+                geometry=mask_geom,
             )
             if self.want_inf:
                 # Add Metadata File
