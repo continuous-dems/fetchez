@@ -8,12 +8,15 @@ def test_or_utils():
 
     assert utils.str_or(1) == "1"
     assert utils.str_or(1.25) == "1.25"
+    assert utils.str_or(None) is None
 
     assert utils.float_or(1) == 1.0
-    assert utils.int_or("string") is None
+    assert utils.float_or("string") is None
+    assert utils.float_or(None) is None
 
     assert utils.int_or(1.25) == 1
     assert utils.int_or("string") is None
+    assert utils.int_or(None) is None
 
 
 def test_inc_utils():
