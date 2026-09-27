@@ -996,7 +996,7 @@ def _extract_zip(
     outdir: Path,
     members: Optional[List[str]],
     overwrite: bool,
-) -> List[str]:
+) -> List[Path]:
     """Extract selected ZIP members into a staging directory."""
     extracted: List[tuple[Path, Path, Optional[int]]] = []
 
@@ -1028,7 +1028,7 @@ def _extract_zip(
 
             extracted.append((temp_path, dest_path, info.file_size))
 
-        result: List[str] = []
+        result: List[Path] = []
 
         for temp_path, dest_path, expected_size in extracted:
             _publish_extracted_file(
@@ -1037,7 +1037,7 @@ def _extract_zip(
                 expected_size=expected_size,
                 overwrite=overwrite,
             )
-            result.append(str(dest_path))
+            result.append(Path(dest_path))
 
         # Include valid files that were already present.
         for info in archive.infolist():
@@ -1046,9 +1046,8 @@ def _extract_zip(
 
             dest_path = _safe_member_path(outdir, info.filename)
             if dest_path.exists() and dest_path.is_file():
-                path_str = str(dest_path)
-                if path_str not in result:
-                    result.append(path_str)
+                if dest_path not in result:
+                    result.append(dest_path)
 
         return result
 
@@ -1058,7 +1057,7 @@ def _extract_tar(
     outdir: Path,
     members: Optional[List[str]],
     overwrite: bool,
-) -> List[str]:
+) -> List[Path]:
     """Extract selected regular TAR members into a staging directory."""
     extracted: List[tuple[Path, Path, Optional[int]]] = []
 
@@ -1094,7 +1093,7 @@ def _extract_tar(
 
             extracted.append((temp_path, dest_path, info.size))
 
-        result: List[str] = []
+        result: List[Path] = []
 
         for temp_path, dest_path, expected_size in extracted:
             _publish_extracted_file(
@@ -1103,7 +1102,7 @@ def _extract_tar(
                 expected_size=expected_size,
                 overwrite=overwrite,
             )
-            result.append(str(dest_path))
+            result.append(Path(dest_path))
 
         for info in archive.getmembers():
             if not info.isfile() or not _member_matches(info.name, members):
@@ -1111,9 +1110,8 @@ def _extract_tar(
 
             dest_path = _safe_member_path(outdir, info.name)
             if dest_path.exists() and dest_path.is_file():
-                path_str = str(dest_path)
-                if path_str not in result:
-                    result.append(path_str)
+                if dest_path not in result:
+                    result.append(dest_path)
 
         return result
 
@@ -1122,7 +1120,7 @@ def _extract_gzip(
     src_file: Path,
     outdir: Path,
     overwrite: bool,
-) -> List[str]:
+) -> List[Path]:
     """Decompress one GZIP file and atomically publish its output."""
     dest_path = outdir / src_file.stem
     dest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1150,7 +1148,7 @@ def _extract_gzip(
         Path(temp_name).unlink(missing_ok=True)
         raise
 
-    return [str(dest_path)]
+    return [dest_path]
 
 
 def p_f_extract(
@@ -1158,7 +1156,7 @@ def p_f_extract(
     outdir: str | Path = "./",
     members: Optional[List[str]] = None,
     overwrite: bool = False,
-) -> List[str]:
+) -> List[Path]:
     """Safely extract or decompress an archive.
 
     Supports ZIP, TAR, TAR.GZ, TGZ, and GZ archives.
@@ -1233,7 +1231,7 @@ def p_f_unzip(
     fns: Optional[List[str]] = None,
     outdir: str | Path = "./",
     overwrite: bool = False,
-) -> List[str]:
+) -> List[Path]:
     """Compatibility wrapper for extracting ZIP files."""
     return p_f_extract(
         src_file,
@@ -1248,7 +1246,7 @@ def p_f_untar(
     fns: Optional[List[str]] = None,
     outdir: str | Path = "./",
     overwrite: bool = False,
-) -> List[str]:
+) -> List[Path]:
     """Extract selected TAR archive members."""
     return p_f_extract(
         src_file,
@@ -1262,7 +1260,7 @@ def p_f_gunzip(
     src_file: str | Path,
     outdir: str | Path = "./",
     overwrite: bool = False,
-) -> List[str]:
+) -> List[Path]:
     """Decompress one GZIP file."""
     return p_f_extract(
         src_file,

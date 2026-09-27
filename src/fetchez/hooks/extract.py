@@ -38,11 +38,11 @@ class Extract(FetchHook):
     ):
         """Extract and/or decompress files.
 
-        Args:
-            remove: Delete the original archive after successful extraction.
-            overwrite: Replace existing extracted files.
-            members: Optional archive member/name patterns to extract.
-        """
+                Args:
+                    remove: Delete the original archive after successful extraction.
+                    overwrite: Replace existing extracted files.
+                    members: Optional archive member/name patterns to extract.
+        s"""
         super().__init__(**kwargs)
         self.remove = remove
         self.overwrite = overwrite
