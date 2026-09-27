@@ -976,19 +976,30 @@ def _publish_extracted_file(
         True when the destination was published, False when an existing valid
         destination was reused.
     """
-    if not overwrite and dest_path.exists():
-        if expected_size is None:
-            return False
-
-        try:
-            if dest_path.stat().st_size == expected_size:
-                return False
-        except OSError:
-            pass
+    if not overwrite and _complete_destination_exists(dest_path, expected_size):
+        return False
 
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     os.replace(temp_path, dest_path)
     return True
+
+
+def _complete_destination_exists(
+    path: Path,
+    expected_size: int | None = None,
+) -> bool:
+    """Return whether an extracted destination exists and appears complete."""
+    try:
+        if not path.is_file():
+            return False
+
+        if expected_size is not None:
+            return path.stat().st_size == expected_size
+
+        return True
+
+    except OSError:
+        return False
 
 
 def _extract_zip(
@@ -1012,6 +1023,10 @@ def _extract_zip(
 
             temp_path = _safe_member_path(temp_dir, info.filename)
             dest_path = _safe_member_path(outdir, info.filename)
+
+            if _complete_destination_exists(dest_path, info.file_size):
+                extracted.append(dest_path)
+                continue
 
             if (
                 not overwrite
@@ -1074,6 +1089,10 @@ def _extract_tar(
             temp_path = _safe_member_path(temp_dir, info.name)
             dest_path = _safe_member_path(outdir, info.name)
 
+            if _complete_destination_exists(dest_path, info.size):
+                extracted.append(dest_path)
+                continue
+
             if (
                 not overwrite
                 and dest_path.exists()
@@ -1125,8 +1144,8 @@ def _extract_gzip(
     dest_path = outdir / src_file.stem
     dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if not overwrite and dest_path.exists():
-        return [str(dest_path)]
+    if _complete_destination_exists(dest_path):
+        return [dest_path]
 
     fd, temp_name = tempfile.mkstemp(
         prefix=f".{dest_path.name}.",
