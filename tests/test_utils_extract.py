@@ -48,7 +48,7 @@ def test_p_f_extract_is_safe_with_multiple_processes(tmp_path):
     assert output_path.read_bytes() == expected
 
     for result in results:
-        assert str(output_path) in result
+        assert output_path in result
 
     # No temporary extraction artifacts should remain.
     assert not list(output_dir.glob("*.tmp"))
@@ -172,57 +172,6 @@ def test_p_f_extract_waits_for_existing_process_lock(tmp_path):
     assert (output_dir / "resource.dat").read_bytes() == b"shared-cache test"
 
 
-# def test_p_f_extract_waits_for_existing_process_lock(tmp_path):
-#     archive_path = tmp_path / "input.zip"
-#     output_dir = tmp_path / "output"
-#     output_dir.mkdir()
-
-#     source_file = tmp_path / "source.dat"
-#     source_file.write_bytes(b"shared-cache test")
-
-#     with zipfile.ZipFile(archive_path, "w") as archive:
-#         archive.write(source_file, "resource.dat")
-
-#     lock_path = utils._extract_lock_path(
-#         archive_path,
-#         output_dir,
-#     )
-
-#     ctx = multiprocessing.get_context("spawn")
-#     queue = ctx.Queue()
-
-#     lock = utils.filelock.FileLock(
-#         str(lock_path),
-#         timeout=10,
-#     )
-
-#     with lock:
-#         process = ctx.Process(
-#             target=_extract_worker2,
-#             args=(
-#                 str(archive_path),
-#                 str(output_dir),
-#                 queue,
-#             ),
-#         )
-#         process.start()
-
-#         # The worker should still be waiting for the lock.
-#         time.sleep(0.25)
-
-#         assert process.is_alive()
-#         assert not (output_dir / "resource.dat").exists()
-
-#     process.join(timeout=10)
-
-#     assert process.exitcode == 0
-
-#     elapsed = queue.get(timeout=2)
-#     assert elapsed >= 0.20
-
-#     assert (output_dir / "resource.dat").read_bytes() == b"shared-cache test"
-
-
 def test_p_f_extract_reuses_complete_existing_file(tmp_path):
     archive_path = tmp_path / "input.zip"
     output_dir = tmp_path / "output"
@@ -247,7 +196,7 @@ def test_p_f_extract_reuses_complete_existing_file(tmp_path):
         outdir=output_dir,
     )
 
-    assert second == [str(output_path)]
+    assert second == [output_path]
     assert output_path.read_bytes() == b"original data"
     assert output_path.stat().st_mtime_ns == first_mtime
 

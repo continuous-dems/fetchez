@@ -1025,7 +1025,7 @@ def _extract_zip(
             dest_path = _safe_member_path(outdir, info.filename)
 
             if _complete_destination_exists(dest_path, info.file_size):
-                extracted.append(dest_path)
+                extracted.append((dest_path, dest_path, info.file_size))
                 continue
 
             if (
@@ -1090,7 +1090,7 @@ def _extract_tar(
             dest_path = _safe_member_path(outdir, info.name)
 
             if _complete_destination_exists(dest_path, info.size):
-                extracted.append(dest_path)
+                extracted.append((dest_path, dest_path, info.size))
                 continue
 
             if (
