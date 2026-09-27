@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1 - 2026-09-27]
+
 ### ADDED
 - Add concurrency-safe `p_f_extract` utility for ZIP, TAR, TAR.GZ, TGZ, and GZIP archives, with inter-process locking, staged extraction, and atomic file publication.
 - Add `p_f_untar` and `p_f_gunzip` convenience utilities alongside the existing `p_f_unzip` interface.
