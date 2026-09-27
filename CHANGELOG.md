@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Add concurrency-safe `p_f_extract` utility for ZIP, TAR, TAR.GZ, TGZ, and GZIP archives, with inter-process locking, staged extraction, and atomic file publication.
+- Add `p_f_untar` and `p_f_gunzip` convenience utilities alongside the existing `p_f_unzip` interface.
+- Add the generalized `extract` file hook, with `unzip` retained as a backwards-compatible alias.
+
+### CHANGED
+- Refactor archive extraction utilities and hooks around a common implementation so concurrent processes cannot observe partially extracted files.
+- Existing completed archive members are now reused where possible instead of being unnecessarily re-extracted.
+
+## [0.9.0 - 2026-09-24]
+
+### ADDED
 - Add readable TNM elevation aliases while keeping the existing numeric selectors.
 - Preserve TNM source metadata and allow `dedupe=false` to retain overlapping products.
 - Add usgs_ds704 and usgs_of2005_1170 modules
