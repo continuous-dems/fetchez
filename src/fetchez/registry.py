@@ -8,6 +8,19 @@ fetchez.registry
 A unified, dynamic registry system for discovering and loading
 Fetchez Modules, Hooks, Schemas, and other plugins.
 
+Current Registries:
+
+ModuleRegistry
+HookRegistry
+RecipeRegistry
+StreamRegistry
+ReaderRegistry
+BundleRegistry
+PresetRegistry
+ModifierRegistry
+SchemaRegistry
+ProfileRegistry
+
 :copyright: (c) 2010-2026 Regents of the University of Colorado
 :license: MIT, see LICENSE for more details.
 """
@@ -724,6 +737,7 @@ class BundleRegistry(YamlRegistry):
                 "survey_id",
                 "url",
                 "path",
+                "weight",
             ]
             if key in args
         ]
@@ -848,6 +862,14 @@ class ProfileRegistry(YamlRegistry):
     #         kwargs = p_def.get("args", {})
     #         readers[name] = kwargs
     #     return readers
+
+
+class DataTypeRegistry(YamlRegistry):
+    """A registry for formal data-types"""
+
+    builtin_pkg = "fetchez.datatypes"
+    entry_point_group = "fetchez.datatypes"
+    user_folder = "datatypes"
 
 
 # =============================================================================

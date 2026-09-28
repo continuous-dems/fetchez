@@ -41,6 +41,9 @@ class FetchModule:
     meta_aliases: List[Any] = []
     meta_urls: Dict[Any, Any] = {}
 
+    # The kinds of data entries this module can provide.
+    meta_provides: List[Any] = []
+
     def __init__(
         self,
         src_region=None,
