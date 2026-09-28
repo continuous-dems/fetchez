@@ -67,13 +67,18 @@ def test_expand_modules_recursive_and_deduplucate(mock_get_bundle):
 
     expanded = recipe._expand_modules(raw_modules)
 
-    # These should merge into a single module
-    assert len(expanded) == 1
+    # These should merge into 2 modules
+    assert len(expanded) == 2
 
     final_mod = expanded[0]
     assert final_mod["module"] == "ehydro"
-    assert final_mod["args"]["weight"] == 5.0
+    assert final_mod["args"]["weight"] == 1.0
     assert final_mod["hooks"][0]["name"] == "unzip"
+
+    final_mod = expanded[1]
+    assert final_mod["module"] == "ehydro"
+    assert final_mod["args"]["weight"] == 5.0
+    assert final_mod.get("hooks") is None
 
 
 def test_to_cli_translation():
