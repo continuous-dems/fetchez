@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Module identity now excludes runtime state while normalizing configuration defaults and aliases for stable IDs.
 - Added contributor documentation and regression coverage for canonical module identity.
 
+### FiXED
+
+- Fixed modules.base cache json race condition during concurrency.
+
 ## [0.9.1 - 2026-09-27]
 
 ### ADDED
