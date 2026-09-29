@@ -206,7 +206,7 @@ class FetchModule:
         }
     )
 
-    _MODULE_ID_DEFAULTS = {
+    _MODULE_ID_DEFAULTS: Dict[str, Any] = {
         "region": None,
         "min_year": None,
         "max_year": None,
