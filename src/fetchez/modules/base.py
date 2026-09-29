@@ -11,11 +11,13 @@ This holds the FetchModule super class
 :license: MIT, see LICENSE for more details.
 """
 
+import os
 import time
 import logging
 import urllib.parse
 import json
 import hashlib
+import tempfile
 from pathlib import Path
 from math import floor
 from typing import List, Dict, Any, Mapping
@@ -103,10 +105,7 @@ class FetchModule:
         # `_cached_run` will not cache them.
         self._discovery_failed = False
 
-        # Store the parameters used to invoke this module for hashing
-        self._init_kwargs = kwargs.copy()
-
-        # Store the canonical invocation configuration.
+        # Store the normalized invocation configuration used for module identity.
         region_config = None
         if src_region:
             if type(src_region).__name__ == "Region":
@@ -121,6 +120,7 @@ class FetchModule:
             else:
                 region_config = list(src_region)
 
+        # Store the parameters used to invoke this module for hashing
         self._init_kwargs = {
             **kwargs,
             "region": region_config,
@@ -416,34 +416,61 @@ class FetchModule:
                 return list(obj)
             return str(obj)
 
+        tmp_path = None
+
         try:
-            # Create a localized copy of the results to safely store in the cache
             portable_results = []
+
             for entry in self.results:
                 portable_entry = entry.copy()
-                if "dst_fn" in portable_entry and portable_entry["dst_fn"]:
+
+                if portable_entry.get("dst_fn"):
                     try:
-                        # Strip the absolute prefix to make it portable relative to outdir
                         portable_entry["dst_fn"] = Path(
                             portable_entry["dst_fn"]
                         ).relative_to(Path(self._outdir))
                     except ValueError:
-                        # Fallback for cross-drive path issues on Windows
                         pass
+
                 portable_results.append(portable_entry)
 
-            with open(cache_file, "w") as f:
-                json.dump(portable_results, f, indent=2, default=_json_fallback)
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=cache_dir,
+                prefix=f".{cache_file.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as tmp_file:
+                tmp_path = Path(tmp_file.name)
+
+                json.dump(
+                    portable_results,
+                    tmp_file,
+                    indent=2,
+                    default=_json_fallback,
+                )
+                tmp_file.flush()
+                os.fsync(tmp_file.fileno())
+
+            os.replace(tmp_path, cache_file)
+            tmp_path = None
 
             logger.debug(f"[{self.name}] Saved API results to cache.")
+
         except Exception as e:
             logger.warning(f"[{self.name}] Failed to save cache: {e}")
-            if cache_file.exists():
+
+            if tmp_path is not None:
                 try:
-                    cache_file.unlink()
-                except Exception as e:
-                    logger.debug(f"Unable to remove cache_file: {cache_file}: {e}")
+                    tmp_path.unlink()
+                except FileNotFoundError:
                     pass
+                except OSError as cleanup_error:
+                    logger.debug(
+                        f"Unable to remove temporary cache file "
+                        f"{tmp_path}: {cleanup_error}"
+                    )
 
         return self
 
