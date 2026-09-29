@@ -32,9 +32,14 @@ The most common contribution is adding support for a new data source. Because Fe
             "docs": "[https://provider.gov/docs](https://provider.gov/docs)"
         }
 
-        def __init__(self, **kwargs):
+        def __init__(self, product=None, **kwargs):
             super().__init__(name='mydata', **kwargs)
+			self.products = products
+			self._update_module_config(
+				product=product,
+			)
             # Initialize your specific headers or API endpoints here
+
 
         def run(self):
             # 1. Construct the download URL based on self.wgs_region
@@ -53,10 +58,42 @@ The most common contribution is adding support for a new data source. Because Fe
                 license="Public Domain",
             )
     ```
-3. **Rebuild the module cache**
+
+3. **Module Identity and Configuration**
+   Fetchez assigns each configured module a deterministic `module_id`. This identity is shared by framework features such as discovery caching, bundle expansion, and module deduplication.
+   If your module defines constructor arguments that can change which data the module discovers or provides, register those arguments with `_update_module_config()`:
+
+	```python
+	class MyData(FetchModule):
+    name = "mydata"
+
+    def __init__(
+        self,
+        product=None,
+        date_start=None,
+        date_end=None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.product = product
+        self.date_start = date_start
+        self.date_end = date_end
+
+        self._update_module_config(
+            product=product,
+            date_start=date_start,
+            date_end=date_end,
+        )
+	```
+
+	A useful rule is:
+	> If changing an argument can change what the module discovers or provides, include it in `_update_module_config()`.
+
+4. **Rebuild the module cache**
    Run `fetchez modules update-cache`
 
-4.  **Test It:**
+5.  **Test It:**
     Run `fetchez run mydata --help` to ensure it loads correctly.
 
 ## Handling Dependencies & Imports

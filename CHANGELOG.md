@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ADDED
+
+- Added deterministic `module_id` generation based on a canonical representation of module configuration.
+- Unified module identity across discovery caching and bundle deduplication, removing the need for bundle-specific lists of identifying module arguments.
+- Added `_update_module_config()` for modules to declare subclass-specific options that affect discovery or provided data.
+- Module identity now excludes runtime state while normalizing configuration defaults and aliases for stable IDs.
+- Added contributor documentation and regression coverage for canonical module identity.
+
 ## [0.9.1 - 2026-09-27]
 
 ### ADDED

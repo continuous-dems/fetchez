@@ -209,3 +209,7 @@ def entry_id(entry: Mapping[str, Any]) -> str:
     """
     identity = canonical_entry_identity(entry)
     return hashlib.sha256(identity.encode("utf-8")).hexdigest()
+
+
+def source_id(entry):
+    return str(entry["url"])
