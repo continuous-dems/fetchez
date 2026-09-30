@@ -44,6 +44,7 @@ from .registry import (
     StreamRegistry,
     ReaderRegistry,
     ProfileRegistry,
+    DataTypeRegistry,
 )
 
 logger = logging.getLogger(__name__)
@@ -158,6 +159,14 @@ def search_profiles(term) -> Dict[str, Any]:
     return _search_registry(ProfileRegistry, term)
 
 
+def list_data_types() -> Dict[str, Any]:
+    return _search_registry(DataTypeRegistry)
+
+
+def search_data_types(term) -> Dict[str, Any]:
+    return _search_registry(DataTypeRegistry, term)
+
+
 def search(term: str) -> Dict[str, Dict[str, Any]]:
     """Search across ALL Fetchez registries simultaneously."""
     return {
@@ -171,6 +180,7 @@ def search(term: str) -> Dict[str, Dict[str, Any]]:
         "streams": _search_registry(StreamRegistry, term),
         "readers": _search_registry(ReaderRegistry, term),
         "profiles": _search_registry(ProfileRegistry, term),
+        "data_types": _search_registry(DataTypeRegistry, term),
     }
 
 

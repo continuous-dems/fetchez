@@ -420,9 +420,10 @@ class YamlRegistry:
             if not config:
                 return
 
+            config["provider"] = provider
+
             if "name" in config:
                 registry[config["name"]] = config
-            config["provider"] = provider
         except Exception as e:
             logger.debug(f"Failed to parse YAML {file_path}: {e}")
 
@@ -430,9 +431,17 @@ class YamlRegistry:
     def get_yaml(cls, name: str) -> Optional[Dict[str, Any]]:
         return copy.deepcopy(cls.get_registry().get(name))
 
+    @classmethod
+    def exists(cls, name: str) -> bool:
+        _registry = cls.load_all()
+        if cls.get_registry().get(name, None) is None:
+            return False
+        return True
+
     # Temporary for backwards compatibility
     get_preset = get_yaml
     get_recipe = get_yaml
+    get_info = get_yaml
 
 
 # =============================================================================

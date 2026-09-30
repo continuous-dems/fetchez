@@ -22,6 +22,7 @@ from .modules import modules_group
 from .hooks import hooks_group
 from .recipes import recipes_group
 from .streams import streams_group
+from .data_types import data_types_group
 from .regions import regions_group
 from .cache import cache_group
 
@@ -81,6 +82,7 @@ def setup_logging(name="fetchez", quiet=False, verbose=False):
             "hooks",
             "recipes",
             "streams",
+            "datatypes",
             "regions",
             "cache",
             "lavache",
@@ -102,11 +104,12 @@ def cli(verbose, quiet):
 
     \b
     Core Concepts:
-      1. Modules   : Data Sources (see `fetchez modules`)
-      2. Hooks     : Processing Steps (see `fetchez hooks`)
-      3. Streams   : Data Streaming (see `fetchez streams`)
-      4. Recipes   : YAML pipeline definitions (see `fetchez recipes`)
-      5. Pipelines : Run full data processing pipelines (see `fetchez run`)
+      1. Modules    : Data Sources (see `fetchez modules`)
+      2. Hooks      : Processing Steps (see `fetchez hooks`)
+      3. Streams    : Data Streaming (see `fetchez streams`)
+      4. Recipes    : YAML pipeline definitions (see `fetchez recipes`)
+      5. Pipelines  : Run full data processing pipelines (see `fetchez run`)
+      6. Data Types : Entry Data Types (see `fetchez datatypes`)
     """
     # \b
     # Examples:
@@ -153,6 +156,7 @@ cli.add_command(modules_group, name="modules")
 cli.add_command(hooks_group, name="hooks")
 cli.add_command(recipes_group, name="recipes")
 cli.add_command(streams_group, name="streams")
+cli.add_command(data_types_group, name="datatypes")
 cli.add_command(regions_group, name="regions")
 cli.add_command(cache_group, name="cache")
 

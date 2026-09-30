@@ -7,6 +7,8 @@ from fetchez.entry import (
     REQUIRED_ENTRY_KEYS,
     canonical_entry_identity,
     entry_id,
+    source_id,
+    dataset_id,
     is_entry,
     validate_entry,
 )
@@ -207,3 +209,34 @@ def test_identity_does_not_depend_on_object_memory_address():
 
 def test_identity_key_sets_are_disjoint_where_expected():
     assert ENTRY_RUNTIME_KEYS.isdisjoint(ENTRY_IDENTITY_KEYS)
+
+
+def test_source_id_uses_url():
+    entry = make_entry(
+        url="file:///data/foo.tif",
+        dst_fn="/cache/foo.tif",
+    )
+
+    assert source_id(entry) == "file:///data/foo.tif"
+
+
+def test_dataset_id_prefers_checksum():
+    entry = make_entry(
+        url="https://example.com/foo.tif",
+        checksum="abc123",
+    )
+
+    assert dataset_id(entry) == "abc123"
+
+
+def test_dataset_id_does_not_depend_on_materialization_path():
+    one = make_entry(
+        url="https://example.com/foo.tif",
+        dst_fn="/cache/foo.tif",
+    )
+    two = make_entry(
+        url="https://example.com/foo.tif",
+        dst_fn="/scratch/foo.tif",
+    )
+
+    assert dataset_id(one) == dataset_id(two)
