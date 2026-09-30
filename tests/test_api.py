@@ -130,6 +130,7 @@ def test_search_registry_results_are_independent():
         (api.list_streams, api.StreamRegistry),
         (api.list_readers, api.ReaderRegistry),
         (api.list_profiles, api.ProfileRegistry),
+        (api.list_data_types, api.DataTypeRegistry),
     ],
 )
 def test_list_helpers_use_correct_registry(monkeypatch, func, registry):
@@ -159,6 +160,7 @@ def test_list_helpers_use_correct_registry(monkeypatch, func, registry):
         (api.search_streams, api.StreamRegistry),
         (api.search_readers, api.ReaderRegistry),
         (api.search_profiles, api.ProfileRegistry),
+        (api.search_data_types, api.DataTypeRegistry),
     ],
 )
 def test_search_helpers_use_correct_registry(monkeypatch, func, registry):
@@ -197,9 +199,10 @@ def test_search_queries_all_registries(monkeypatch):
         "streams",
         "readers",
         "profiles",
+        "data_types",
     }
 
-    assert len(calls) == 10
+    assert len(calls) == 11
     assert all(term == "coastal" for _, term in calls)
 
 
