@@ -77,8 +77,8 @@ ENTRY_RUNTIME_KEYS = frozenset(
 ENTRY_IDENTITY_KEYS = frozenset(
     {
         "url",
-        "dst_fn",
-        # "data_type",
+        # "dst_fn",
+        "data_type",
         "profile",
         "src_srs",
         "metadata",

@@ -140,11 +140,20 @@ def test_entry_id_changes_when_profile_changes():
     assert entry_id(entry) != original
 
 
-def test_entry_id_changes_when_destination_changes():
+def test_entry_id_doesnt_change_when_destination_changes():
     entry = make_entry()
     original = entry_id(entry)
 
     entry["dst_fn"] = "/tmp/other.tif"
+
+    assert entry_id(entry) == original
+
+
+def test_entry_id_changes_when_data_type_changes():
+    entry = make_entry()
+    original = entry_id(entry)
+
+    entry["data_type"] = "vector"
 
     assert entry_id(entry) != original
 
