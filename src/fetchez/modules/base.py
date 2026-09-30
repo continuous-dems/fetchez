@@ -11,14 +11,16 @@ This holds the FetchModule super class
 :license: MIT, see LICENSE for more details.
 """
 
+import os
 import time
 import logging
 import urllib.parse
 import json
 import hashlib
+import tempfile
 from pathlib import Path
 from math import floor
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Mapping
 
 import pyproj
 
@@ -103,13 +105,11 @@ class FetchModule:
         # `_cached_run` will not cache them.
         self._discovery_failed = False
 
-        # Store the parameters used to invoke this module for hashing
-        self._init_kwargs = kwargs.copy()
-
-        region_cache = None
+        # Store the normalized invocation configuration used for module identity.
+        region_config = None
         if src_region:
             if type(src_region).__name__ == "Region":
-                region_cache = {
+                region_config = {
                     "__type__": "Region",
                     "w": src_region.w,
                     "e": src_region.e,
@@ -118,16 +118,18 @@ class FetchModule:
                     "srs": src_region.srs,
                 }
             else:
-                region_cache = list(src_region)
+                region_config = list(src_region)
 
-        self._init_kwargs.update(
-            {
-                "region": region_cache,
-                "min_year": min_year,
-                "max_year": max_year,
-                "params": self.params,
-            }
-        )
+        # Store the parameters used to invoke this module for hashing
+        self._init_kwargs = {
+            **kwargs,
+            "region": region_config,
+            "min_year": min_year,
+            "max_year": max_year,
+            "weight": weight,
+            "uncertainty": uncertainty,
+            "params": self.params,
+        }
 
         if self.outdir is None:
             self._outdir = str(Path.cwd().resolve() / self.name)
@@ -186,73 +188,154 @@ class FetchModule:
 
         raise NotImplementedError("Subclasses must implement the `run` method.")
 
-    def _generate_cache_key(self):
-        """Generates a deterministic SHA-256 hash based on module properties."""
+    # =============================================================================
+    # MODULE IDENTITY / CACHE
+    # =============================================================================
 
-        # BLACKLIST
-        ignored_keys = {
+    # Runtime/configuration fields which should not participate in module identity.
+    #
+    # These describe execution state or the execution environment rather than
+    # the requested module operation.
+    _MODULE_ID_IGNORED = frozenset(
+        {
             "outdir",
             "hooks",
             "results",
             "status",
             "use_cache",
-            "weight",
-            "uncertainty",
-            "name",
+        }
+    )
+
+    _MODULE_ID_DEFAULTS: Dict[str, Any] = {
+        "region": None,
+        "min_year": None,
+        "max_year": None,
+        "weight": 1.0,
+        "uncertainty": 0.0,
+        "params": {},
+    }
+
+    @classmethod
+    def _canonicalize_module_value(cls, value: Any) -> Any:
+        """Convert a value into a deterministic JSON-safe representation."""
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+
+        if isinstance(value, Path):
+            return str(value)
+
+        if type(value).__name__ == "Region":
+            return {
+                "__type__": "Region",
+                "w": value.w,
+                "e": value.e,
+                "s": value.s,
+                "n": value.n,
+                "srs": value.srs,
+            }
+
+        if isinstance(value, Mapping):
+            return {
+                str(key): cls._canonicalize_module_value(val)
+                for key, val in sorted(value.items(), key=lambda item: str(item[0]))
+            }
+
+        if isinstance(value, (list, tuple)):
+            return [cls._canonicalize_module_value(item) for item in value]
+
+        if isinstance(value, (set, frozenset)):
+            values = [cls._canonicalize_module_value(item) for item in value]
+            return sorted(
+                values,
+                key=lambda item: json.dumps(
+                    item, sort_keys=True, separators=(",", ":")
+                ),
+            )
+
+        # Never allow repr() of arbitrary objects to introduce process-specific
+        # memory addresses into identity.
+        return {"__type__": (f"{type(value).__module__}.{type(value).__qualname__}")}
+
+    @classmethod
+    def canonical_module_config_from_kwargs(
+        cls,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Return canonical module configuration from constructor arguments."""
+        config = dict(kwargs)
+
+        # Historical alias normalization.
+        if "data_type" in config and "datatype" in config:
+            config.pop("datatype", None)
+        elif "datatype" in config:
+            config["data_type"] = config.pop("datatype")
+
+        # Execution-only settings.
+        for key in cls._MODULE_ID_IGNORED:
+            config.pop(key, None)
+
+        # Normalize region alias.
+
+        region = config.pop("src_region", config.pop("region", None))
+
+        if region is not None:
+            if type(region).__name__ == "Region":
+                config["region"] = {
+                    "__type__": "Region",
+                    "w": region.w,
+                    "e": region.e,
+                    "s": region.s,
+                    "n": region.n,
+                    "srs": region.srs,
+                }
+            else:
+                config["region"] = list(region)
+
+        # Remove values equivalent to canonical defaults.
+        for key, default in cls._MODULE_ID_DEFAULTS.items():
+            if key in config and config[key] == default:
+                config.pop(key)
+
+        config["name"] = cls.name
+
+        return cls._canonicalize_module_value(config)
+
+    def canonical_module_config(self) -> Dict[str, Any]:
+        """Return canonical configuration for this module invocation."""
+        return self.canonical_module_config_from_kwargs(**self._init_kwargs)
+
+    @classmethod
+    def _module_id_from_config(cls, config: Mapping[str, Any]) -> str:
+        payload = {
+            "module": f"{cls.__module__}.{cls.__qualname__}",
+            "config": config,
         }
 
-        def _sanitize(val):
-            """Recursively strip out un-hashable objects."""
-            if isinstance(val, (str, int, float, bool, type(None))):
-                return val
-            if isinstance(val, Path):
-                return str(val)
-            if isinstance(val, (list, tuple)):
-                cleaned = [_sanitize(v) for v in val]
-                return [v for v in cleaned if v is not None]
-            if isinstance(val, dict):
-                cleaned = {str(k): _sanitize(v) for k, v in val.items()}
-                return {k: v for k, v in cleaned.items() if v is not None}
+        state = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
 
-            logger.debug(
-                f"Cache warning: Cannot serialize object of type {type(val)}. Dropping from hash."
-            )
-            return None
+        return hashlib.sha256(state.encode("utf-8")).hexdigest()
 
-        cache_dict = {}
-        for key, val in self.__dict__.items():
-            if key.startswith("_") or key in ignored_keys:
-                continue
+    def _update_module_config(self, **kwargs):
+        self._init_kwargs.update(kwargs)
 
-            # Handle the region tuple safely
-            if key == "region" and val is not None:
-                if type(val).__name__ == "Region":
-                    cache_dict[key] = {
-                        "__type__": "Region",
-                        "w": val.w,
-                        "e": val.e,
-                        "s": val.s,
-                        "n": val.n,
-                        "srs": val.srs,
-                    }
+    def module_id(self) -> str:
+        """Return a deterministic ID for this module invocation."""
+        return self._module_id_from_config(self.canonical_module_config())
 
-                continue
+    @classmethod
+    def module_id_from_kwargs(cls, **kwargs):
+        return cls._module_id_from_config(
+            cls.canonical_module_config_from_kwargs(**kwargs)
+        )
 
-            clean_val = _sanitize(val)
-
-            # Only add to the hash state if the value survived sanitization
-            if clean_val is not None:
-                # Exclude completely empty lists/dicts to keep the hash clean
-                if isinstance(clean_val, (list, dict)) and not clean_val:
-                    continue
-                cache_dict[key] = clean_val
-
-        logger.debug(f"\n--- {self.name} CACHE STATE ---")
-        logger.debug(cache_dict)
-        logger.debug(f"\n--- {self.name} CACHE STATE ---")
-
-        state_str = json.dumps(cache_dict, sort_keys=True)
-        return hashlib.sha256(state_str.encode("utf-8")).hexdigest()
+    def _generate_cache_key(self) -> str:
+        """Return the module identity used by the persistent API cache."""
+        return self.module_id()
 
     def _cached_run(self):
         """Intercepts run() to check the cache before querying remote APIs."""
@@ -333,34 +416,61 @@ class FetchModule:
                 return list(obj)
             return str(obj)
 
+        tmp_path = None
+
         try:
-            # Create a localized copy of the results to safely store in the cache
             portable_results = []
+
             for entry in self.results:
                 portable_entry = entry.copy()
-                if "dst_fn" in portable_entry and portable_entry["dst_fn"]:
+
+                if portable_entry.get("dst_fn"):
                     try:
-                        # Strip the absolute prefix to make it portable relative to outdir
                         portable_entry["dst_fn"] = Path(
                             portable_entry["dst_fn"]
                         ).relative_to(Path(self._outdir))
                     except ValueError:
-                        # Fallback for cross-drive path issues on Windows
                         pass
+
                 portable_results.append(portable_entry)
 
-            with open(cache_file, "w") as f:
-                json.dump(portable_results, f, indent=2, default=_json_fallback)
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=cache_dir,
+                prefix=f".{cache_file.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as tmp_file:
+                tmp_path = Path(tmp_file.name)
+
+                json.dump(
+                    portable_results,
+                    tmp_file,
+                    indent=2,
+                    default=_json_fallback,
+                )
+                tmp_file.flush()
+                os.fsync(tmp_file.fileno())
+
+            os.replace(tmp_path, cache_file)
+            tmp_path = None
 
             logger.debug(f"[{self.name}] Saved API results to cache.")
+
         except Exception as e:
             logger.warning(f"[{self.name}] Failed to save cache: {e}")
-            if cache_file.exists():
+
+            if tmp_path is not None:
                 try:
-                    cache_file.unlink()
-                except Exception as e:
-                    logger.debug(f"Unable to remove cache_file: {cache_file}: {e}")
+                    tmp_path.unlink()
+                except FileNotFoundError:
                     pass
+                except OSError as cleanup_error:
+                    logger.debug(
+                        f"Unable to remove temporary cache file "
+                        f"{tmp_path}: {cleanup_error}"
+                    )
 
         return self
 

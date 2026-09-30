@@ -720,29 +720,15 @@ class BundleRegistry(YamlRegistry):
         if isinstance(mod_dict, str):
             return mod_dict
 
-        m_name = mod_dict.get("module")
-        if not m_name:
-            return str(mod_dict)
+        module_name = mod_dict.get("module")
+        module_cls = ModuleRegistry.get_class(module_name)
 
-        args = mod_dict.get("args", {})
-        ids = [
-            f"{key}={args[key]}"
-            for key in [
-                "datatype",
-                "datasets",
-                "formats",
-                "layer",
-                "product",
-                "products",
-                "survey_id",
-                "url",
-                "path",
-                "weight",
-            ]
-            if key in args
-        ]
+        if module_cls:
+            signature = module_cls._module_id_from_config(mod_dict)
+        else:
+            signature = str(mod_dict)
 
-        return f"{m_name}::" + "::".join(sorted(ids)) if ids else m_name
+        return signature
 
     @classmethod
     def expand_modules(

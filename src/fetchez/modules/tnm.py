@@ -154,6 +154,13 @@ class TheNationalMap(FetchModule):
             utils.str2bool(strict_datasets)
         )
 
+        self._update_module_config(
+            products=products,
+            date_start=date_start,
+            date_end=date_end,
+            date_type=date_type,
+        )
+
     def run(self):
         """Run the TNM fetching module."""
 
