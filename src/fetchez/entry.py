@@ -77,7 +77,7 @@ ENTRY_RUNTIME_KEYS = frozenset(
 ENTRY_IDENTITY_KEYS = frozenset(
     {
         "url",
-        "dst_fn",
+        # "dst_fn",
         "data_type",
         "profile",
         "src_srs",
@@ -211,5 +211,33 @@ def entry_id(entry: Mapping[str, Any]) -> str:
     return hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
 
-def source_id(entry):
-    return str(entry["url"])
+def source_id(entry: Mapping[str, Any]) -> str:
+    """Return the canonical source identifier for an entry."""
+    validate_entry(entry, require=False)
+
+    url = entry.get("url")
+    if not url:
+        raise ValueError("Entry requires a non-empty 'url'.")
+
+    return str(url)
+
+
+def dataset_id(entry: Mapping[str, Any]) -> str:
+    """Return the best available stable identity for the underlying dataset."""
+    validate_entry(entry, require=False)
+
+    checksum = entry.get("checksum")
+    if checksum:
+        return str(checksum)
+
+    url = entry.get("url")
+    if url and not str(url).startswith("file://"):
+        return str(url)
+
+    dst_fn = entry.get("dst_fn")
+    if dst_fn:
+        path = Path(dst_fn)
+        if path.exists() and path.is_file():
+            return f"{path.name}|{path.stat().st_size}B"
+
+    return source_id(entry)

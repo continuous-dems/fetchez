@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `_update_module_config()` for modules to declare subclass-specific options that affect discovery or provided data.
 - Module identity now excludes runtime state while normalizing configuration defaults and aliases for stable IDs.
 - Added contributor documentation and regression coverage for canonical module identity.
+- Added a formal, extensible Fetchez entry contract while retaining entries as ordinary dictionaries.
+- Added deterministic `entry_id`, `source_id`, and `dataset_id` helpers with distinct identity semantics.
+- Added `profile` as a standardized entry field for separating generic data representation from reader/profile interpretation.
+- Added the extensible `DataTypeRegistry` with initial `archive`, `raster`, and `vector` data types.
+- Added API and CLI discovery for registered data types, including `fetchez datatypes`.
+- Added tests covering entry validation and identity semantics, data-type discovery, dynamic registration, and registry behavior.
+- Established data types as generic representations independent of domain-specific interpretation or reader selection.
 
 ### FiXED
 
