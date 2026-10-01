@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added API and CLI discovery for registered data types, including `fetchez datatypes`.
 - Added tests covering entry validation and identity semantics, data-type discovery, dynamic registration, and registry behavior.
 - Established data types as generic representations independent of domain-specific interpretation or reader selection.
+- Added new `_update_module_config` to mbdb module.
 
 ### FiXED
 
