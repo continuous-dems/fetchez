@@ -436,6 +436,43 @@ class MBDB(FetchModule):
         except Exception:
             return False
 
+    def _query_features(self, params):
+        """Return every feature matching the query, following the server's pages.
+
+        The MapServer returns at most ``maxRecordCount`` features per request
+        (2000) and sets ``exceededTransferLimit`` when more remain, so request
+        pages by ``resultOffset`` until it stops. A failed page is logged and
+        marks discovery as failed, so a partial list is never cached.
+        """
+
+        features = []
+        offset = 0
+        while True:
+            page_params = {
+                **params,
+                "orderByFields": "OBJECTID ASC",
+                "resultOffset": offset,
+            }
+            req = core.Fetch(self._mb_features_query_url).fetch_req(params=page_params)
+            try:
+                data = req.json() if req is not None else None
+            except ValueError:
+                data = None
+
+            if not isinstance(data, dict) or not isinstance(data.get("features"), list):
+                logger.error(
+                    f"MBDB query failed at offset {offset}; "
+                    f"{len(features)} surveys found before the failure."
+                )
+                self._discovery_failed = True
+                return features
+
+            page = data["features"]
+            features.extend(page)
+            if not data.get("exceededTransferLimit") or not page:
+                return features
+            offset += len(page)
+
     def run(self):
         """Run the MBDB fetching module."""
 
@@ -455,11 +492,7 @@ class MBDB(FetchModule):
         }
 
         logger.debug("Querying MBDB ArcGIS Server...")
-        req = core.Fetch(self._mb_features_query_url).fetch_req(params=params)
-        if req is None:
-            return []
-
-        features = req.json().get("features", [])
+        features = self._query_features(params)
         logger.debug(f"MBDB found {len(features)} surveys.")
 
         for feature in features:
