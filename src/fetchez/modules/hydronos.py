@@ -13,12 +13,8 @@ Fetch NOS Hydrographic Surveys (BAGs and XYZ soundings) from NOAA.
 
 import os
 import json
-import time
 import logging
 from typing import Optional, Dict
-
-import lxml.html as lh
-import requests
 
 from fetchez import core
 from fetchez.modules import FetchModule
@@ -31,53 +27,6 @@ logger = logging.getLogger(__name__)
 # NOS_DYNAMIC_URL = "https://gis.ngdc.noaa.gov/arcgis/rest/services/web_mercator/nos_hydro_dynamic/MapServer"
 NOS_DYNAMIC_URL = "https://services2.arcgis.com/C8EMgrsFcRFL6LrL/arcgis/rest/services/NOS_Hydro_Surveys/FeatureServer"
 NOS_DATA_URL = "https://data.ngdc.noaa.gov/platforms/ocean/nos/coast/"
-
-# Per-survey directory pages and data-file checks: per-request timeout and the
-# waits before each retry of a timeout, connection error, or non-404 failure.
-CHECK_TIMEOUT = 30
-CHECK_RETRY_WAITS = (2, 10)
-
-
-def _url_status(url: str) -> str:
-    """HEAD ``url``: 'exists', 'missing' (404/410) or 'unknown'.
-
-    Timeouts, connection errors and other statuses (429, 5xx, ...) are retried;
-    if they persist the answer is 'unknown', not 'missing'.
-    """
-
-    for attempt, wait in enumerate((0, *CHECK_RETRY_WAITS), 1):
-        if wait:
-            time.sleep(wait)
-        try:
-            response = requests.head(url, timeout=CHECK_TIMEOUT, allow_redirects=True)
-        except requests.RequestException as exc:
-            logger.debug(f"HEAD {url} failed (attempt {attempt}): {exc}")
-            continue
-        if 200 <= response.status_code < 400:
-            return "exists"
-        if response.status_code in (404, 410):
-            return "missing"
-        logger.debug(f"HEAD {url} returned {response.status_code} (attempt {attempt})")
-    return "unknown"
-
-
-def _get_page(url: str):
-    """Fetch a directory page: (html, 'exists'), (None, 'missing') or (None, 'unknown')."""
-
-    for attempt, wait in enumerate((0, *CHECK_RETRY_WAITS), 1):
-        if wait:
-            time.sleep(wait)
-        try:
-            response = requests.get(url, timeout=CHECK_TIMEOUT)
-        except requests.RequestException as exc:
-            logger.debug(f"GET {url} failed (attempt {attempt}): {exc}")
-            continue
-        if response.status_code == 200:
-            return lh.document_fromstring(response.text), "exists"
-        if response.status_code in (404, 410):
-            return None, "missing"
-        logger.debug(f"GET {url} returned {response.status_code} (attempt {attempt})")
-    return None, "unknown"
 
 
 # =============================================================================
@@ -200,7 +149,7 @@ class HydroNOS(FetchModule):
     def _page(self, url: str):
         """A directory page, or None if it is absent (404) or unreadable (flagged)."""
 
-        page, status = _get_page(url)
+        page, status = core.get_html_page(url)
         if status == "unknown":
             self._flag(f"could not read {url}")
         return page
@@ -208,7 +157,7 @@ class HydroNOS(FetchModule):
     def _file_listed(self, url: str) -> bool:
         """False only if the file is definitely absent; unverifiable files are kept."""
 
-        status = _url_status(url)
+        status = core.url_status(url)
         if status == "unknown":
             self._flag(f"could not check {url}; keeping it")
         return status != "missing"

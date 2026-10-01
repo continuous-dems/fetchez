@@ -67,7 +67,7 @@ def fake_server(monkeypatch):
     FakeHead.calls = []
     monkeypatch.setattr(multibeam.core, "Fetch", FakeQuery)
     monkeypatch.setattr(multibeam.requests, "head", FakeHead.head)
-    monkeypatch.setattr(multibeam.time, "sleep", lambda _: None)
+    monkeypatch.setattr(multibeam.core.time, "sleep", lambda _: None)
     monkeypatch.setattr(
         multibeam.MBDB, "check_inf_region", lambda self, url: ("", None)
     )
@@ -136,3 +136,14 @@ def test_file_that_cannot_be_checked_is_kept_and_flagged(tmp_path, caplog, failu
     assert mod._discovery_failed is True
     assert any("could not check" in r.getMessage() for r in caplog.records)
     assert _cache_files(tmp_path) == [], "an unverified list must not be cached"
+
+
+def test_forbidden_file_is_left_out_and_list_still_cached(tmp_path, caplog):
+    caplog.set_level(logging.WARNING, logger="fetchez.core")
+    FakeHead.answers = {GENERATED: [403]}
+    mod = _run(tmp_path)
+
+    assert mod.results == []
+    assert mod._discovery_failed is False
+    assert any("403" in r.getMessage() for r in caplog.records)
+    assert len(_cache_files(tmp_path)) == 1

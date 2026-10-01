@@ -107,9 +107,9 @@ def fake_server(monkeypatch):
     FakeWeb.get_answers = {}
     FakeWeb.head_answers = {}
     monkeypatch.setattr(hydronos.core, "Fetch", FakeQuery)
-    monkeypatch.setattr(hydronos.requests, "get", FakeWeb.get)
-    monkeypatch.setattr(hydronos.requests, "head", FakeWeb.head)
-    monkeypatch.setattr(hydronos.time, "sleep", lambda _: None)
+    monkeypatch.setattr(hydronos.core.requests, "get", FakeWeb.get)
+    monkeypatch.setattr(hydronos.core.requests, "head", FakeWeb.head)
+    monkeypatch.setattr(hydronos.core.time, "sleep", lambda _: None)
 
 
 def _run(tmp_path, datatype="xyz"):
@@ -231,3 +231,14 @@ def test_gridded_data_checks(tmp_path):
 
     assert _urls(mod) == [f"{_dir('H10001')}Gridded_Data/a.xyz.gz"]
     assert mod._discovery_failed is False
+
+
+def test_forbidden_survey_directory_is_skipped_and_list_still_cached(tmp_path):
+    FakeQuery.features = [_survey("H10001"), _survey("H10002")]
+    FakeWeb.get_answers[_dir("H10001")] = [403]
+    _geodas_survey("H10002", [200])
+    mod = _run(tmp_path)
+
+    assert _urls(mod) == [_xyz("H10002")]
+    assert mod._discovery_failed is False
+    assert len(_cache_files(tmp_path)) == 1

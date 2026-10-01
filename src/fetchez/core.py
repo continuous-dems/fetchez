@@ -394,6 +394,114 @@ class iso_xml:
 # =============================================================================
 # Remote Resource Helpers
 # =============================================================================
+# Existence checks (url_status, get_html_page): per-request timeout, and the
+# waits before each retry of a transient failure.
+CHECK_TIMEOUT = 30
+CHECK_RETRY_WAITS = (2, 10)
+
+# Request errors that no retry can fix.
+_PERMANENT_REQUEST_ERRORS = (
+    requests.TooManyRedirects,
+    requests.exceptions.InvalidURL,
+    requests.exceptions.InvalidSchema,
+    requests.exceptions.MissingSchema,
+)
+
+
+def _is_transient(status: int) -> bool:
+    """Statuses worth retrying: timeouts, rate limits and server errors."""
+
+    return status in (408, 429) or (500 <= status < 600 and status != 501)
+
+
+def url_status(
+    url: str, timeout: float = CHECK_TIMEOUT, retry_waits=CHECK_RETRY_WAITS
+) -> str:
+    """Check whether a remote file exists: 'exists', 'missing' or 'unknown'.
+
+    Uses HEAD, or a one-byte ranged GET when the server refuses HEAD (405,
+    501). 404/410 is 'missing'. Other client errors (400, 401, 403, ...) and
+    requests that can never succeed (redirect loops, bad URLs) are logged and
+    also 'missing', since no retry would change them. Timeouts, connection
+    errors, 408, 429 and 5xx are retried; only if they persist is the answer
+    'unknown'.
+    """
+
+    for attempt, wait in enumerate((0, *retry_waits), 1):
+        if wait:
+            time.sleep(wait)
+        try:
+            response = requests.head(url, timeout=timeout, allow_redirects=True)
+            method = "HEAD"
+            if response.status_code in (405, 501):
+                method = "GET"
+                response = requests.get(
+                    url,
+                    timeout=timeout,
+                    allow_redirects=True,
+                    headers={"Range": "bytes=0-0"},
+                    stream=True,
+                )
+                response.close()
+        except _PERMANENT_REQUEST_ERRORS as exc:
+            logger.warning(
+                f"{url} cannot be fetched ({type(exc).__name__}); treating it as unavailable."
+            )
+            return "missing"
+        except requests.RequestException as exc:
+            logger.debug(f"Checking {url} failed (attempt {attempt}): {exc}")
+            continue
+
+        status = response.status_code
+        if 200 <= status < 400 or (method == "GET" and status == 416):
+            return "exists"
+        if status in (404, 410):
+            return "missing"
+        if _is_transient(status):
+            logger.debug(f"{method} {url} returned {status} (attempt {attempt})")
+            continue
+        logger.warning(f"{method} {url} returned {status}; treating it as unavailable.")
+        return "missing"
+    return "unknown"
+
+
+def get_html_page(
+    url: str, timeout: float = CHECK_TIMEOUT, retry_waits=CHECK_RETRY_WAITS
+):
+    """Fetch an HTML page: (page, 'exists'), (None, 'missing') or (None, 'unknown').
+
+    Classifies responses as url_status does: 404/410 and other client errors
+    are 'missing' (the latter logged), transient failures are retried and are
+    'unknown' only if they persist.
+    """
+
+    for attempt, wait in enumerate((0, *retry_waits), 1):
+        if wait:
+            time.sleep(wait)
+        try:
+            response = requests.get(url, timeout=timeout)
+        except _PERMANENT_REQUEST_ERRORS as exc:
+            logger.warning(
+                f"{url} cannot be fetched ({type(exc).__name__}); treating it as unavailable."
+            )
+            return None, "missing"
+        except requests.RequestException as exc:
+            logger.debug(f"GET {url} failed (attempt {attempt}): {exc}")
+            continue
+
+        status = response.status_code
+        if status == 200:
+            return lh.document_fromstring(response.text), "exists"
+        if status in (404, 410):
+            return None, "missing"
+        if _is_transient(status):
+            logger.debug(f"GET {url} returned {status} (attempt {attempt})")
+            continue
+        logger.warning(f"GET {url} returned {status}; treating it as unavailable.")
+        return None, "missing"
+    return None, "unknown"
+
+
 def gdal_vsi_path(url: str, *, streaming: bool = False) -> str:
     """Return a GDAL VSI path for a local or remote resource.
 
