@@ -94,6 +94,27 @@ global_hooks:
           file: charts_audit_full.json
 ```
 
+### Selecting Hooks from a Preset
+Presets accept a `select` syntax to allow for selecting specific hooks that exist in a preset entry. The select key accepts dotted path key-pairs for selection. Selection allows for the use of only the members of a preset that match specified existing values.
+
+`select` filters members using values already present in their YAML definitions. Selector keys use dotted paths such as args.products. Members that do not define a selected path are retained, allowing helper modules or hooks to pass through unchanged.
+
+* dotted paths such as args.products select against the existing module configuration
+* multiple keys are ANDed
+* multiple values for one key are ORed
+* members without that key are kept
+* an invalid path that exists on no bundle members raises an error
+* selection happens before recursive bundle expansion/default argument propagation
+
+```yaml
+global_hooks:
+  - preset: audit-full
+    select:
+      name:
+        - checksum
+        - audit
+```
+
 ## Extending Hooks and Presets (Plugins and Extensions)
 Fetchez is generic. If you are building a custom tool and want to create your own processing hooks and presets, you can register your own hooks and presets either in your project or in the `.fetchez` configuration directory and they will be discoverable with the `fetchez.registry`
 

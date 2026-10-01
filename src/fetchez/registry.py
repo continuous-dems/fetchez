@@ -345,6 +345,7 @@ class YamlRegistry:
 
     _registry: Dict[str, Any]
     _loaded_registry: Optional[Dict[str, Any]] = None
+    _MISSING = object()
 
     # These must be defined by the subclasses
     base_class: Optional[Type] = None
@@ -437,6 +438,82 @@ class YamlRegistry:
         if cls.get_registry().get(name, None) is None:
             return False
         return True
+
+    @classmethod
+    def _get_path(cls, item, path):
+        """Return a dotted path value from a nested mapping."""
+        value = item
+
+        for part in str(path).split("."):
+            if not isinstance(value, dict) or part not in value:
+                return cls._MISSING
+            value = value[part]
+        return value
+
+    @staticmethod
+    def _selection_values(value):
+        """Normalize one or several requested selection values."""
+        if isinstance(value, (list, tuple, set)):
+            return list(value)
+        return [value]
+
+    @classmethod
+    def _selection_matches(cls, actual, requested):
+        """Return True when an existing value satisfies the selector."""
+        requested_values = cls._selection_values(requested)
+
+        if isinstance(actual, (list, tuple, set)):
+            return any(value in requested_values for value in actual)
+
+        return actual in requested_values
+
+    @classmethod
+    def select_items(cls, items, selectors, *, context="YAML definition"):
+        """Filter YAML items using dotted-path selectors.
+
+        Items that do not define a selector path pass that selector.
+        A selector path that is absent from every item is considered invalid.
+        """
+        if not selectors:
+            return copy.deepcopy(items)
+
+        if not isinstance(selectors, dict):
+            raise TypeError("select must be a mapping of path: value selectors")
+
+        items = copy.deepcopy(items)
+
+        # Catch misspelled/useless selector paths while still allowing helper
+        # items that do not participate in a particular selector.
+        for path in selectors:
+            if not any(
+                cls._get_path(item, path) is not cls._MISSING
+                for item in items
+                if isinstance(item, dict)
+            ):
+                raise ValueError(
+                    f"{context} selection field '{path}' does not exist on any member"
+                )
+
+        selected = []
+
+        for item in items:
+            matches = True
+
+            for path, requested in selectors.items():
+                actual = cls._get_path(item, path)
+
+                # Missing fields are non-participating.
+                if actual is cls._MISSING:
+                    continue
+
+                if not cls._selection_matches(actual, requested):
+                    matches = False
+                    break
+
+            if matches:
+                selected.append(item)
+
+        return selected
 
     # Temporary for backwards compatibility
     get_preset = get_yaml
@@ -643,6 +720,8 @@ class PresetRegistry(YamlRegistry):
 
             if is_preset:
                 user_args = h.get("args", [])
+                selectors = h.get("select", {})
+
                 if isinstance(user_args, dict):
                     # Convert dict format to list-of-dicts if user passed it that way
                     user_args = [
@@ -654,6 +733,18 @@ class PresetRegistry(YamlRegistry):
 
                 if preset_def:
                     preset_hooks = copy.deepcopy(preset_def.get("hooks", []))
+
+                    preset_hooks = [
+                        {"name": hook} if isinstance(hook, str) else hook
+                        for hook in preset_hooks
+                    ]
+
+                    if selectors:
+                        preset_hooks = cls.select_items(
+                            preset_hooks,
+                            selectors,
+                            context=f"Preset '{is_preset}'",
+                        )
 
                     # Merge user_args and parent_hooks to pass down the chain
                     combined_overrides = copy.deepcopy(parent_hooks)
@@ -777,6 +868,7 @@ class BundleRegistry(YamlRegistry):
             if target:
                 user_args = mod_dict.get("args", {})
                 user_hooks = mod_dict.get("hooks", [])
+                selectors = mod_dict.get("select", {})
 
                 current_weight = float(user_args.get("weight", 1.0)) * parent_weight
 
@@ -789,6 +881,13 @@ class BundleRegistry(YamlRegistry):
 
                 if bundle_def:
                     child_modules = copy.deepcopy(bundle_def.get("modules", []))
+
+                    if selectors:
+                        child_modules = cls.select_items(
+                            child_modules,
+                            selectors,
+                            context=f"Bundle '{target}'",
+                        )
 
                     child_expanded = cls._expand_modules(
                         child_modules,
