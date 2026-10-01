@@ -4,7 +4,7 @@ from fetchez.modules.local_fs import LocalFS
 
 
 def test_cached_run_returns_self_on_cache_miss(tmp_path):
-    module = LocalFS(path="/tmp", outdir=tmp_path)
+    module = LocalFS(path=tmp_path, outdir="/tmp")
 
     result = module.run()
 
