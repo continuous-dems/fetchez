@@ -13,9 +13,54 @@ np = pytest.importorskip("numpy")
 Affine = rasterio.Affine
 
 
+def _serve(payload, ready, requests_pipe):
+    """Serve ``payload`` at /example.tif with range reads, in a child process.
+
+    Module level so the process target can be pickled under the forkserver
+    and spawn start methods (forkserver is the Linux default from Python 3.14).
+    """
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_HEAD(self):
+            if self.path != "/example.tif":
+                self.send_response(404)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+
+        def do_GET(self):
+            if self.path != "/example.tif":
+                self.send_response(404)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            requested = self.headers["Range"]
+            requests_pipe.send(requested)
+            start, end = map(int, requested.removeprefix("bytes=").split("-"))
+            self.send_response(206)
+            self.send_header("Content-Range", f"bytes {start}-{end}/{len(payload)}")
+            self.send_header("Content-Length", str(end - start + 1))
+            self.end_headers()
+            self.wfile.write(payload[start : end + 1])
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    ready.send(server.server_port)
+    server.serve_forever()
+
+
 @pytest.fixture
 def remote_raster():
     processes = []
+    # The read end of each request pipe stays open until teardown: tests that
+    # discard it would otherwise break the server's pipe under forkserver and
+    # spawn, where (unlike fork) the server holds no copy of the read end.
+    request_pipes = []
 
     def make(crs="EPSG:4326", affine=None, size=10):
         if affine is None:
@@ -37,46 +82,12 @@ def remote_raster():
             payload = memory.read()
         ready_parent, ready_child = multiprocessing.Pipe(duplex=False)
         requests_parent, requests_child = multiprocessing.Pipe(duplex=False)
-
-        def serve():
-            class Handler(BaseHTTPRequestHandler):
-                def do_HEAD(self):
-                    if self.path != "/example.tif":
-                        self.send_response(404)
-                        self.send_header("Content-Length", "0")
-                        self.end_headers()
-                        return
-                    self.send_response(200)
-                    self.send_header("Content-Length", str(len(payload)))
-                    self.end_headers()
-
-                def do_GET(self):
-                    if self.path != "/example.tif":
-                        self.send_response(404)
-                        self.send_header("Content-Length", "0")
-                        self.end_headers()
-                        return
-                    requested = self.headers["Range"]
-                    requests_child.send(requested)
-                    start, end = map(int, requested.removeprefix("bytes=").split("-"))
-                    self.send_response(206)
-                    self.send_header(
-                        "Content-Range", f"bytes {start}-{end}/{len(payload)}"
-                    )
-                    self.send_header("Content-Length", str(end - start + 1))
-                    self.end_headers()
-                    self.wfile.write(payload[start : end + 1])
-
-                def log_message(self, *args):
-                    pass
-
-            server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-            ready_child.send(server.server_port)
-            server.serve_forever()
-
-        process = multiprocessing.Process(target=serve, daemon=True)
+        process = multiprocessing.Process(
+            target=_serve, args=(payload, ready_child, requests_child), daemon=True
+        )
         process.start()
         processes.append(process)
+        request_pipes.append(requests_parent)
         port = ready_parent.recv()
         return (
             f"http://127.0.0.1:{port}/example.tif",
@@ -88,6 +99,8 @@ def remote_raster():
     for process in processes:
         process.terminate()
         process.join()
+    for pipe in request_pipes:
+        pipe.close()
 
 
 def test_extent_preserves_nodata_and_chains_with_cull(remote_raster):
