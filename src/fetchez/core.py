@@ -1009,12 +1009,6 @@ class Fetch:
                 f"Timeout waiting for lock on {dst_fn}. Another process may be hanging."
             )
             return -1
-        finally:
-            if Path(lock_fn).exists():
-                try:
-                    Path(lock_fn).unlink()
-                except OSError:
-                    pass
 
         return -1
 
