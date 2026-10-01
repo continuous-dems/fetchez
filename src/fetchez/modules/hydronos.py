@@ -13,8 +13,12 @@ Fetch NOS Hydrographic Surveys (BAGs and XYZ soundings) from NOAA.
 
 import os
 import json
+import time
 import logging
 from typing import Optional, Dict
+
+import lxml.html as lh
+import requests
 
 from fetchez import core
 from fetchez.modules import FetchModule
@@ -27,6 +31,53 @@ logger = logging.getLogger(__name__)
 # NOS_DYNAMIC_URL = "https://gis.ngdc.noaa.gov/arcgis/rest/services/web_mercator/nos_hydro_dynamic/MapServer"
 NOS_DYNAMIC_URL = "https://services2.arcgis.com/C8EMgrsFcRFL6LrL/arcgis/rest/services/NOS_Hydro_Surveys/FeatureServer"
 NOS_DATA_URL = "https://data.ngdc.noaa.gov/platforms/ocean/nos/coast/"
+
+# Per-survey directory pages and data-file checks: per-request timeout and the
+# waits before each retry of a timeout, connection error, or non-404 failure.
+CHECK_TIMEOUT = 30
+CHECK_RETRY_WAITS = (2, 10)
+
+
+def _url_status(url: str) -> str:
+    """HEAD ``url``: 'exists', 'missing' (404/410) or 'unknown'.
+
+    Timeouts, connection errors and other statuses (429, 5xx, ...) are retried;
+    if they persist the answer is 'unknown', not 'missing'.
+    """
+
+    for attempt, wait in enumerate((0, *CHECK_RETRY_WAITS), 1):
+        if wait:
+            time.sleep(wait)
+        try:
+            response = requests.head(url, timeout=CHECK_TIMEOUT, allow_redirects=True)
+        except requests.RequestException as exc:
+            logger.debug(f"HEAD {url} failed (attempt {attempt}): {exc}")
+            continue
+        if 200 <= response.status_code < 400:
+            return "exists"
+        if response.status_code in (404, 410):
+            return "missing"
+        logger.debug(f"HEAD {url} returned {response.status_code} (attempt {attempt})")
+    return "unknown"
+
+
+def _get_page(url: str):
+    """Fetch a directory page: (html, 'exists'), (None, 'missing') or (None, 'unknown')."""
+
+    for attempt, wait in enumerate((0, *CHECK_RETRY_WAITS), 1):
+        if wait:
+            time.sleep(wait)
+        try:
+            response = requests.get(url, timeout=CHECK_TIMEOUT)
+        except requests.RequestException as exc:
+            logger.debug(f"GET {url} failed (attempt {attempt}): {exc}")
+            continue
+        if response.status_code == 200:
+            return lh.document_fromstring(response.text), "exists"
+        if response.status_code in (404, 410):
+            return None, "missing"
+        logger.debug(f"GET {url} returned {response.status_code} (attempt {attempt})")
+    return None, "unknown"
 
 
 # =============================================================================
@@ -77,6 +128,7 @@ class HydroNOS(FetchModule):
         self.max_year = utils.float_or(max_year)
 
         self._nos_query_url = f"{NOS_DYNAMIC_URL}/{self.layer}/query?"
+        self._unchecked: list = []
 
     def run(self):
         """Run the hydronos fetches module."""
@@ -110,6 +162,7 @@ class HydroNOS(FetchModule):
 
         features = response.get("features", [])
         logger.debug(f"Found {len(features)} HydroNOS surveys.")
+        self._unchecked = []
 
         for feature in features:
             attrs = feature.get("attributes", {})
@@ -129,7 +182,36 @@ class HydroNOS(FetchModule):
             # Process Download Links
             self._process_download(attrs, year)
 
+        if self._unchecked:
+            logger.error(
+                f"HydroNOS could not read or check {len(self._unchecked)} survey "
+                "directories or files (server busy or unreachable); the list may be "
+                "incomplete and is not cached."
+            )
+            self._discovery_failed = True
         return self
+
+    def _flag(self, message: str):
+        """Record a directory or file that could not be read or checked."""
+
+        logger.warning(f"HydroNOS {message}")
+        self._unchecked.append(message)
+
+    def _page(self, url: str):
+        """A directory page, or None if it is absent (404) or unreadable (flagged)."""
+
+        page, status = _get_page(url)
+        if status == "unknown":
+            self._flag(f"could not read {url}")
+        return page
+
+    def _file_listed(self, url: str) -> bool:
+        """False only if the file is definitely absent; unverifiable files are kept."""
+
+        status = _url_status(url)
+        if status == "unknown":
+            self._flag(f"could not check {url}; keeping it")
+        return status != "missing"
 
     def _process_download(self, attrs: Dict, year: int):
         """Process download URL."""
@@ -168,7 +250,7 @@ class HydroNOS(FetchModule):
                 bag_dir_url = f"{data_link}BAG/"
 
                 # Scrape the directory for .bag files
-                bag_page = core.Fetch(bag_dir_url).fetch_html()
+                bag_page = self._page(bag_dir_url)
 
                 if bag_page is not None:
                     bags = bag_page.xpath('//a[contains(@href, ".bag")]/@href')
@@ -188,7 +270,7 @@ class HydroNOS(FetchModule):
         # Fetch XYZ (GEODAS Soundings)
         if self.datatype is None or "xyz" in self.datatype.lower():
             # Check for GEODAS folder or files
-            xyz_page = core.Fetch(data_link).fetch_html()
+            xyz_page = self._page(data_link)
 
             if xyz_page is not None:
                 # Look for GEODAS folder
@@ -221,7 +303,7 @@ class HydroNOS(FetchModule):
                     #             dt = "nos-feet-xyz"
 
                     # Verify the data file exists (HEAD request)
-                    if core.Fetch(xyz_link).fetch_req(timeout=5) is not None:
+                    if self._file_listed(xyz_link):
                         self.add_entry_to_results(
                             url=xyz_link,
                             dst_fn=xyz_filename,
@@ -253,16 +335,18 @@ class HydroNOS(FetchModule):
             bags_exist = str(attrs.get("BAGS_EXIST", "")).upper()
             if bags_exist not in ["TRUE", "Y", "YES"]:  # and self.datatype is not None:
                 # Check for Grid_Data folder or files
-                xyz_page = core.Fetch(data_link).fetch_html()
+                xyz_page = self._page(data_link)
 
                 if xyz_page is not None:
                     gridded_links = xyz_page.xpath(
                         '//a[contains(@href, "Gridded_Data")]/@href'
                     )
-                    if gridded_links:
-                        gridded_page = core.Fetch(
-                            f"{data_link}Gridded_Data/"
-                        ).fetch_html()
+                    gridded_page = (
+                        self._page(f"{data_link}Gridded_Data/")
+                        if gridded_links
+                        else None
+                    )
+                    if gridded_page is not None:
                         xyz_links = gridded_page.xpath(
                             '//a[contains(@href, ".gz")]/@href'
                         )
@@ -271,7 +355,7 @@ class HydroNOS(FetchModule):
                             dt = "nos-gridded"
 
                             # Verify the data file exists (HEAD request)
-                            if core.Fetch(xyz_link).fetch_req(timeout=5) is not None:
+                            if self._file_listed(xyz_link):
                                 self.add_entry_to_results(
                                     url=xyz_link,
                                     dst_fn=xyz_filename,
