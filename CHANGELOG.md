@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2 - 2026-10-01]
+
 ### ADDED
 
 - Added deterministic `module_id` generation based on a canonical representation of module configuration.
