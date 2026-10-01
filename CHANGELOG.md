@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### FiXED
 
+- `nos_hydro` no longer loses every survey when one request fails. A missing (404) survey directory or file is skipped; other failures are retried, then logged, files that cannot be checked are kept, and the list is not cached.
+- File and directory checks in `mbdb` and `nos_hydro` (shared `core.url_status` / `core.get_html_page`) retry only failures a retry can fix (timeouts, connection errors, 408, 429, 5xx). Other client errors and impossible requests are final, so a healthy server can no longer keep a list from being cached; a server that refuses HEAD is asked for one byte with GET.
 - Fixed modules.base cache json race condition during concurrency.
 - `mbdb` now pages its MapServer query, so regions with more than 2000 surveys get all of them instead of the first 2000. A failed page is logged and the partial list is not cached.
 - `mbdb` no longer drops a survey when its file check times out or the server errors; only a 404/410 counts as missing. Failed checks are retried, and a file that still cannot be checked is listed, logged, and keeps the list from being cached.

@@ -13,7 +13,6 @@ Fetch Multibeam bathymetry from NOAA NCEI, MBDB (ArcGIS), and R2R.
 
 import os
 import re
-import time
 import logging
 import requests
 from tqdm.auto import tqdm
@@ -43,11 +42,6 @@ MBDB_FEATURES_URL = (
 # R2R
 R2R_API_URL = "https://service.rvdata.us/api/fileset/keyword/multibeam?"
 R2R_PRODUCT_URL = "https://service.rvdata.us/api/product/?"
-
-# MBDB file existence checks (HEAD): per-request timeout and the waits
-# before each retry of a timeout, connection error, or non-404 failure.
-CHECK_TIMEOUT = 30
-CHECK_RETRY_WAITS = (2, 10)
 
 
 # =============================================================================
@@ -444,31 +438,9 @@ class MBDB(FetchModule):
         return self._url_status(data_url) == "exists"
 
     def _url_status(self, url: str) -> str:
-        """HEAD ``url``: 'exists', 'missing' (404/410) or 'unknown'.
+        """'exists', 'missing' or 'unknown'; see ``core.url_status``."""
 
-        Timeouts, connection errors and other statuses (429, 5xx, ...) are
-        retried; if they persist the answer is 'unknown', not 'missing', so a
-        busy server is never mistaken for an absent file.
-        """
-
-        for attempt, wait in enumerate((0, *CHECK_RETRY_WAITS), 1):
-            if wait:
-                time.sleep(wait)
-            try:
-                response = requests.head(
-                    url, timeout=CHECK_TIMEOUT, allow_redirects=True
-                )
-            except requests.RequestException as exc:
-                logger.debug(f"HEAD {url} failed (attempt {attempt}): {exc}")
-                continue
-            if 200 <= response.status_code < 400:
-                return "exists"
-            if response.status_code in (404, 410):
-                return "missing"
-            logger.debug(
-                f"HEAD {url} returned {response.status_code} (attempt {attempt})"
-            )
-        return "unknown"
+        return core.url_status(url)
 
     def _query_features(self, params):
         """Return every feature matching the query, following the server's pages.
