@@ -13,6 +13,7 @@ Fetch Multibeam bathymetry from NOAA NCEI, MBDB (ArcGIS), and R2R.
 
 import os
 import re
+import time
 import logging
 import requests
 from tqdm.auto import tqdm
@@ -43,10 +44,23 @@ MBDB_FEATURES_URL = (
 R2R_API_URL = "https://service.rvdata.us/api/fileset/keyword/multibeam?"
 R2R_PRODUCT_URL = "https://service.rvdata.us/api/product/?"
 
+# MBDB file existence checks (HEAD): per-request timeout and the waits
+# before each retry of a timeout, connection error, or non-404 failure.
+CHECK_TIMEOUT = 30
+CHECK_RETRY_WAITS = (2, 10)
+
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
+def _generated_url(url: str) -> str:
+    """Insert NCEI's 'generated' directory before the file name."""
+
+    parts = url.split("/")
+    parts.insert(-1, "generated")
+    return "/".join(parts)
+
+
 def _parse_mbsystem_inf_geometry(inf_text: StringIO):
     """Parse spatial bounds and the 10x10 coverage mask into a Shapely geometry."""
 
@@ -417,24 +431,76 @@ class MBDB(FetchModule):
     def check_for_generated_data(self, base_url: str) -> bool:
         """Check if a 'generated' directory exists for processed data."""
 
-        try:
-            parts = base_url.split("/")
-            parts.insert(-1, "generated")
-            gen_url = "/".join(parts)
-            return self.check_for_200(gen_url)
-        except Exception:
-            return False
+        return self.check_for_200(_generated_url(base_url))
 
     def check_for_200(self, data_url: str) -> bool:
         """Check if an fbt file exists."""
 
-        try:
-            response = requests.head(data_url, timeout=5, allow_redirects=True)
-            if response is not None and response.status_code in [200, 302]:
-                return True
-            return False
-        except Exception:
-            return False
+        return self._url_status(data_url) == "exists"
+
+    def _url_status(self, url: str) -> str:
+        """HEAD ``url``: 'exists', 'missing' (404/410) or 'unknown'.
+
+        Timeouts, connection errors and other statuses (429, 5xx, ...) are
+        retried; if they persist the answer is 'unknown', not 'missing', so a
+        busy server is never mistaken for an absent file.
+        """
+
+        for attempt, wait in enumerate((0, *CHECK_RETRY_WAITS), 1):
+            if wait:
+                time.sleep(wait)
+            try:
+                response = requests.head(
+                    url, timeout=CHECK_TIMEOUT, allow_redirects=True
+                )
+            except requests.RequestException as exc:
+                logger.debug(f"HEAD {url} failed (attempt {attempt}): {exc}")
+                continue
+            if 200 <= response.status_code < 400:
+                return "exists"
+            if response.status_code in (404, 410):
+                return "missing"
+            logger.debug(
+                f"HEAD {url} returned {response.status_code} (attempt {attempt})"
+            )
+        return "unknown"
+
+    def _query_features(self, params):
+        """Return every feature matching the query, following the server's pages.
+
+        The MapServer returns at most ``maxRecordCount`` features per request
+        (2000) and sets ``exceededTransferLimit`` when more remain, so request
+        pages by ``resultOffset`` until it stops. A failed page is logged and
+        marks discovery as failed, so a partial list is never cached.
+        """
+
+        features = []
+        offset = 0
+        while True:
+            page_params = {
+                **params,
+                "orderByFields": "OBJECTID ASC",
+                "resultOffset": offset,
+            }
+            req = core.Fetch(self._mb_features_query_url).fetch_req(params=page_params)
+            try:
+                data = req.json() if req is not None else None
+            except ValueError:
+                data = None
+
+            if not isinstance(data, dict) or not isinstance(data.get("features"), list):
+                logger.error(
+                    f"MBDB query failed at offset {offset}; "
+                    f"{len(features)} surveys found before the failure."
+                )
+                self._discovery_failed = True
+                return features
+
+            page = data["features"]
+            features.extend(page)
+            if not data.get("exceededTransferLimit") or not page:
+                return features
+            offset += len(page)
 
     def run(self):
         """Run the MBDB fetching module."""
@@ -455,13 +521,10 @@ class MBDB(FetchModule):
         }
 
         logger.debug("Querying MBDB ArcGIS Server...")
-        req = core.Fetch(self._mb_features_query_url).fetch_req(params=params)
-        if req is None:
-            return []
-
-        features = req.json().get("features", [])
+        features = self._query_features(params)
         logger.debug(f"MBDB found {len(features)} surveys.")
 
+        unverified = []
         for feature in features:
             attrs = feature.get("attributes", {})
             data_file = attrs.get("DATA_FILE")
@@ -475,22 +538,20 @@ class MBDB(FetchModule):
             download_url = f"{NCEI_DATA_URL}{fbt_file}"
             inf_url = f"{NCEI_DATA_URL}{inf_file}"
 
-            # All fbt files should be in generated by now.
-            use_generated = True
-            if self.want_check:
-                use_generated = self.check_for_generated_data(download_url)
+            # All fbt files should be in generated by now; with want_check,
+            # fall back to the plain path only if the generated one is absent.
+            status = self._url_status(_generated_url(download_url))
+            if status == "missing" and self.want_check:
+                status = self._url_status(download_url)
+            else:
+                download_url = _generated_url(download_url)
+                inf_url = _generated_url(inf_url)
 
-            if use_generated:
-                u_parts = download_url.split("/")
-                u_parts.insert(-1, "generated")
-                download_url = "/".join(u_parts)
-
-                i_parts = inf_url.split("/")
-                i_parts.insert(-1, "generated")
-                inf_url = "/".join(i_parts)
-
-            if not self.check_for_200(download_url):
+            if status == "missing":
                 continue
+            if status == "unknown":
+                logger.warning(f"MBDB could not check {download_url}; keeping it.")
+                unverified.append(download_url)
 
             _, mask_geom = self.check_inf_region(download_url)
 
@@ -511,6 +572,14 @@ class MBDB(FetchModule):
                     data_type="mb_inf",
                     agency="NOAA NCEI",
                 )
+
+        if unverified:
+            logger.error(
+                f"MBDB could not check {len(unverified)} of {len(features)} survey "
+                "files (server busy or unreachable); they are listed unverified "
+                "and the list is not cached."
+            )
+            self._discovery_failed = True
         return self
 
 
