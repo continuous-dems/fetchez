@@ -66,7 +66,7 @@ def fake_server(monkeypatch):
     FakeFetch.pages = {}
     FakeFetch.calls = []
     monkeypatch.setattr(multibeam.core, "Fetch", FakeFetch)
-    monkeypatch.setattr(multibeam.MBDB, "check_for_200", lambda self, url: True)
+    monkeypatch.setattr(multibeam.MBDB, "_url_status", lambda self, url: "exists")
     monkeypatch.setattr(
         multibeam.MBDB, "check_inf_region", lambda self, url: ("", None)
     )
