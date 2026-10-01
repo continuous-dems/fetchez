@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed modules.base cache json race condition during concurrency.
 - `mbdb` now pages its MapServer query, so regions with more than 2000 surveys get all of them instead of the first 2000. A failed page is logged and the partial list is not cached.
 - `mbdb` no longer drops a survey when its file check times out or the server errors; only a 404/410 counts as missing. Failed checks are retried, and a file that still cannot be checked is listed, logged, and keeps the list from being cached.
+- Fix base module region cache bug.
 
 ## [0.9.1 - 2026-09-27]
 

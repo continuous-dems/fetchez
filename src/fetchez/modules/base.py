@@ -295,20 +295,6 @@ class FetchModule:
                 config["region"] = dict(region)
             else:
                 config["region"] = list(region)
-        # region = config.pop("src_region", config.pop("region", None))
-
-        # if region is not None:
-        #     if type(region).__name__ == "Region":
-        #         config["region"] = {
-        #             "__type__": "Region",
-        #             "w": region.w,
-        #             "e": region.e,
-        #             "s": region.s,
-        #             "n": region.n,
-        #             "srs": region.srs,
-        #         }
-        #     else:
-        #         config["region"] = list(region)
 
         # Remove values equivalent to canonical defaults.
         for key, default in cls._MODULE_ID_DEFAULTS.items():
