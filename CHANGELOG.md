@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ADDED
+
+- modules.base identity pops the default non-set arguments from the sub-module
+
 ### CHANGED
 
 - Slight refactor of pipeline (run) click cli
