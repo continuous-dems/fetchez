@@ -24,6 +24,7 @@ from fetchez.registry import (
 from fetchez.spatial import parse_region, region_help_msg
 from fetchez.utils import (
     parse_hook_string,
+    parse_arg_to_list,
     colorize,
     CYAN,
     GREEN,
@@ -42,61 +43,169 @@ def add_options(options):
     return decorator
 
 
+def _module_cli_options(mod_meta):
+    """Return dynamically generated Click options for a module."""
+    options = []
+
+    for key, val in mod_meta.get("cli_args", {}).items():
+        if key in {
+            "self",
+            "kwargs",
+            "src_region",
+            "callback",
+            "name",
+            "params",
+            "hook",
+            "weight",
+        }:
+            continue
+
+        options.append([f"--{key.replace('_', '-')}", val["desc"], val["default"]])
+
+    return options
+
+
+def _parse_bundle_selectors(values):
+    def _parse_selector_value(value):
+        try:
+            return yaml.safe_load(value)
+        except Exception:
+            return value
+
+    selectors = {}
+    for value in values or []:
+        if "=" not in value:
+            raise click.BadParameter(f"Invalid selector '{value}'. Expected KEY=VALUE.")
+
+        key, raw_value = value.split("=", 1)
+        key = key.strip()
+
+        if not key:
+            raise click.BadParameter(
+                f"Invalid selector '{value}'. Missing selector key."
+            )
+
+        values = parse_arg_to_list(raw_value, str)
+        parsed = [_parse_selector_value(value) for value in values]
+
+        selectors[key] = parsed[0] if len(parsed) == 1 else parsed
+
+    return selectors
+
+
+def make_module_command(name, mod_meta):
+    help_text = mod_meta.get("cli_help_text", f"Run the {name} module")
+    mod_args = _module_cli_options(mod_meta)
+
+    @click.command(name=name, help=help_text, hidden=True, cls=FetchezMainCommand)
+    @click.option("--weight", type=float, default=1.0)
+    @click.option("--hook", multiple=True, help="Attach a processing hook")
+    @add_options(mod_args)
+    def dynamic_module_cmd(weight, hook, **kwargs):
+        parsed_hooks = [parse_hook_string(h) for h in hook]
+        # module_type = "module" if mod_meta else "bundle"
+        return {
+            "type": "module",
+            "module": name,
+            "args": {"weight": weight, **kwargs},
+            "hooks": parsed_hooks,
+        }
+
+    return dynamic_module_cmd
+
+
+def make_bundle_command(name, bundle_def):
+    help_text = bundle_def.get("description", "")
+
+    @click.command(name=name, help=help_text, hidden=True, cls=FetchezMainCommand)
+    @click.option("--weight", type=float, default=1.0)
+    @click.option(
+        "--select",
+        type=str,
+        multiple=True,
+        metavar="KEY=VALUE",
+        help=(
+            "Select bundle members by configuration value. "
+            "Slash-delimit multiple accepted values."
+        ),
+    )
+    @click.option("--hook", multiple=True, help="Attach a processing hook")
+    def bundle_cmd(weight, select, hook):
+        selectors = _parse_bundle_selectors(select)
+        parsed_hooks = [parse_hook_string(h) for h in hook]
+        result = {
+            "type": "module",
+            "bundle": name,
+            "args": {
+                "weight": weight,
+            },
+            "hooks": parsed_hooks,
+        }
+
+        if selectors:
+            result["select"] = selectors
+
+        return result
+
+    return bundle_cmd
+
+
+def make_pipeline_config(
+    commands,
+    *,
+    name="cli_pipeline",
+    region=None,
+    region_srs="EPSG:4326",
+    global_hooks=None,
+    modifiers=None,
+    schemas=None,
+    threads=1,
+):
+    config = {
+        "project": {
+            "name": name,
+        },
+        "region": str(region) if region else None,
+        "region_srs": region_srs,
+        "modules": commands,
+        "global_hooks": global_hooks or [],
+    }
+
+    if modifiers:
+        config["modifiers"] = modifiers
+
+    if schemas:
+        config["schemas"] = schemas
+
+    if threads:
+        config["execution"] = {
+            "threads": threads,
+        }
+
+    return config
+
+
 # class PipelineExecutor(click.Group):
 class PipelineExecutor(FetchezMainGroup):
     def list_commands(self, ctx):
         ModuleRegistry.load_all()
         BundleRegistry.load_all()
-        mod_list = list(ModuleRegistry.get_registry().keys())
-        mod_list.extend(list(BundleRegistry.get_registry().keys()))
-        return sorted(mod_list)
+
+        names = set(ModuleRegistry.get_registry())
+        names.update(BundleRegistry.get_registry())
+        return sorted(names)
 
     def get_command(self, ctx, name):
         ModuleRegistry.load_all()
-        BundleRegistry.load_all()
         mod_meta = ModuleRegistry.get_info(name)
-        bundle_yml = BundleRegistry.get_yaml(name)
-
-        if not mod_meta and not bundle_yml:
-            return None
-
         if mod_meta:
-            help_text = mod_meta.get("cli_help_text", f"Run the {name} module")
-            mod_args = []
-            for key, val in mod_meta.get("cli_args", {}).items():
-                if key in [
-                    "self",
-                    "kwargs",
-                    "src_region",
-                    "callback",
-                    # "outdir",
-                    "name",
-                    "params",
-                    "hook",
-                    "weight",
-                ]:
-                    continue
-                mod_args.append([f"--{key}", val["desc"], val["default"]])
+            return make_module_command(name, mod_meta)
 
+        BundleRegistry.load_all()
+        bundle_yml = BundleRegistry.get_yaml(name)
         if bundle_yml:
-            help_text = bundle_yml.get("description", "")
-            mod_args = []
-
-        @click.command(name=name, help=help_text, hidden=True, cls=FetchezMainCommand)
-        @click.option("--weight", type=float, default=1.0)
-        @click.option("--hook", multiple=True, help="Attach a processing hook")
-        @add_options(mod_args)
-        def dynamic_module_cmd(weight, hook, **kwargs):
-            parsed_hooks = [parse_hook_string(h) for h in hook]
-            module_type = "module" if mod_meta else "bundle"
-            return {
-                "type": "module",
-                module_type: name,
-                "args": {"weight": weight, **kwargs},
-                "hooks": parsed_hooks,
-            }
-
-        return dynamic_module_cmd
+            return make_bundle_command(name, bundle_yml)
+        return None
 
     def format_commands(self, ctx, formatter):
         """Override the default Click help to group modules by category."""
@@ -296,26 +405,15 @@ def process_pipeline(
     parsed_schemas = [s for s in schema]
 
     # Build the recipe configuration dictionary
-    config = {
-        "project": {"name": "cli_pipeline"},
-        "region": str(region) if region else None,
-        "region_srs": region_srs,
-        "modules": modules,
-        "global_hooks": parsed_global_hooks,
-    }
-
-    if parsed_modifiers:
-        config["modifiers"] = parsed_modifiers
-
-    if schema:
-        config["schemas"] = parsed_schemas
-
-    # if schema:
-    #     if SchemaRegistry.get_registry().get_class(schema) is not None:
-    #         config["schema"] = schema
-
-    if threads:
-        config["execution"] = {"threads": threads}
+    config = make_pipeline_config(
+        modules,
+        region=region,
+        region_srs=region_srs,
+        global_hooks=parsed_global_hooks,
+        modifiers=parsed_modifiers,
+        schemas=parsed_schemas,
+        threads=threads,
+    )
 
     if export:
         with open(export, "w", encoding="utf-8") as f:
