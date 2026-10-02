@@ -55,7 +55,7 @@ def recipes_group():
 
     \b
     Use `fetchez recipes list` and `fetchez recipes info` to discover available
-    recipes, or `fetchez run <recipe>` to execute one.
+    recipes.
     """
 
     pass
