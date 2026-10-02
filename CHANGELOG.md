@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3 - 2026-10-02]
+
 ### ADDED
 
 - Added generic select filtering for module bundles and hook presets using dotted YAML paths such as args.products.
