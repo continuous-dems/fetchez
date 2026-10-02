@@ -18,6 +18,7 @@ import urllib.parse
 import json
 import hashlib
 import tempfile
+import inspect
 from pathlib import Path
 from math import floor
 from typing import List, Dict, Any, Mapping
@@ -121,14 +122,16 @@ class FetchModule:
                 region_config = list(src_region)
 
         # Store the parameters used to invoke this module for hashing
+
         self._init_kwargs = {
-            **kwargs,
             "region": region_config,
             "min_year": min_year,
             "max_year": max_year,
             "weight": weight,
             "uncertainty": uncertainty,
             "params": self.params,
+            **self._inspect_locals_from_subs(),
+            **kwargs,
         }
 
         if self.outdir is None:
@@ -182,6 +185,47 @@ class FetchModule:
     def clear_hooks(self):
         self.internal_hooks = []
         self.external_hooks = []
+
+    def _inspect_locals_from_subs(self):
+        """Capture the effective arguments of the outermost subclass __init__."""
+
+        frame = inspect.currentframe().f_back
+        target_frame = None
+
+        try:
+            while frame:
+                frame_locals = frame.f_locals
+
+                if frame_locals.get("self") is not self:
+                    break
+
+                if frame.f_code.co_name == "__init__":
+                    target_frame = frame
+
+                frame = frame.f_back
+
+            if target_frame is None:
+                return {}
+
+            arg_info = inspect.getargvalues(target_frame)
+
+            result = {}
+
+            for name in arg_info.args:
+                if name != "self" and name in arg_info.locals:
+                    result[name] = arg_info.locals[name]
+
+            # Include **kwargs flattened into the invocation configuration.
+            if arg_info.keywords:
+                extra = arg_info.locals.get(arg_info.keywords, {})
+                if isinstance(extra, dict):
+                    result.update(extra)
+
+            return result
+
+        finally:
+            del frame
+            del target_frame
 
     def run(self):
         """Override this method in a subclass to populate `self.results`."""

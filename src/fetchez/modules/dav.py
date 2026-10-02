@@ -81,6 +81,11 @@ class DAV(FetchModule):
         self.want_footprints = want_footprints
         self.keep_footprints = keep_footprints
 
+        self._update_module_config(
+            where=self.where,
+            layer=self.layer,
+        )
+
     def _region_to_ewkt(self):
         """Convert the current region to NAD83 (SRID 4269) EWKT Polygon string."""
 
