@@ -79,6 +79,9 @@ def info_bundles(name):
     click.secho(f"\n📜 BUNDLE SUMMARY: {name}", fg="cyan", bold=True)
     click.echo("=" * 60)
     click.echo(f"  Description : {meta.get('description', 'N/A').strip()}")
+    click.echo(
+        "\n  Members may be filtered with `select` using the fields shown below."
+    )
 
     modules = Recipe({})._expand_modules(meta.get("modules", []))
     if modules:
