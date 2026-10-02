@@ -260,6 +260,25 @@ class FetchModule:
     }
 
     @classmethod
+    def _constructor_defaults(cls):
+        defaults = {}
+
+        for name, parameter in inspect.signature(cls.__init__).parameters.items():
+            if name == "self":
+                continue
+
+            if parameter.kind in {
+                inspect.Parameter.VAR_POSITIONAL,
+                inspect.Parameter.VAR_KEYWORD,
+            }:
+                continue
+
+            if parameter.default is not inspect.Parameter.empty:
+                defaults[name] = parameter.default
+
+        return defaults
+
+    @classmethod
     def _canonicalize_module_value(cls, value: Any) -> Any:
         """Convert a value into a deterministic JSON-safe representation."""
         if value is None or isinstance(value, (str, int, float, bool)):
@@ -340,8 +359,13 @@ class FetchModule:
             else:
                 config["region"] = list(region)
 
+        defaults = {
+            **cls._MODULE_ID_DEFAULTS,
+            **cls._constructor_defaults(),
+        }
+
         # Remove values equivalent to canonical defaults.
-        for key, default in cls._MODULE_ID_DEFAULTS.items():
+        for key, default in defaults.items():
             if key in config and config[key] == default:
                 config.pop(key)
 
