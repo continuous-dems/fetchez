@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ADDED
+
+- Added generic select filtering for module bundles and hook presets using dotted YAML paths such as args.products.
+- Bundle and preset members can now be filtered by existing configuration values without introducing component-specific selector syntax.
+- Members that do not define a selected field are retained so helper modules/hooks can pass through unchanged.
+- Invalid selector paths now raise a clear configuration error.
+- Added user-guide examples for bundle and preset selection.
+
 ## [0.9.2 - 2026-10-01]
 
 ### ADDED
