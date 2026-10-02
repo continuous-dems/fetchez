@@ -186,24 +186,47 @@ def make_pipeline_config(
 
 # class PipelineExecutor(click.Group):
 class PipelineExecutor(FetchezMainGroup):
+    def module_allowed(self, name, meta):
+        return True
+
+    def bundle_allowed(self, name, bundle):
+        return True
+
     def list_commands(self, ctx):
         ModuleRegistry.load_all()
         BundleRegistry.load_all()
 
-        names = set(ModuleRegistry.get_registry())
-        names.update(BundleRegistry.get_registry())
+        names = {
+            name
+            for name, meta in ModuleRegistry.get_registry().items()
+            if self.module_allowed(name, meta)
+        }
+
+        names.update(
+            name
+            for name, bundle in BundleRegistry.get_registry().items()
+            if self.bundle_allowed(name, bundle)
+        )
+
         return sorted(names)
 
     def get_command(self, ctx, name):
         ModuleRegistry.load_all()
+
         mod_meta = ModuleRegistry.get_info(name)
         if mod_meta:
+            if not self.module_allowed(name, mod_meta):
+                return None
             return make_module_command(name, mod_meta)
 
         BundleRegistry.load_all()
-        bundle_yml = BundleRegistry.get_yaml(name)
-        if bundle_yml:
-            return make_bundle_command(name, bundle_yml)
+
+        bundle_def = BundleRegistry.get_yaml(name)
+        if bundle_def:
+            if not self.bundle_allowed(name, bundle_def):
+                return None
+            return make_bundle_command(name, bundle_def)
+
         return None
 
     def format_commands(self, ctx, formatter):
