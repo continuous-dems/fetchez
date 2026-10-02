@@ -102,7 +102,7 @@ def test_to_cli_translation():
     cli_str = recipe.to_cli()
 
     # Check base arguments
-    assert "fetchez run" in cli_str
+    assert "fetchez build" in cli_str
     assert "-R -120.0/-119.0/33.0/34.0" in cli_str
     assert "--region-srs EPSG:4326" in cli_str
     assert "--threads 4" in cli_str

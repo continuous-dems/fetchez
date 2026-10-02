@@ -2,6 +2,7 @@
 import pytest
 import subprocess
 import sys
+import yaml
 
 from fetchez.utils import parse_hook_string
 from fetchez.cli import cli
@@ -121,3 +122,100 @@ def test_region_echo_bbox(runner):
 
     assert result.exit_code == 0
     assert "-120.0/-119.0/34.0/35.0" in result.output.strip()
+
+
+def test_help_exposes_build_and_run():
+    """Top-level help advertises the primary pipeline commands."""
+
+    result = run_fetchez(["--help"])
+
+    assert result.returncode == 0
+    assert "build" in result.stdout
+    assert "run" in result.stdout
+
+
+def test_build_help():
+    """Build is the ad-hoc pipeline construction command."""
+
+    result = run_fetchez(["build", "--help"])
+
+    assert result.returncode == 0
+    assert "Build and optionally execute a pipeline" in result.stdout
+
+
+def test_run_help():
+    """Run executes registered or local recipes."""
+
+    result = run_fetchez(["run", "--help"])
+
+    assert result.returncode == 0
+    assert "Execute a Fetchez recipe" in result.stdout
+    assert "registered recipe" in result.stdout
+    assert "local YAML recipe" in result.stdout
+
+
+def test_recipes_help_is_discovery_only():
+    result = run_fetchez(["recipes", "--help"])
+
+    assert result.returncode == 0
+    assert "list" in result.stdout
+    assert "info" in result.stdout
+    assert "validate" in result.stdout
+    assert "run" not in result.stdout
+
+
+def test_build_export(runner, tmp_path):
+    """Build can construct and export a recipe without executing it."""
+
+    output = tmp_path / "pipeline.yaml"
+
+    result = runner.invoke(
+        cli,
+        [
+            "build",
+            "--export",
+            str(output),
+            "dav",
+            "--datatype",
+            "raster",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert output.exists()
+
+    config = yaml.safe_load(output.read_text())
+
+    assert config["modules"][0]["module"] == "dav"
+    assert config["modules"][0]["args"]["datatype"] == "raster"
+
+
+def test_dynamic_module_help_uses_cli_metadata(runner):
+    result = runner.invoke(cli, ["build", "dav", "--help"])
+
+    assert result.exit_code == 0
+    assert "NOAA Digital Coast (Data Access Viewer)" in result.output
+    assert "Data type:" in result.output
+
+
+# def test_build_bundle_select(runner, tmp_path):
+#     output = tmp_path / "bundle.yaml"
+
+#     result = runner.invoke(
+#         cli,
+#         [
+#             "build",
+#             "--export",
+#             str(output),
+#             "test-bundle",
+#             "--select",
+#             "products=1m/1_9as",
+#         ],
+#     )
+
+#     assert result.exit_code == 0
+
+#     config = yaml.safe_load(output.read_text())
+#     bundle = config["modules"][0]
+
+#     assert bundle["select"]["products"] == ["1m", "1_9as"]

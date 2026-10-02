@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### CHANGED
 
 - Slight refactor of pipeline (run) click cli
+- Refactor cli commands. `run` -> `build`; `recipe run` -> `run`: build pipelines, run recipes.
 
 ### FIXED
 

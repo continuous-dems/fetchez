@@ -15,6 +15,7 @@ Loads a configuration (The Recipe) and executes it against the target region.
 import os
 import copy
 import json
+import yaml
 
 import inspect
 import logging
@@ -30,6 +31,7 @@ from .registry import (
     SchemaRegistry,
     PresetRegistry,
     BundleRegistry,
+    RecipeRegistry,
 )
 from .utils import TqdmLoggingHandler, colorize, CYAN
 from . import __version__ as fetchez_version
@@ -66,6 +68,22 @@ def _parse_version(v_str):
         num = "".join(filter(str.isdigit, p))
         parts.append(int(num) if num else 0)
     return tuple(parts)
+
+
+def load_recipe_config(target):
+    base_config = None
+    target_path = Path(target)
+    if target_path.exists() and not target_path.is_dir():
+        with open(target, "r", encoding="utf-8") as f:
+            base_config = yaml.safe_load(f)
+    else:
+        RecipeRegistry.load_all()
+        recipe_meta = RecipeRegistry.get_yaml(target)
+        if recipe_meta:
+            base_config = recipe_meta["config"]
+            logger.info(f"Loaded curated recipe: {target}")
+
+    return base_config
 
 
 class Recipe:
@@ -128,7 +146,7 @@ class Recipe:
 
         return json.dumps(self.config, indent=indent)
 
-    def to_cli(self, executable="fetchez run") -> str:
+    def to_cli(self, executable="fetchez build") -> str:
         """Translate the recipe configuration into a runnable CLI command string."""
 
         cmd_parts = [executable]

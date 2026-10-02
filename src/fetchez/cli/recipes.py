@@ -16,16 +16,14 @@ import yaml
 import click
 from pathlib import Path
 
-from fetchez.recipe import Recipe
+from fetchez.recipe import Recipe, load_recipe_config
 from fetchez.registry import RecipeRegistry
 from fetchez.utils import (
-    parse_hook_string,
     group_registry_by_key,
     print_grouped_registry,
     FetchezMainGroup,
     FetchezMainCommand,
 )
-from fetchez.spatial import region_help_msg
 from fetchez.api import search_recipes
 from .schemas import schemas_group
 from .modifiers import modifiers_group
@@ -36,27 +34,10 @@ RECIPE_COMMANDS = [
     "info",
     "list",
     "validate",
-    "run",
     "modifiers",
     "schemas",
     "translate",
 ]
-
-
-def _load_yaml(target):
-    base_config = None
-    target_path = Path(target)
-    if target_path.exists() and not target_path.is_dir():
-        with open(target, "r", encoding="utf-8") as f:
-            base_config = yaml.safe_load(f)
-    else:
-        RecipeRegistry.load_all()
-        recipe_meta = RecipeRegistry.get_yaml(target)
-        if recipe_meta:
-            base_config = recipe_meta["config"]
-            click.secho(f"Loaded curated recipe: {target}", fg="cyan")
-
-    return base_config
 
 
 @click.group(
@@ -65,21 +46,16 @@ def _load_yaml(target):
     fetchez_commands=RECIPE_COMMANDS,
 )
 def recipes_group():
-    """Execute, Discover, inspect, and copy complete pipeline workflows.
+    """Discover, inspect, validate, and manage complete pipeline recipes.
 
     \b
-    Recipes are YAML files that define an entire ETL pipeline from start to finish.
-    They contain the project metadata, the requested Data Modules, and the
-    Processing Hooks used to filter and process the data.
+    Recipes are YAML definitions of complete Fetchez workflows, including
+    project metadata, data modules and bundles, processing hooks, and execution
+    settings.
 
     \b
-    Recipes make your data pipelines 100% reproducible. You can version-control
-    them, share them with colleagues, or run them in batch mode over multiple regions.
-
-    \b
-    This command group lets you explore and run the available 'Recipes' that hold the
-    instructions and the 'Modifiers' that can modify them and 'Schemas' that can validate
-    them.
+    Use `fetchez recipes list` and `fetchez recipes info` to discover available
+    recipes.
     """
 
     pass
@@ -201,7 +177,7 @@ def copy_recipe(name):
 def recipe_validate(name, schema):
     """Check a recipe for syntax errors, logical issues, and missing dependencies."""
 
-    base_config = _load_yaml(name)
+    base_config = load_recipe_config(name)
     if not base_config:
         click.secho(
             f"Error: Recipe '{name}' not found locally or in the registry.", fg="red"
@@ -255,7 +231,7 @@ def recipe_validate(name, schema):
 def translate_recipe(name, as_json):
     """Translate a YAML recipe into a fetchez CLI command string or JSON."""
 
-    base_config = _load_yaml(name)
+    base_config = load_recipe_config(name)
     if not base_config:
         click.secho(
             f"Error: Recipe '{name}' not found locally or in the registry.", fg="red"
@@ -272,121 +248,6 @@ def translate_recipe(name, as_json):
         click.secho("\n--- Translated CLI Command ---\n", fg="cyan", bold=True)
         click.echo(recipe_obj.to_cli())
         click.echo("\n")
-
-
-@recipes_group.command("run", cls=FetchezMainCommand)
-@click.option(
-    "-R",
-    "--region",
-    help=f"""\b
-Bounding box (W/E/S/N)
-{region_help_msg()}
-""",
-)
-@click.option(
-    "-D",
-    "--outdir",
-    type=click.Path(resolve_path=True),
-    default=None,
-    help="Base output directory for recipe outputs.",
-)
-@click.option(
-    "--region-srs",
-    default="EPSG:4326",
-    help="Set the SRS of the input bounding box (default: EPSG:4326).",
-)
-@click.option(
-    "--shared-cache",
-    type=click.Path(resolve_path=True),
-    help="Centralized directory to cache fetched data.",
-)
-@click.option(
-    "--modifier", multiple=True, help="Apply a recipe modifier to mutate the pipeline."
-)
-@click.option(
-    "--schema", multiple=True, help="Apply validation schemas (e.g., 'cudem')."
-)
-@click.option(
-    "--refresh", is_flag=True, help="Force fresh API fetch, bypassing local cache."
-)
-@click.option(
-    "--fail-fast",
-    is_flag=True,
-    help="Raise an exception on the first failure, otherwise continue processing through failures.",
-)
-@click.argument("name")
-def run_recipe(
-    name,
-    region,
-    region_srs,
-    outdir,
-    shared_cache,
-    modifier,
-    schema,
-    refresh,
-    fail_fast,
-):
-    """Execute a YAML recipe by registry name or file path."""
-
-    RecipeRegistry.load_all()
-
-    click.secho(f"Executing YAML recipe: {name}...", fg="cyan", bold=True)
-
-    base_config = None
-    if Path(name).exists():
-        base_config = _load_yaml(name)
-
-    if not base_config:
-        meta = RecipeRegistry.get_yaml(name)
-        if not meta:
-            click.secho(f"Error: Recipe '{name}' not found.", fg="red")
-            sys.exit(1)
-        base_config = meta.get("config", {})
-
-    if region:
-        base_config["region"] = region
-        click.secho(f"Overriding recipe region to: {region}", fg="yellow")
-
-        if region_srs:
-            base_config["region_srs"] = region_srs
-
-        global_hooks = base_config.get("global_hooks", [])
-        for hook in global_hooks:
-            hook_args = hook.get("args", [])
-            for arg in hook_args:
-                if arg == "region":
-                    hook_args[arg] = region
-                    click.secho(
-                        f"Overriding recipe hook {hook.get('name', 'unknown')} region to: {region}",
-                        fg="yellow",
-                    )
-
-    try:
-        parsed_modifiers = [parse_hook_string(m) for m in modifier]
-        parsed_schemas = [s for s in schema]
-
-        if parsed_modifiers:
-            base_config["modifiers"] = parsed_modifiers
-
-        if schema:
-            base_config["schemas"] = parsed_schemas
-
-        recipe = Recipe.from_dict(base_config)
-
-        [
-            r
-            for r in recipe.run(
-                outdir=outdir,
-                shared_cache=shared_cache,
-                refresh=refresh,
-                ignore_failures=not fail_fast,
-            )
-        ]
-
-        click.secho(f"✨ Successfully executed {name} recipe!", fg="green", bold=True)
-
-    except Exception as e:
-        click.secho(f"Failed to execute {name} recipe!: {str(e)}", fg="red", bold=True)
 
 
 recipes_group.add_command(schemas_group, name="schemas")
