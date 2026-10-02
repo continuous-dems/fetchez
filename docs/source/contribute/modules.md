@@ -61,34 +61,50 @@ The most common contribution is adding support for a new data source. Because Fe
 
 3. **Module Identity and Configuration**
    Fetchez assigns each configured module a deterministic `module_id`. This identity is shared by framework features such as discovery caching, bundle expansion, and module deduplication.
-   If your module defines constructor arguments that can change which data the module discovers or provides, register those arguments with `_update_module_config()`:
 
-	```python
-	class MyData(FetchModule):
-    name = "mydata"
+   Constructor arguments are captured automatically and included in the module's identity configuration. In most cases, module authors do not need to manually register arguments that affect discovery or output.
 
-    def __init__(
-        self,
-        product=None,
-        date_start=None,
-        date_end=None,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
+   ```python
+   class MyData(FetchModule):
+       name = "mydata"
 
-        self.product = product
-        self.date_start = date_start
-        self.date_end = date_end
+       def __init__(
+           self,
+           product=None,
+           date_start=None,
+           date_end=None,
+           **kwargs,
+       ):
+           super().__init__(**kwargs)
 
-        self._update_module_config(
-            product=product,
-            date_start=date_start,
-            date_end=date_end,
-        )
-	```
+           self.product = product
+           self.date_start = date_start
+           self.date_end = date_end
+   ```
 
-	A useful rule is:
-	> If changing an argument can change what the module discovers or provides, include it in `_update_module_config()`.
+   In this example, `product`, `date_start`, and `date_end` automatically participate in the module identity, so changing any of them produces a different `module_id`.
+
+   Fetchez canonicalizes the captured configuration before generating the identity. Runtime-only settings such as output location and cache usage are excluded, while values such as mappings, sets, regions, and constructor defaults are normalized so equivalent configurations produce stable identities.
+
+   `_update_module_config()` is still available for cases where the module's effective configuration changes after construction, or where an identity-relevant value cannot be represented directly by the constructor arguments:
+
+   ```python
+   class MyData(FetchModule):
+       name = "mydata"
+
+       def __init__(self, product=None, **kwargs):
+           super().__init__(**kwargs)
+
+           self.product = self._normalize_product(product)
+
+           # Only needed when the effective identity differs from the
+           # automatically captured constructor configuration.
+           self._update_module_config(product=self.product)
+   ```
+
+   A useful rule is:
+
+   > Constructor arguments participate in module identity automatically. Use `_update_module_config()` only when the effective module configuration changes or needs additional normalization after construction.
 
 4. **Rebuild the module cache**
    Run `fetchez modules update-cache`
