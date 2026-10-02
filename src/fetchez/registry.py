@@ -260,6 +260,11 @@ class PluginRegistry:
                 if hasattr(module, "__file__") and module.__file__:
                     meta["file_path"] = module.__file__
 
+                # --- CLI Metadata ---
+                cli_help_text = getattr(obj, "_cli_help_text", None)
+                if cli_help_text:
+                    meta["cli_help_text"] = cli_help_text
+
                 meta["cli_args"] = get_class_arguments(obj)
 
                 registry[mod_key] = meta
