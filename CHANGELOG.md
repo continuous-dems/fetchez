@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ADDED
 
 - modules.base identity pops the default non-set arguments from the sub-module
+- Add `module_allowed` and `bundle_allowed` in cli.pipeline, so extensions can use the common commands and restrict modules by tag/cat/etc.
 
 ### CHANGED
 
