@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid selector paths now raise a clear configuration error.
 - Added user-guide examples for bundle and preset selection.
 
+### CHANGED
+
+- Constructor arguments are captured automatically and included in the module's identity configuration.
+
 ## [0.9.2 - 2026-10-01]
 
 ### ADDED

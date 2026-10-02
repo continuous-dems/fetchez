@@ -409,11 +409,6 @@ class MBDB(FetchModule):
         self._mb_features_query_url = f"{MBDB_FEATURES_URL}/{self.layer}/query?"
         self.want_check = want_check
 
-        self._update_module_config(
-            where=self.where,
-            layer=self.layer,
-        )
-
     def check_inf_region(self, mb_url: str) -> Tuple[str, Optional[Tuple]]:
         """Fetch remote .inf file and parse its coverage mask geometry."""
 

@@ -78,6 +78,7 @@ class HydroNOS(FetchModule):
 
         self._nos_query_url = f"{NOS_DYNAMIC_URL}/{self.layer}/query?"
         self._unchecked: list = []
+        # print(locals())
 
     def run(self):
         """Run the hydronos fetches module."""
