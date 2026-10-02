@@ -56,17 +56,36 @@ def test_bundle_select_filters_matching_members_and_keeps_unkeyed(monkeypatch):
         ]
     )
 
+    expanded_shorthand = BundleRegistry.expand_modules(
+        [
+            {
+                "bundle": "test-bundle",
+                "select": {
+                    "products": ["1m", "1_9as"],
+                },
+            }
+        ]
+    )
+
     assert len(expanded) == 3
+    assert len(expanded_shorthand) == 3
 
     products = {
         module.get("args", {}).get("products")
         for module in expanded
         if module.get("module") == "tnm"
     }
+    products_shorthand = {
+        module.get("args", {}).get("products")
+        for module in expanded_shorthand
+        if module.get("module") == "tnm"
+    }
 
     assert products == {"1m", "1_9as"}
+    assert products_shorthand == {"1m", "1_9as"}
 
     assert any(module.get("module") == "helper" for module in expanded)
+    assert any(module.get("module") == "helper" for module in expanded_shorthand)
 
 
 def test_bundle_select_combines_fields_with_and(monkeypatch):

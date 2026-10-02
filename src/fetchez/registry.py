@@ -468,6 +468,18 @@ class YamlRegistry:
         return actual in requested_values
 
     @classmethod
+    def _get_selector_value(cls, item, path):
+        if "." in path:
+            return cls._get_path(item, path)
+
+        # Prefer an explicit top-level field.
+        if isinstance(item, dict) and path in item:
+            return item[path]
+
+        # Convenience fallback for component arguments.
+        return cls._get_path(item, f"args.{path}")
+
+    @classmethod
     def select_items(cls, items, selectors, *, context="YAML definition"):
         """Filter YAML items using dotted-path selectors.
 
@@ -486,7 +498,7 @@ class YamlRegistry:
         # items that do not participate in a particular selector.
         for path in selectors:
             if not any(
-                cls._get_path(item, path) is not cls._MISSING
+                cls._get_selector_value(item, path) is not cls._MISSING
                 for item in items
                 if isinstance(item, dict)
             ):
@@ -500,7 +512,7 @@ class YamlRegistry:
             matches = True
 
             for path, requested in selectors.items():
-                actual = cls._get_path(item, path)
+                actual = cls._get_selector_value(item, path)
 
                 # Missing fields are non-participating.
                 if actual is cls._MISSING:
