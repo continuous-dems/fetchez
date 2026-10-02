@@ -5,7 +5,7 @@
 fetchez.cli.pipeline
 ~~~~~~~~~~~~~~~~
 
-Genreate and run a fetchez pipeline.
+Build a fetchez pipeline.
 
 :copyright: (c) 2010-2026 Regents of the University of Colorado
 :license: MIT, see LICENSE for more details.
@@ -103,7 +103,6 @@ def make_module_command(name, mod_meta):
     @add_options(mod_args)
     def dynamic_module_cmd(weight, hook, **kwargs):
         parsed_hooks = [parse_hook_string(h) for h in hook]
-        # module_type = "module" if mod_meta else "bundle"
         return {
             "type": "module",
             "module": name,
@@ -327,11 +326,19 @@ def pipeline_group(
     refresh,
     fail_fast,
 ):
-    """Fetch/download data and execute processing pipelines.
+    """Build and optionally execute a pipeline from modules and bundles.
+
+    \b
+    The `build` command composes an ad-hoc Fetchez recipe from registered
+    Modules and Bundles, optionally attaching processing Hooks and Presets.
+
+    \b
+    Use `--export` to save the constructed pipeline as a reusable YAML recipe
+    instead of executing it immediately.
 
     \b
     How CLI Pipelines Work:
-      The `run` command allows you to chain multiple Data Modules together
+      The `build` command allows you to chain multiple Data Modules together
       and apply Processing Hooks to them.
 
     \b
@@ -341,7 +348,15 @@ def pipeline_group(
 
     \b
     Syntax:
-      fetchez run -R <W/E/S/N> [--global-hook <name>] <module_1> [--hook <name>] <module_2> ...
+      fetchez build -R <W/E/S/N> [--global-hook <name>] <module_1> [--hook <name>] <module_2> ...
+
+    \b
+    Compose interactively:
+      fetchez build -R ... glob-tnm --select products=1m/1_9as --export dem.yaml
+
+    \b
+    Reproduce later:
+      fetchez run dem.yaml
 
     \b
     * Run `fetchez modules` to learn more about supported modules and extensions..
@@ -351,13 +366,13 @@ def pipeline_group(
     # \b
     # Examples:
     #   # Fetch lidar data from NOAAs Digtial Coast and filter out files containing the word "noise"
-    #   $ fetchez run -R loc:seattle digital_coast --hook filename_filter:exclude=noise,stage=manifest
+    #   $ fetchez build -R loc:seattle digital_coast --hook filename_filter:exclude=noise,stage=manifest
 
     #   # Fetch multibeam and topography, and run an audit on everything
-    #   $ fetchez run -R -120/-119/33/34 --global-hook audit mbdb tnm
+    #   $ fetchez build -R -120/-119/33/34 --global-hook audit mbdb tnm
 
     #   # Export a complex CLI pipeline to a YAML recipe without running it
-    #   $ fetchez run -R loc:hawaii --export hawaii_recipe.yaml copernicus --weight 1.5 mbdb
+    #   $ fetchez build -R loc:hawaii --export hawaii_recipe.yaml copernicus --weight 1.5 mbdb
 
     ctx.ensure_object(dict)
     src_region = parse_region(region) if region else None

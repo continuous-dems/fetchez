@@ -18,6 +18,7 @@ from typing import Optional
 from fetchez.utils import TqdmLoggingHandler, FetchezMainGroup
 
 from .pipeline import pipeline_group
+from .run import run_recipe
 from .modules import modules_group
 from .hooks import hooks_group
 from .recipes import recipes_group
@@ -76,7 +77,7 @@ def setup_logging(name="fetchez", quiet=False, verbose=False):
     cls=FetchezMainGroup,
     # help=f"\b{_cli_logo('fetchez', 'Fetch geospatial data with ease.', __version__)}",
     fetchez_commands={
-        "Pipeline": ["run"],
+        "Pipeline": ["build", "run"],
         "Discovery and Management": [
             "modules",
             "hooks",
@@ -107,9 +108,10 @@ def cli(verbose, quiet):
       1. Modules    : Data Sources (see `fetchez modules`)
       2. Hooks      : Processing Steps (see `fetchez hooks`)
       3. Streams    : Data Streaming (see `fetchez streams`)
-      4. Recipes    : YAML pipeline definitions (see `fetchez recipes`)
-      5. Pipelines  : Run full data processing pipelines (see `fetchez run`)
-      6. Data Types : Entry Data Types (see `fetchez datatypes`)
+      4. Recipes    : Reproducible YAML pipeline definitions (see `fetchez recipes`)
+      5. Build      : Compose ad-hoc pipelines from modules and bundles (see `fetchez build`)
+      6. Run        : Execute saved or registered recipes (see `fetchez run`)
+      7. Data Types : Entry Data Types (see `fetchez datatypes`)
     """
     # \b
     # Examples:
@@ -151,7 +153,8 @@ def la_vache():
 
 
 cli.add_command(la_vache, name="lavache")
-cli.add_command(pipeline_group, name="run")
+cli.add_command(pipeline_group, name="build")
+cli.add_command(run_recipe, name="run")
 cli.add_command(modules_group, name="modules")
 cli.add_command(hooks_group, name="hooks")
 cli.add_command(recipes_group, name="recipes")
