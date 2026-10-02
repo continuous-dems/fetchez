@@ -445,3 +445,17 @@ def test_hook_mutation():
     info["desc"] = "mutated"
 
     assert HookRegistry.get_info("audit")["desc"] != "mutated"
+
+
+def test_module_registry_preserves_cli_metadata():
+    ModuleRegistry.load_all()
+
+    meta = ModuleRegistry.get_info("dav")
+
+    assert meta["cli_help_text"] == ("NOAA Digital Coast (Data Access Viewer)")
+
+    assert (
+        meta["cli_args"]["datatype"]["desc"]
+        == ' - Data type: "lidar", "raster" (DEM), '
+        '"imagery", "landcover"'
+    )
