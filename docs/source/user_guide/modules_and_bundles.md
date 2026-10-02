@@ -69,6 +69,28 @@ project:
     args: {weight: 1.0}
 ```
 
+### Selecting Bundle Members
+Bundles accept a `select` syntax to allow for selecting specific module entries that exist in a bundle entry. The select key accepts dotted path key-pairs for selection.
+
+`select` filters members using values already present in their YAML definitions. Selector keys use dotted paths such as args.products. Members that do not define a selected path are retained, allowing helper modules or hooks to pass through unchanged.
+
+* dotted paths such as args.products select against the existing module configuration
+* multiple keys are ANDed
+* multiple values for one key are ORed
+* members without that key are kept
+* an invalid path that exists on no bundle members raises an error
+* selection happens before recursive bundle expansion/default argument propagation
+
+```yaml
+modules:
+  - bundle: my_sources
+    select:
+      module:
+        - copernicus
+        - margrav
+      args.format: GeoTIFF
+```
+
 ## Extending Bunldes (Plugins and Extensions)
 Fetchez is generic. If you are building a custom tool and want to create a custom module or bundle your own custom set of modules, you can register them  either in your project or in the `~.fetchez` configuration directory and they will be discoverable with the `fetchez.registry`
 
