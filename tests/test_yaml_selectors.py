@@ -67,8 +67,20 @@ def test_bundle_select_filters_matching_members_and_keeps_unkeyed(monkeypatch):
         ]
     )
 
+    expanded_helper = BundleRegistry.expand_modules(
+        [
+            {
+                "bundle": "test-bundle",
+                "select": {
+                    "module": "helper",
+                },
+            }
+        ]
+    )
+
     assert len(expanded) == 3
     assert len(expanded_shorthand) == 3
+    assert len(expanded_helper) == 1
 
     products = {
         module.get("args", {}).get("products")
