@@ -702,7 +702,7 @@ class PresetRegistry(YamlRegistry):
     @classmethod
     def expand_hooks(cls, hook_defs, parent_hooks=None):
         cls.load_all()
-        return cls._expand_hooks(hook_defs, parent_hooks)
+        return cls._expand_hooks(hook_defs, parent_hooks=parent_hooks)
 
     @classmethod
     def _expand_hooks(
@@ -847,6 +847,30 @@ class BundleRegistry(YamlRegistry):
 
         return signature
 
+    @staticmethod
+    def _apply_bundle_hooks(child_hooks, user_hooks):
+        """Apply bundle-level hooks to a child module.
+
+        Existing hooks with the same name receive argument overrides.
+        Hooks not already present are appended to the module hook chain.
+        """
+
+        merged = PresetRegistry.expand_hooks(
+            child_hooks,
+            parent_hooks=user_hooks,
+        )
+
+        existing_names = {hook.get("name") for hook in merged if isinstance(hook, dict)}
+
+        for user_hook in user_hooks:
+            hook_name = user_hook.get("name")
+
+            if hook_name and hook_name not in existing_names:
+                merged.extend(PresetRegistry.expand_hooks([user_hook]))
+                existing_names.add(hook_name)
+
+        return merged
+
     @classmethod
     def expand_modules(
         cls,
@@ -886,7 +910,6 @@ class BundleRegistry(YamlRegistry):
                 user_args = mod_dict.get("args", {})
                 user_hooks = mod_dict.get("hooks", [])
                 selectors = mod_dict.get("select", {})
-
                 current_weight = float(user_args.get("weight", 1.0)) * parent_weight
 
                 bundle_def = cls.get_yaml(target)
@@ -898,22 +921,20 @@ class BundleRegistry(YamlRegistry):
 
                 if bundle_def:
                     child_modules = copy.deepcopy(bundle_def.get("modules", []))
-
-                    if selectors:
-                        child_modules = cls.select_items(
-                            child_modules,
-                            selectors,
-                            context=f"Bundle '{target}'",
-                        )
-
                     child_expanded = cls._expand_modules(
                         child_modules,
                         current_weight,
                     )
+                    if selectors:
+                        child_expanded = cls.select_items(
+                            child_expanded,
+                            selectors,
+                            context=f"Bundle '{target}'",
+                        )
 
                     for child_mod in child_expanded:
                         if user_hooks:
-                            child_mod["hooks"] = PresetRegistry.expand_hooks(
+                            child_mod["hooks"] = cls._apply_bundle_hooks(
                                 child_mod.get("hooks", []),
                                 user_hooks,
                             )
