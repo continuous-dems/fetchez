@@ -138,7 +138,7 @@ def make_bundle_command(name, bundle_def):
             "args": {
                 "weight": weight,
             },
-            "hooks": parsed_hooks,
+            "append_hooks": parsed_hooks,
         }
 
         if selectors:
