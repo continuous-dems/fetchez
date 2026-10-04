@@ -871,6 +871,32 @@ class BundleRegistry(YamlRegistry):
 
         return merged
 
+    @staticmethod
+    def _append_bundle_hooks(child_hooks, append_hooks):
+        merged = PresetRegistry.expand_hooks(child_hooks)
+
+        existing_names = {hook.get("name") for hook in merged if isinstance(hook, dict)}
+
+        for hook in append_hooks:
+            hook = copy.deepcopy(hook)
+
+            if isinstance(hook, str):
+                hook = {"name": hook}
+
+            name = hook.get("name")
+
+            if name in existing_names:
+                # Explicit addition of an existing hook can still act as an override.
+                merged = PresetRegistry.expand_hooks(
+                    merged,
+                    parent_hooks=[hook],
+                )
+            else:
+                merged.extend(PresetRegistry.expand_hooks([hook]))
+                existing_names.add(name)
+
+        return merged
+
     @classmethod
     def expand_modules(
         cls,
@@ -908,7 +934,8 @@ class BundleRegistry(YamlRegistry):
 
             if target:
                 user_args = mod_dict.get("args", {})
-                user_hooks = mod_dict.get("hooks", [])
+                override_hooks = mod_dict.get("hooks", [])
+                append_hooks = mod_dict.get("append_hooks", [])
                 selectors = mod_dict.get("select", {})
                 current_weight = float(user_args.get("weight", 1.0)) * parent_weight
 
@@ -933,11 +960,22 @@ class BundleRegistry(YamlRegistry):
                         )
 
                     for child_mod in child_expanded:
-                        if user_hooks:
-                            child_mod["hooks"] = cls._apply_bundle_hooks(
-                                child_mod.get("hooks", []),
-                                user_hooks,
+                        hooks = child_mod.get("hooks", [])
+
+                        if override_hooks:
+                            hooks = PresetRegistry.expand_hooks(
+                                hooks,
+                                parent_hooks=override_hooks,
                             )
+
+                        if append_hooks:
+                            hooks = cls._append_bundle_hooks(
+                                hooks,
+                                append_hooks,
+                            )
+
+                        if hooks:
+                            child_mod["hooks"] = hooks
 
                         sig = cls.get_module_signature(child_mod)
                         expanded_dict[sig] = child_mod
