@@ -147,21 +147,22 @@ ignore_missing_imports = true
 # disable_error_code = ["import-not-found"]
 
 [tool.ruff.lint]
-# select = ["ALL"]  # Goal :)
-extend-select = [  # Extend the default ruleset:
-    "B",
-    "F",
-    # "S",
-    # "G", # logging
+# Keep the lint policy explicit. Do not use `extend-select` here:
+# Ruff's default rule set may change between releases, which can otherwise
+# introduce new lint requirements during routine dependency updates.
+select = [
+    "E4",  # import-related pycodestyle errors
+    "E7",  # statement-related pycodestyle errors
+    "E9",  # runtime/syntax-ish pycodestyle errors
+    "F",   # Pyflakes
+    "B",   # flake8-bugbear
     "PTH100",  # os.path.abspath
     "PTH102",  # os.mkdir
     "PTH103",  # os.mkdirs
     "PTH110",  # os.path.exists
     "PTH112",  # os.path.isdir
-    # "PTH119",  # os.path.basename
     "PTH120",  # os.path.dirname
-    # "SIM102",
-    "T20",  # flake8-print <https://docs.astral.sh/ruff/rules/#flake8-print-t20>
+    "T20",  # flake8-print
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -170,6 +171,10 @@ extend-select = [  # Extend the default ruleset:
 "examples/**/*.py" = ["T201"]
 "src/fetchez/hooks/stream_dump.py" = ["T203"] # allow pprint here
 "tests/**/*.py" = ["S"]
+
+[tool.ruff.format]
+# Keep documentation examples under manual control.
+exclude = ["*.md"]
 
 [tool.pytest.ini_options]
 markers = [
