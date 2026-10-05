@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.gba
@@ -12,8 +11,9 @@ Fetch Global Building Atlas (GBA) data via WFS.
 """
 
 from urllib.parse import urlencode
-from fetchez.modules import FetchModule
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 GBA_WFS_URL = "https://tubvsig-so2sat-vm1.srv.mwn.de/geoserver/ows"
 

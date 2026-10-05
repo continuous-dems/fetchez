@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.sidecar
@@ -13,11 +12,11 @@ Generates a 'sidecar' metadata file for each entry
 
 import json
 import logging
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
-from fetchez.hooks import FetchHook
 from fetchez import cli
+from fetchez.hooks import FetchHook
 
 logger = logging.getLogger(__name__)
 

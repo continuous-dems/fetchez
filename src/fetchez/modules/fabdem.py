@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.fabdem
@@ -14,7 +13,8 @@ Fetch FABDEM (Forest And Buildings removed Copernicus DEM) data.
 import json
 import logging
 from pathlib import Path
-from fetchez import core, cli
+
+from fetchez import cli, core
 from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)

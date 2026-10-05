@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.d2c
@@ -10,6 +9,7 @@ Distance to Coast dataset from NASA OBPG
 
 import logging
 import urllib.parse
+
 from fetchez.modules.base import FetchModule
 
 logger = logging.getLogger(__name__)

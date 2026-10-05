@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.psmsl
@@ -14,11 +13,9 @@ Fetch global Mean Sea Level data from the Permanent Service for Mean Sea Level (
 import csv
 import logging
 from pathlib import Path
-from typing import Optional
 
-from fetchez import core
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +48,8 @@ class PSMSL(FetchModule):
 
     def __init__(
         self,
-        datatype: Optional[str] = "rlr",
-        name: Optional[str] = "psmsl",
+        datatype: str | None = "rlr",
+        name: str | None = "psmsl",
         **kwargs,
     ):
         super().__init__(name=name, **kwargs)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.api
@@ -26,31 +25,31 @@ Usage::
 import copy
 import logging
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Any
 
-from .streams.base import BaseStream
-from .utils import parse_hook_string
 from .core import run_fetchez
-from .spatial import parse_region
 from .recipe import Recipe
 from .registry import (
-    ModuleRegistry,
     BundleRegistry,
+    DataTypeRegistry,
     HookRegistry,
+    ModifierRegistry,
+    ModuleRegistry,
+    PresetRegistry,
+    ProfileRegistry,
+    ReaderRegistry,
     RecipeRegistry,
     SchemaRegistry,
-    ModifierRegistry,
-    PresetRegistry,
     StreamRegistry,
-    ReaderRegistry,
-    ProfileRegistry,
-    DataTypeRegistry,
 )
+from .spatial import parse_region
+from .streams.base import BaseStream
+from .utils import parse_hook_string
 
 logger = logging.getLogger(__name__)
 
 
-def _search_registry(registry_cls, term: Optional[str] = None) -> Dict[str, Any]:
+def _search_registry(registry_cls, term: str | None = None) -> dict[str, Any]:
     """Helper to load and search a specific registry."""
 
     registry_cls.load_all()
@@ -79,95 +78,95 @@ def _search_registry(registry_cls, term: Optional[str] = None) -> Dict[str, Any]
     return found
 
 
-def list_modules() -> Dict[str, Any]:
+def list_modules() -> dict[str, Any]:
     return _search_registry(ModuleRegistry)
 
 
-def search_modules(term) -> Dict[str, Any]:
+def search_modules(term) -> dict[str, Any]:
     return _search_registry(ModuleRegistry, term)
 
 
-def list_bundles() -> Dict[str, Any]:
+def list_bundles() -> dict[str, Any]:
     return _search_registry(BundleRegistry)
 
 
-def search_bundles(term) -> Dict[str, Any]:
+def search_bundles(term) -> dict[str, Any]:
     return _search_registry(BundleRegistry, term)
 
 
-def list_hooks() -> Dict[str, Any]:
+def list_hooks() -> dict[str, Any]:
     return _search_registry(HookRegistry)
 
 
-def search_hooks(term) -> Dict[str, Any]:
+def search_hooks(term) -> dict[str, Any]:
     return _search_registry(HookRegistry, term)
 
 
-def list_recipes() -> Dict[str, Any]:
+def list_recipes() -> dict[str, Any]:
     return _search_registry(RecipeRegistry)
 
 
-def search_recipes(term) -> Dict[str, Any]:
+def search_recipes(term) -> dict[str, Any]:
     return _search_registry(RecipeRegistry, term)
 
 
-def list_schemas() -> Dict[str, Any]:
+def list_schemas() -> dict[str, Any]:
     return _search_registry(SchemaRegistry)
 
 
-def search_schemas(term) -> Dict[str, Any]:
+def search_schemas(term) -> dict[str, Any]:
     return _search_registry(SchemaRegistry, term)
 
 
-def list_modifiers() -> Dict[str, Any]:
+def list_modifiers() -> dict[str, Any]:
     return _search_registry(ModifierRegistry)
 
 
-def search_modifiers(term) -> Dict[str, Any]:
+def search_modifiers(term) -> dict[str, Any]:
     return _search_registry(ModifierRegistry, term)
 
 
-def list_presets() -> Dict[str, Any]:
+def list_presets() -> dict[str, Any]:
     return _search_registry(PresetRegistry)
 
 
-def search_presets(term) -> Dict[str, Any]:
+def search_presets(term) -> dict[str, Any]:
     return _search_registry(PresetRegistry, term)
 
 
-def list_streams() -> Dict[str, Any]:
+def list_streams() -> dict[str, Any]:
     return _search_registry(StreamRegistry)
 
 
-def search_streams(term) -> Dict[str, Any]:
+def search_streams(term) -> dict[str, Any]:
     return _search_registry(StreamRegistry, term)
 
 
-def list_readers() -> Dict[str, Any]:
+def list_readers() -> dict[str, Any]:
     return _search_registry(ReaderRegistry)
 
 
-def search_readers(term) -> Dict[str, Any]:
+def search_readers(term) -> dict[str, Any]:
     return _search_registry(ReaderRegistry, term)
 
 
-def list_profiles() -> Dict[str, Any]:
+def list_profiles() -> dict[str, Any]:
     return _search_registry(ProfileRegistry)
 
 
-def search_profiles(term) -> Dict[str, Any]:
+def search_profiles(term) -> dict[str, Any]:
     return _search_registry(ProfileRegistry, term)
 
 
-def list_data_types() -> Dict[str, Any]:
+def list_data_types() -> dict[str, Any]:
     return _search_registry(DataTypeRegistry)
 
 
-def search_data_types(term) -> Dict[str, Any]:
+def search_data_types(term) -> dict[str, Any]:
     return _search_registry(DataTypeRegistry, term)
 
 
-def search(term: str) -> Dict[str, Dict[str, Any]]:
+def search(term: str) -> dict[str, dict[str, Any]]:
     """Search across ALL Fetchez registries simultaneously."""
     return {
         "modules": _search_registry(ModuleRegistry, term),
@@ -184,7 +183,7 @@ def search(term: str) -> Dict[str, Dict[str, Any]]:
     }
 
 
-def _compile_modules(sources, region=None, shared_cache=None, **kwargs) -> List[Any]:
+def _compile_modules(sources, region=None, shared_cache=None, **kwargs) -> list[Any]:
     """Resolves strings/dicts into initialized FetchModules with local hooks."""
 
     if isinstance(sources, (str, dict)):
@@ -239,16 +238,16 @@ def _compile_modules(sources, region=None, shared_cache=None, **kwargs) -> List[
 
 def get(
     module: str,
-    region: Optional[List[float] | str] = None,
-    region_srs: Optional[str] = "EPSG:4326",
-    outdir: Optional[str | Path] = None,
+    region: list[float] | str | None = None,
+    region_srs: str | None = "EPSG:4326",
+    outdir: str | Path | None = None,
     threads: int = 4,
-    hooks: Optional[List[str]] = None,
+    hooks: list[str] | None = None,
     dry_run: bool = False,
     verbose: bool = True,
     ignore_failures: bool = False,
     **kwargs,
-) -> List[str]:
+) -> list[str]:
     """Fetch data from a module in one line.
 
     Args:
@@ -360,10 +359,10 @@ def get(
 
 def run_recipe(
     target: str,
-    region: Optional[str] = None,
-    region_srs: Optional[str] = "EPSG:4326",
-    modifiers: Optional[List[str | Dict]] = None,
-    schemas: Optional[List[str]] = None,
+    region: str | None = None,
+    region_srs: str | None = "EPSG:4326",
+    modifiers: list[str | dict] | None = None,
+    schemas: list[str] | None = None,
     ignore_failures: bool = False,
 ) -> bool:
     """Execute a YAML recipe.
@@ -372,6 +371,7 @@ def run_recipe(
     """
 
     import yaml
+
     from .recipe import Recipe
 
     RecipeRegistry.load_all()

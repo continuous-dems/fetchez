@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.local
@@ -12,9 +11,9 @@ Generic module to query custom/local FRED indices.
 """
 
 from pathlib import Path
-from typing import Optional
-from fetchez.modules import FetchModule
+
 from fetchez import cli, fred
+from fetchez.modules import FetchModule
 
 
 @cli.cli_opts(
@@ -40,7 +39,7 @@ class Local(FetchModule):
     and allows spatial querying of those files.
     """
 
-    def __init__(self, index: Optional[str] = None, mode: str = "reference", **kwargs):
+    def __init__(self, index: str | None = None, mode: str = "reference", **kwargs):
         super().__init__(name="local", **kwargs)
         self.index_name = index
         self.mode = mode

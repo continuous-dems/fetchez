@@ -19,14 +19,14 @@ class AuditLog(FetchHook):
     # This name is used in the CLI: --hook audit
     name = "audit"
     meta_desc = "Log downloaded files to audit.txt"
-    meta_stage = 'file'  # Runs per-file
+    meta_stage = "file"  # Runs per-file
 
     def run(self, entries):
         # Hooks receive a list of entries: [{url, path, type, status}, ...]
         for entry in entries:
-            url = entry.get('url')
-            path = entry.get('dst_fn')
-            status = entry.get('status')
+            url = entry.get("url")
+            path = entry.get("dst_fn")
+            status = entry.get("status")
 
             if status == 0:
                 with open("audit.txt", "a") as f:

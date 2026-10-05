@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.etopo
@@ -23,10 +22,8 @@ is requested but not found for a specific tile.
 
 import logging
 
-from fetchez import core
+from fetchez import cli, core, fred
 from fetchez.modules import FetchModule
-from fetchez import fred
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

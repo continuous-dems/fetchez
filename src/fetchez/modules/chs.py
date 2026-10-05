@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.chs
@@ -17,8 +16,8 @@ The NONNA (Non-Navigational) bathymetry data is available at
 import logging
 from urllib.parse import urlencode
 
-from fetchez.modules import FetchModule
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
 

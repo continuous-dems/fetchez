@@ -1,22 +1,21 @@
 # test_registry.py
 
+import ast
 import logging
 import os
-import ast
-
 from pathlib import Path
 
-import fetchez.modules
 import fetchez.hooks
-from fetchez.registry import (
-    PluginRegistry,
-    ModuleRegistry,
-    HookRegistry,
-    PresetRegistry,
-)
+import fetchez.modules
 
 # ReaderRegistry, ProfileRegistry, BundleRegistry, SchemaRegistry
 from fetchez.hooks import FetchHook
+from fetchez.registry import (
+    HookRegistry,
+    ModuleRegistry,
+    PluginRegistry,
+    PresetRegistry,
+)
 
 logger = logging.getLogger(__name__)
 

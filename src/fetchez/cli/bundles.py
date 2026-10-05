@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.bundles
@@ -12,17 +11,18 @@ Discoverability and documentation for fetching bundles.
 """
 
 import sys
-import yaml
-import click
 from pathlib import Path
+
+import click
+import yaml
 
 from fetchez.api import search_bundles
 from fetchez.registry import BundleRegistry
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
 
 
@@ -44,8 +44,6 @@ def bundles_group():
       Bundles act exactly like Modules. You can pass them directly to `fetchez run`.
       As such, Bundles can reference other Bundles as well as Modules.
     """
-
-    pass
 
 
 @bundles_group.command("list", cls=FetchezMainCommand)

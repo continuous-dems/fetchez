@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.nominatim
@@ -12,10 +11,9 @@ This module queries nominatim for coordinates of places.
 """
 
 import logging
-from fetchez import core
+
+from fetchez import cli, core, utils
 from fetchez.modules import FetchModule
-from fetchez import utils
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

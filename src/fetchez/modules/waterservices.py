@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.waterservices
@@ -14,14 +13,12 @@ to fetch real-time or historical time-series data for sites within a region.
 :license: MIT, see LICENSE for more details.
 """
 
-import sys
 import logging
+import sys
 from urllib.parse import urlencode
-from typing import Optional
 
-from fetchez import core
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +55,8 @@ class WaterServices(FetchModule):
     def __init__(
         self,
         period: str = "P1D",
-        parameter: Optional[str] = None,
-        sites: Optional[str] = None,
+        parameter: str | None = None,
+        sites: str | None = None,
         printout: bool = False,
         **kwargs,
     ):

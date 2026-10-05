@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.multibeam
@@ -11,19 +10,17 @@ Fetch Multibeam bathymetry from NOAA NCEI, MBDB (ArcGIS), and R2R.
 :license: MIT, see LICENSE for more details.
 """
 
+import logging
 import os
 import re
-import logging
+from io import StringIO
+from typing import cast
+
 import requests
 from tqdm.auto import tqdm
-from io import StringIO
-from typing import Optional, List, Tuple, cast
 
-from fetchez import core
+from fetchez import cli, core, spatial, utils
 from fetchez.modules import FetchModule
-from fetchez import utils
-from fetchez import spatial
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +118,7 @@ def _parse_mbsystem_inf_geometry(inf_text: StringIO):
 
 def _parse_mbsystem_inf_bounds(
     inf_text: StringIO,
-) -> Optional[Tuple[float, float, float, float]]:
+) -> tuple[float, float, float, float] | None:
     """Parse spatial bounds from an MBSystem .inf file content."""
 
     minmax = [0.0, 0.0, 0.0, 0.0]  # xmin, xmax, ymin, ymax
@@ -181,12 +178,12 @@ class Multibeam(FetchModule):
     def __init__(
         self,
         processed: bool = True,
-        survey_id: Optional[str] = None,
-        exclude_survey_id: Optional[str] = None,
-        ship_id: Optional[str] = None,
-        exclude_ship_id: Optional[str] = None,
-        min_year: Optional[int] = None,
-        max_year: Optional[int] = None,
+        survey_id: str | None = None,
+        exclude_survey_id: str | None = None,
+        ship_id: str | None = None,
+        exclude_ship_id: str | None = None,
+        min_year: int | None = None,
+        max_year: int | None = None,
         want_inf: bool = True,
         **kwargs,
     ):
@@ -343,7 +340,7 @@ class Multibeam(FetchModule):
 
         return self
 
-    def _add_version_files(self, file_list: List[List[str]]):
+    def _add_version_files(self, file_list: list[list[str]]):
         """Helper to add files to results."""
 
         for entry in file_list:
@@ -409,7 +406,7 @@ class MBDB(FetchModule):
         self._mb_features_query_url = f"{MBDB_FEATURES_URL}/{self.layer}/query?"
         self.want_check = want_check
 
-    def check_inf_region(self, mb_url: str) -> Tuple[str, Optional[Tuple]]:
+    def check_inf_region(self, mb_url: str) -> tuple[str, tuple | None]:
         """Fetch remote .inf file and parse its coverage mask geometry."""
 
         src_mb = utils.str_or(mb_url)

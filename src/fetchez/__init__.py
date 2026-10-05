@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 __author__ = "Matthew Love"
 __credits__ = "CIRES"
 
@@ -20,61 +18,58 @@ except ImportError:
     __version__ = "dev"
 
 # Import everything except the individual modules.
-from . import fred
-from . import core
-from . import spatial
-from . import registry
+from . import core, fred, registry, spatial
 from .api import (
     Pipeline,
-    search,
     get,
-    read,
-    list_modules,
-    search_modules,
     list_bundles,
-    search_bundles,
-    list_recipes,
-    search_recipes,
     list_hooks,
-    search_hooks,
-    list_presets,
-    search_presets,
-    list_schemas,
-    search_schemas,
     list_modifiers,
-    search_modifiers,
+    list_modules,
+    list_presets,
+    list_recipes,
+    list_schemas,
+    read,
     run_recipe,
+    search,
+    search_bundles,
+    search_hooks,
+    search_modifiers,
+    search_modules,
+    search_presets,
+    search_recipes,
+    search_schemas,
 )
 
 __all__ = [
     "Pipeline",
+    "__version__",
     "core",
     "fred",
-    "spatial",
-    "registry",
-    "search",
     "get",
-    "read",
-    "list_modules",
-    "search_modules",
     "list_bundles",
-    "search_bundles",
-    "list_recipes",
-    "search_recipes",
     "list_hooks",
-    "search_hooks",
-    "list_presets",
-    "search_presets",
-    "list_schemas",
-    "search_schemas",
     "list_modifiers",
-    "search_modifiers",
-    "list_streams",
-    "search_streams",
-    "list_readers",
-    "search_readers",
+    "list_modules",
+    "list_presets",
     "list_profiles",
-    "search_profiles",
+    "list_readers",
+    "list_recipes",
+    "list_schemas",
+    "list_streams",
+    "read",
+    "registry",
     "run_recipe",
-    "__version__",
+    "search",
+    "search_bundles",
+    "search_hooks",
+    "search_modifiers",
+    "search_modules",
+    "search_presets",
+    "search_profiles",
+    "search_readers",
+    "search_recipes",
+    "search_schemas",
+    "search_streams",
+    "spatial",
 ]

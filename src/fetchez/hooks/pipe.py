@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.pipe
@@ -11,8 +10,8 @@ Pipe the dst_fn to stdout.
 :license: MIT, see LICENSE for more details.
 """
 
-import sys
 import logging
+import sys
 import threading
 from pathlib import Path
 

@@ -1,12 +1,12 @@
 # tests/test_registry_expansion
 
-from fetchez.registry import PresetRegistry, BundleRegistry
-from fetchez.recipe import Recipe
-
 from copy import deepcopy
 
+from fetchez.recipe import Recipe
 from fetchez.registry import (
+    BundleRegistry,
     ModuleRegistry,
+    PresetRegistry,
     RecipeRegistry,
 )
 

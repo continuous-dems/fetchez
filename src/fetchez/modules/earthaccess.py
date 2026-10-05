@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.earthaccess
@@ -12,12 +11,13 @@ This is distinct from the 'earthdata' module (which uses raw CMR/Harmony calls).
 :license: MIT, see LICENSE for more details.
 """
 
-import logging
 import datetime
-import urllib.parse
+import logging
 import posixpath
-from fetchez.modules import FetchModule
+import urllib.parse
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
 

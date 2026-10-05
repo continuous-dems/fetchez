@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.ipinfo
@@ -12,9 +11,10 @@ A fun module to fetch IP geolocation data from ipinfo.io.
 """
 
 import logging
+
+from fetchez import cli
 from fetchez.core import Fetch
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

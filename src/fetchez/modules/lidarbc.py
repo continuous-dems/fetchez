@@ -1,8 +1,8 @@
 import json
 import logging
-from fetchez import core
+
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

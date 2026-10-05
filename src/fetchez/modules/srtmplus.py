@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.srtmplus
@@ -12,8 +11,9 @@ Fetch SRTM15+ Global Bathymetry and Topography from Scripps Institution of Ocean
 """
 
 from urllib.parse import urlencode
-from fetchez.modules import FetchModule
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 SRTM_PLUS_CGI_URL = "https://topex.ucsd.edu/cgi-bin/get_srtm15.cgi"
 

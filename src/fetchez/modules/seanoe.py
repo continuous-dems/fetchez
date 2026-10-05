@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.seanoe
@@ -9,6 +8,7 @@ DOI: 10.17882/85408
 """
 
 import logging
+
 from fetchez import cli
 from fetchez.modules import FetchModule
 

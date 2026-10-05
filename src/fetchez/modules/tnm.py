@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.tnm
@@ -14,7 +13,6 @@ Fetch elevation data from The National Map (TNM) API.
 import hashlib
 import logging
 from collections.abc import Sequence
-from typing import Optional
 from urllib.parse import unquote, urlsplit
 
 from shapely.geometry import box
@@ -117,13 +115,13 @@ class TheNationalMap(FetchModule):
 
     def __init__(
         self,
-        datasets: Optional[str] = None,
-        formats: Optional[str] = None,
-        extents: Optional[str] = None,
-        q: Optional[str] = None,
-        date_type: Optional[str] = "dateCreated",
-        date_start: Optional[str] = None,
-        date_end: Optional[str] = None,
+        datasets: str | None = None,
+        formats: str | None = None,
+        extents: str | None = None,
+        q: str | None = None,
+        date_type: str | None = "dateCreated",
+        date_start: str | None = None,
+        date_end: str | None = None,
         products: str | Sequence[str] | None = None,
         strict_datasets: bool = False,
         **kwargs,

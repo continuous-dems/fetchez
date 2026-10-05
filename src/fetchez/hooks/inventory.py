@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.inventory
@@ -11,8 +10,8 @@ Generate an inventory (pre) of the fetchez operation.
 :license: MIT, see LICENSE for more details.
 """
 
-import json
 import csv
+import json
 import logging
 
 from fetchez.hooks import FetchHook

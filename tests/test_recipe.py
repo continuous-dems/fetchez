@@ -2,8 +2,10 @@
 
 import json
 from pathlib import Path
-import pytest
 from unittest.mock import patch
+
+import pytest
+
 from fetchez.recipe import Recipe
 
 

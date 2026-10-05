@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.pipeline
@@ -11,8 +10,9 @@ Genreate and run a fetchez pipeline.
 :license: MIT, see LICENSE for more details.
 """
 
-import click
 from pathlib import Path
+
+import click
 
 from fetchez.recipe import Recipe, load_recipe_config
 from fetchez.registry import (
@@ -20,8 +20,8 @@ from fetchez.registry import (
 )
 from fetchez.spatial import region_help_msg
 from fetchez.utils import (
-    parse_hook_string,
     FetchezMainCommand,
+    parse_hook_string,
 )
 
 
@@ -179,4 +179,4 @@ def run_recipe(
         click.secho(f"✨ Successfully executed {name} recipe!", fg="green", bold=True)
 
     except Exception as e:
-        click.secho(f"Failed to execute {name} recipe!: {str(e)}", fg="red", bold=True)
+        click.secho(f"Failed to execute {name} recipe!: {e!s}", fg="red", bold=True)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.sentinel2
@@ -10,12 +9,11 @@ Includes Smart-Fallback bridging for Legacy SciHub and Modern CDSE endpoints.
 """
 
 import logging
-from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Optional
-from fetchez import core
+from pathlib import Path
+
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 try:
     from sentinelsat import SentinelAPI
@@ -57,8 +55,8 @@ class Sentinel2(FetchModule):
 
     def __init__(
         self,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         cloud_cover: int = 20,
         **kwargs,
     ):

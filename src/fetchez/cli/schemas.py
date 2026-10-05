@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.schemas
@@ -12,16 +11,17 @@ Discoverability and documentation for processing schemas.
 """
 
 import sys
+
 import click
 
 from fetchez.api import search_schemas
 from fetchez.registry import SchemaRegistry
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
 
 
@@ -39,8 +39,6 @@ def schemas_group():
     domain standards (e.g., forcing all output to be in EPSG:4326, or requiring
     mandatory metadata tags).
     """
-
-    pass
 
 
 @schemas_group.command("list", cls=FetchezMainCommand)

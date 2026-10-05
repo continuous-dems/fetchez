@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.mgds
@@ -12,9 +11,9 @@ Fetch marine geophysical data from the Marine Geoscience Data System (MGDS).
 """
 
 import logging
-from fetchez import core
+
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 try:
     from lxml import etree

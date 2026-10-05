@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.modules
@@ -11,17 +10,20 @@ Discoverability and documentation for fetching modules.
 :license: MIT, see LICENSE for more details.
 """
 
-import click
 import sys
+
+import click
+
 from fetchez.api import search_modules
 from fetchez.registry import ModuleRegistry
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
+
 from .bundles import bundles_group
 
 MODULES_COMMANDS = ["info", "list", "search", "bundles", "update-cache"]
@@ -44,8 +46,6 @@ def modules_group():
     This command group lets you explore and run the available Data 'Modules' and
     'Bundles' that give access to geospatial data around the world.
     """
-
-    pass
 
 
 @modules_group.command("search", cls=FetchezMainCommand)

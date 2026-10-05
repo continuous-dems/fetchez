@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.fn_filter
@@ -11,9 +10,9 @@ Filter the filenames to be used in the pipeline.
 :license: MIT, see LICENSE for more details.
 """
 
+import logging
 import os
 import re
-import logging
 
 from fetchez import utils
 from fetchez.hooks import FetchHook

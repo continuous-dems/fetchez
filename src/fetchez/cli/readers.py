@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.streams.readers
@@ -12,16 +11,17 @@ Discoverability and documentation for stream readers.
 """
 
 import sys
+
 import click
 
 from fetchez.api import search_readers
-from fetchez.registry import ReaderRegistry, ProfileRegistry
+from fetchez.registry import ProfileRegistry, ReaderRegistry
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
 
 
@@ -48,8 +48,6 @@ def readers_group():
       Format reader streams can be initiated with the `stream-init` hook which
       will populate entry['stream'] and entry['stream-type'] in the pipeline.
     """
-
-    pass
 
 
 @readers_group.command("list", cls=FetchezMainCommand)

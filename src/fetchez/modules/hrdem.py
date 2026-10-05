@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.hrdem
@@ -15,11 +14,13 @@ Supports two modes:
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import logging
-import requests
+import os
 from pathlib import Path
-from fetchez import core, cli
+
+import requests
+
+from fetchez import cli, core
 from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)

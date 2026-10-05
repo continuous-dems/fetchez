@@ -2,9 +2,10 @@
 
 import sys
 import types
+
 import pytest
 
-from fetchez.registry import PluginRegistry, ModuleRegistry
+from fetchez.registry import ModuleRegistry, PluginRegistry
 
 
 class DummyPlugin:

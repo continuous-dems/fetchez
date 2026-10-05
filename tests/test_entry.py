@@ -6,10 +6,10 @@ from fetchez.entry import (
     ENTRY_RUNTIME_KEYS,
     REQUIRED_ENTRY_KEYS,
     canonical_entry_identity,
-    entry_id,
-    source_id,
     dataset_id,
+    entry_id,
     is_entry,
+    source_id,
     validate_entry,
 )
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 process_bing.py
@@ -17,12 +16,12 @@ Dependencies:
     (GDAL is required for geometry processing)
 """
 
-import os
-import sys
 import argparse
 import gzip
-import shutil
 import logging
+import os
+import shutil
+import sys
 from pathlib import Path
 
 try:
@@ -34,9 +33,7 @@ except ImportError:
     sys.exit(1)
 
 # Import Fetchez
-from fetchez import core
-from fetchez import registry
-from fetchez import spatial
+from fetchez import core, registry, spatial
 
 # Setup basic logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")

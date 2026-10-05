@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.stream_init
@@ -11,12 +10,12 @@ This turns files into streams.
 :license: MIT, see LICENSE for more details.
 """
 
-import math
 import logging
+import math
 
-from fetchez.spatial import Region
 from fetchez.hooks import FetchHook
-from fetchez.registry import ReaderRegistry, ProfileRegistry
+from fetchez.registry import ProfileRegistry, ReaderRegistry
+from fetchez.spatial import Region
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.hooks
@@ -12,17 +11,19 @@ Discoverability and documentation for processing hooks.
 """
 
 import sys
+
 import click
 
+from fetchez.api import search_hooks
 from fetchez.registry import HookRegistry
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
-from fetchez.api import search_hooks
+
 from .presets import presets_group
 
 HOOKS_COMMANDS = ["info", "list", "presets", "update-cache"]
@@ -65,8 +66,6 @@ def hooks_group():
     This command group lets you explore the available Data 'Hooks' and the multi-hook
     'Presets' that can be injected into Fetchez pipelines..
     """
-
-    pass
 
 
 @hooks_group.command("search", cls=FetchezMainCommand)

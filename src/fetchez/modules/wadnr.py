@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.wadnr
@@ -12,13 +11,12 @@ Fetch LiDAR data from the Washington State Department of Natural Resources (WA D
 """
 
 import json
-import math
 import logging
-from typing import Optional
+import math
 from urllib.parse import urlencode
-from fetchez import core
+
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +67,7 @@ class WADNR(FetchModule):
     """
 
     def __init__(
-        self, filter: Optional[str] = None, project_id: Optional[str] = None, **kwargs
+        self, filter: str | None = None, project_id: str | None = None, **kwargs
     ):
         super().__init__(name="wadnr", **kwargs)
         self.name_filter = filter.lower() if filter else None

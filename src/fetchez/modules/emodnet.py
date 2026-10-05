@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.emodnet
@@ -12,10 +11,10 @@ Supports retrieval via WCS (default) or ERDDAP.
 :license: MIT, see LICENSE for more details.
 """
 
-from typing import Optional
 from urllib.parse import urlencode
-from fetchez.modules import FetchModule
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 EMODNET_WCS_URL = "https://ows.emodnet-bathymetry.eu/wcs?"
 EMODNET_ERDDAP_BASE = (
@@ -65,7 +64,7 @@ class EMODNet(FetchModule):
         want_erddap: bool = False,
         erddap_format: str = "nc",
         layer: str = "mean",
-        resolution: Optional[float] = None,
+        resolution: float | None = None,
         **kwargs,
     ):
         super().__init__(name="emodnet", **kwargs)

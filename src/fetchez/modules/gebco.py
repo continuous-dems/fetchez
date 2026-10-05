@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.gebco
@@ -10,9 +9,10 @@ Supports regional subsetting via Cloud Optimized GeoTIFF (COG)
 or full global downloads from BODC.
 """
 
-import math
 import logging
+import math
 import urllib.parse
+
 from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)

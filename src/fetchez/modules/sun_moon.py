@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.sun_moon
@@ -12,9 +11,9 @@ Fetch Sun/Moon Rise/Set times and phases from the US Naval Observatory (USNO).
 """
 
 from urllib.parse import urlencode
+
+from fetchez import cli, utils
 from fetchez.modules import FetchModule
-from fetchez import cli
-from fetchez import utils
 
 USNO_API = "https://aa.usno.navy.mil/api/rstt/oneday"
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.registry
@@ -25,22 +24,23 @@ ProfileRegistry
 :license: MIT, see LICENSE for more details.
 """
 
-import os
-import sys
-import yaml
 import copy
-import pkgutil
 import importlib
-import importlib.util
 import importlib.metadata
 import importlib.resources
+import importlib.util
 import inspect
 import logging
+import os
+import pkgutil
+import sys
 from pathlib import Path
-from typing import Dict, Any, Type, Optional, List
+from typing import Any
 
-from fetchez.modules import FetchModule
+import yaml
+
 from fetchez.hooks import FetchHook
+from fetchez.modules import FetchModule
 from fetchez.recipes.modifiers import BaseModifier
 from fetchez.recipes.schemas import BaseSchema
 from fetchez.streams import BaseStream
@@ -53,17 +53,17 @@ logger = logging.getLogger(__name__)
 class PluginRegistry:
     """Base class for dynamically discovering and registering plugins."""
 
-    _registry: Dict[str, Any]
-    _loaded_registry: Optional[Dict[str, Any]] = None
+    _registry: dict[str, Any]
+    _loaded_registry: dict[str, Any] | None = None
 
     # These must be defined by the subclasses
-    base_class: Optional[Type] = None
+    base_class: type | None = None
     builtin_pkg: str = ""
     entry_point_group: str = ""
     user_folder: str = ""
 
     @classmethod
-    def get_registry(cls, clear_registry: bool = False) -> Dict[str, Any]:
+    def get_registry(cls, clear_registry: bool = False) -> dict[str, Any]:
         """Initialization of the class-level registry dictionary."""
 
         if not hasattr(cls, "_registry") or clear_registry:
@@ -282,11 +282,11 @@ class PluginRegistry:
                         registry[alias] = meta
 
     @classmethod
-    def get_info(cls, mod_key: str) -> Dict[str, Any]:
+    def get_info(cls, mod_key: str) -> dict[str, Any]:
         return copy.deepcopy(cls.get_registry().get(mod_key, {}))
 
     @classmethod
-    def list_all(cls) -> Dict[str, Any]:
+    def list_all(cls) -> dict[str, Any]:
         return copy.deepcopy(cls.get_registry())
 
     @classmethod
@@ -348,18 +348,18 @@ class PluginRegistry:
 class YamlRegistry:
     """A registry for discovering and loading yaml configuration files (recipes and hook presets)."""
 
-    _registry: Dict[str, Any]
-    _loaded_registry: Optional[Dict[str, Any]] = None
+    _registry: dict[str, Any]
+    _loaded_registry: dict[str, Any] | None = None
     _MISSING = object()
 
     # These must be defined by the subclasses
-    base_class: Optional[Type] = None
+    base_class: type | None = None
     builtin_pkg: str = ""
     entry_point_group: str = ""
     user_folder: str = ""
 
     @classmethod
-    def get_registry(cls, clear_registry: bool = False) -> Dict[str, Any]:
+    def get_registry(cls, clear_registry: bool = False) -> dict[str, Any]:
         if not hasattr(cls, "_registry") or clear_registry:
             cls._registry = {}
         return cls._registry
@@ -434,7 +434,7 @@ class YamlRegistry:
             logger.debug(f"Failed to parse YAML {file_path}: {e}")
 
     @classmethod
-    def get_yaml(cls, name: str) -> Optional[Dict[str, Any]]:
+    def get_yaml(cls, name: str) -> dict[str, Any] | None:
         return copy.deepcopy(cls.get_registry().get(name))
 
     @classmethod
@@ -707,9 +707,9 @@ class PresetRegistry(YamlRegistry):
     @classmethod
     def _expand_hooks(
         cls,
-        hook_defs: List[Dict[str, Any]],
-        parent_hooks: Optional[List[Dict[str, Any]]] = None,
-    ) -> List[Dict[str, Any]]:
+        hook_defs: list[dict[str, Any]],
+        parent_hooks: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
         """Recursively expands preset references in a list of hook definitions into a flat list of hook dictionary configs."""
 
         expanded_list = []
@@ -791,7 +791,7 @@ class PresetRegistry(YamlRegistry):
         return expanded_list
 
     @classmethod
-    def hook_list_from_preset(cls, preset_def_or_name: Any) -> List[Any]:
+    def hook_list_from_preset(cls, preset_def_or_name: Any) -> list[Any]:
         """Convert a preset name or dictionary into an expanded list of instantiated Hook objects."""
 
         from .registry import HookRegistry
@@ -900,9 +900,9 @@ class BundleRegistry(YamlRegistry):
     @classmethod
     def expand_modules(
         cls,
-        raw_modules: List[Any],
+        raw_modules: list[Any],
         parent_weight: float = 1.0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Expand bundles/recipes into concrete module definitions."""
 
         cls.load_all()
@@ -914,9 +914,9 @@ class BundleRegistry(YamlRegistry):
     @classmethod
     def _expand_modules(
         cls,
-        raw_modules: List[Any],
+        raw_modules: list[Any],
         parent_weight: float = 1.0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Recursive implementation; assumes registries are already loaded."""
 
         expanded_dict: dict[str, Any] = {}
@@ -1048,13 +1048,13 @@ class DataTypeRegistry(YamlRegistry):
 class _RecipeRegistry:
     """A registry for discovering and loading YAML recipes."""
 
-    _registry: Dict[str, Any]
+    _registry: dict[str, Any]
 
     entry_point_group = "fetchez.recipes"
     user_folder = "recipes"
 
     @classmethod
-    def get_registry(cls) -> Dict[str, Any]:
+    def get_registry(cls) -> dict[str, Any]:
         """Initialization of the class-level registry dictionary."""
 
         if not hasattr(cls, "_registry"):
@@ -1125,7 +1125,7 @@ class _RecipeRegistry:
             logger.debug(f"Failed to parse recipe YAML {file_path}: {e}")
 
     @classmethod
-    def get_recipe(cls, name: str) -> Optional[Dict[str, Any]]:
+    def get_recipe(cls, name: str) -> dict[str, Any] | None:
         registry = cls.get_registry()
         return registry.get(name)
 
@@ -1133,14 +1133,14 @@ class _RecipeRegistry:
 class _PresetRegistry:
     """A registry for discovering and loading hook Presets (Macros)."""
 
-    _registry: Dict[str, Any]
+    _registry: dict[str, Any]
 
     builtin_pkg = "fetchez.presets"
     entry_point_group = "fetchez.presets"
     user_folder = "presets"
 
     @classmethod
-    def get_registry(cls) -> Dict[str, Any]:
+    def get_registry(cls) -> dict[str, Any]:
 
         if not hasattr(cls, "_registry"):
             cls._registry = {}
@@ -1208,7 +1208,7 @@ class _PresetRegistry:
             logger.debug(f"Failed to parse preset YAML {file_path}: {e}")
 
     @classmethod
-    def get_preset(cls, name: str) -> Optional[Dict[str, Any]]:
+    def get_preset(cls, name: str) -> dict[str, Any] | None:
         return cls.get_registry().get(name)
 
     @classmethod

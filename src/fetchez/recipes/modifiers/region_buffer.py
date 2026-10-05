@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.recipes.modifiers
@@ -12,6 +11,7 @@ Modifies the recipes region value by buffering it.
 """
 
 import logging
+
 from fetchez.recipes.modifiers import BaseModifier
 
 logger = logging.getLogger(__name__)

@@ -3,8 +3,8 @@ import json
 import pytest
 
 from fetchez import spatial
-from fetchez.modules import tnm, tnm_page
 from fetchez.hooks.spatial_cull import SpatialCullHook
+from fetchez.modules import tnm, tnm_page
 
 SAMPLE_REGION = spatial.Region(-118.65, -118.60, 34.05, 34.10, srs="EPSG:4326")
 

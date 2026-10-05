@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.vgg
@@ -11,8 +10,8 @@ Fetch Vertical Gravity Gradient (VGG) data from Scripps Institution of Oceanogra
 :license: MIT, see LICENSE for more details.
 """
 
-from fetchez.modules import FetchModule
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 # =============================================================================
 # Constants

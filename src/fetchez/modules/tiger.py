@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.tiger
@@ -14,9 +13,8 @@ Fetch US Census Bureau TIGER data (Boundaries) via the TIGERweb REST API.
 import logging
 from urllib.parse import urlencode
 
-from fetchez import core
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

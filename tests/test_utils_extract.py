@@ -1,11 +1,11 @@
 # tests/test_utils_extract.py
 
 import multiprocessing
+import time
+import zipfile
 from pathlib import Path
 
 from fetchez import utils
-import time
-import zipfile
 
 
 def _extract_worker(

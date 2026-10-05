@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.gshhg
@@ -13,8 +12,9 @@ Provides global coastline polygons for international masking and inland decay.
 """
 
 import logging
-from fetchez.modules.base import FetchModule
+
 from fetchez import cli
+from fetchez.modules.base import FetchModule
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.copernicus
@@ -11,16 +10,14 @@ Fetch data from the NCEI THREDDS Server.
 :license: MIT, see LICENSE for more details.
 """
 
-import re
 import logging
+import re
 from pathlib import Path
-from typing import Optional, List, Dict
 from urllib.parse import urlencode
 
 from shapely.geometry import shape
 
-from fetchez import core
-from fetchez import spatial
+from fetchez import core, spatial
 from fetchez.modules.base import FetchModule
 
 logger = logging.getLogger(__name__)
@@ -46,7 +43,7 @@ class NCEIThredds(FetchModule):
         self,
         catalog_url: str | None = None,
         catalog: str = DEFAULT_CATALOG,
-        dataset: Optional[str] = None,
+        dataset: str | None = None,
         want_wcs: bool = False,
         **kwargs,
     ):
@@ -77,14 +74,14 @@ class NCEIThredds(FetchModule):
             return "vdatum:msl"
         return "Unknown"
 
-    def _extract_year(self, name: str) -> Optional[int]:
+    def _extract_year(self, name: str) -> int | None:
         match = re.search(r"(?:_|\b)(19\d{2}|20\d{2})(?:_|\b)", name)
         if match:
             return int(match.group(1))
         return None
 
-    def _parse_catalog(self, url: str) -> List[Dict]:
-        datasets: List[Dict] = []
+    def _parse_catalog(self, url: str) -> list[dict]:
+        datasets: list[dict] = []
         try:
             xml_doc = core.Fetch(url).fetch_xml()
             if xml_doc is None:

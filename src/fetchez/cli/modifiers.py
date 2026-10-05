@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.modifiers
@@ -12,16 +11,17 @@ Discoverability and documentation for processing modifiers.
 """
 
 import sys
+
 import click
 
 from fetchez.api import search_modifiers
 from fetchez.registry import ModifierRegistry
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
 
 
@@ -38,8 +38,6 @@ def modifiers_group():
     They can be used to make on-the-fly modifications to recipes before
     they are run.
     """
-
-    pass
 
 
 @modifiers_group.command("list", cls=FetchezMainCommand)

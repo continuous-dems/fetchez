@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.streams
@@ -15,13 +14,14 @@ import click
 
 from fetchez.api import search_streams
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
-from .readers import readers_group
+
 from .profiles import profiles_group
+from .readers import readers_group
 
 STREAMS_COMMANDS = ["readers", "profiles"]
 
@@ -39,8 +39,6 @@ def streams_group():
     This command group lets you explore the internal 'Readers' that parse the
     files, and the 'Profiles' that tell those readers exactly how to behave.
     """
-
-    pass
 
 
 @streams_group.command("list", cls=FetchezMainCommand)

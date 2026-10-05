@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.copy_artifact
@@ -11,8 +10,8 @@ Copy a registrered entry artifact to a new location.
 :license: MIT, see LICENSE for more details.
 """
 
-import shutil
 import logging
+import shutil
 from pathlib import Path
 
 from fetchez.hooks import FetchHook

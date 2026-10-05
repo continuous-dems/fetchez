@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.nswtb
@@ -12,8 +11,9 @@ Fetch New South Wales (NSW) Topo-Bathy data via ArcGIS REST API.
 """
 
 from urllib.parse import urlencode
-from fetchez.modules import FetchModule
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 NSW_MAP_SERVER = (
     "https://mapprod2.environment.nsw.gov.au/arcgis/rest/services/"

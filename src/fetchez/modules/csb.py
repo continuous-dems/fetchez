@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.csb
@@ -14,15 +13,12 @@ downloads the raw CSV point files directly from the AWS S3 Open Data bucket.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import logging
-from typing import Optional
+import os
 from urllib.parse import urlparse
 
-from fetchez import core
+from fetchez import cli, core, spatial
 from fetchez.modules import FetchModule
-from fetchez import spatial
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -71,10 +67,10 @@ class CSB(FetchModule):
 
     def __init__(
         self,
-        min_year: Optional[int] = None,
-        max_year: Optional[int] = None,
-        platform: Optional[str] = None,
-        provider: Optional[str] = None,
+        min_year: int | None = None,
+        max_year: int | None = None,
+        platform: str | None = None,
+        provider: str | None = None,
         limit: int = 2000,
         **kwargs,
     ):

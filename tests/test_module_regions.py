@@ -1,10 +1,10 @@
 # test_module_regions.py
 
-import os
 import ast
-import pytest
-
+import os
 from pathlib import Path
+
+import pytest
 
 MODULES_DIR = Path(__file__).parent / ".." / "src" / "fetchez" / "modules"
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.globathy
@@ -11,8 +10,8 @@ Fetch GLOBathy (Global Lake Bathymetry) data.
 :license: MIT, see LICENSE for more details.
 """
 
-from fetchez.modules import FetchModule
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 # Figshare download link for GLOBathy basic parameters (CSV/Shapefile)
 GLOBATHY_URL = "https://springernature.figshare.com/ndownloader/files/28919991"

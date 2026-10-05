@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.earthdata
@@ -14,21 +13,18 @@ Supports standard granule search and Harmony subsetting services.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
-import time
 import datetime
 import logging
+import os
+import time
+
 import requests
 from requests.auth import AuthBase
-from tqdm.auto import tqdm
-from typing import Dict, Optional
-
-from fetchez import core
-from fetchez.modules import FetchModule
-from fetchez import spatial
-from fetchez import cli
-
 from shapely.geometry import Polygon
+from tqdm.auto import tqdm
+
+from fetchez import cli, core, spatial
+from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
 
@@ -97,10 +93,10 @@ class EarthData(FetchModule):
         time_start: str = "",
         time_end: str = "",
         version: str = "",
-        filename_filter: Optional[str] = None,
+        filename_filter: str | None = None,
         subset: bool = False,
-        subset_job_id: Optional[str] = None,
-        harmony_ping: Optional[str] = None,
+        subset_job_id: str | None = None,
+        harmony_ping: str | None = None,
         **kwargs,
     ):
         super().__init__(name="cmr", **kwargs)
@@ -121,7 +117,7 @@ class EarthData(FetchModule):
         )
 
         # Authentication
-        self.auth: Optional[EarthdataAuth] = None
+        self.auth: EarthdataAuth | None = None
         credentials = core.get_credentials(
             url="https://urs.earthdata.nasa.gov",
             authenticator_url="https://urs.earthdata.nasa.gov",
@@ -164,7 +160,7 @@ class EarthData(FetchModule):
 
     def harmony_ping_for_status(
         self, job_id: str, ping_request: str = "status"
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """Check status of a Harmony Job."""
 
         valid_requests = ["status", "pause", "resume", "cancel", "skip-preview"]
@@ -182,7 +178,7 @@ class EarthData(FetchModule):
             return req.json()
         return None
 
-    def harmony_make_request(self) -> Optional[Dict]:
+    def harmony_make_request(self) -> dict | None:
         """Initiate a Harmony Subset Request."""
 
         if not self.wgs_region:
@@ -225,7 +221,7 @@ class EarthData(FetchModule):
             logger.debug(req.text)
         return None
 
-    def earthdata_set_config(self) -> Dict:
+    def earthdata_set_config(self) -> dict:
         """Configure CMR Search Parameters."""
 
         w, e, s, n = self.wgs_region

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.flatten
@@ -11,8 +10,9 @@ Flatten the output directory structure.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import logging
+import os
+
 from fetchez.hooks import FetchHook
 
 logger = logging.getLogger(__name__)

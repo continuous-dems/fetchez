@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.entries.spatial_cull
@@ -10,12 +9,13 @@ Spatially culls overlapping entries based on a prioritization attribute
 Supports generic sub-grouping to prevent distinct datasets from culling each other.
 """
 
-import re
 import logging
+import re
 from collections import defaultdict
-from shapely.geometry import Polygon, box
+
 import shapely.wkb
 import shapely.wkt
+from shapely.geometry import Polygon, box
 
 from fetchez.hooks import FetchHook
 from fetchez.utils import parse_arg_to_list

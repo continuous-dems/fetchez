@@ -12,9 +12,9 @@ import shapely
 from pyogrio.raw import write
 from pyproj import CRS
 
+from fetchez.hooks.audit import Audit
 from fetchez.hooks.remote_archive_footprint import RemoteArchiveFootprintHook
 from fetchez.hooks.spatial_cull import SpatialCullHook
-from fetchez.hooks.audit import Audit
 
 
 @pytest.fixture

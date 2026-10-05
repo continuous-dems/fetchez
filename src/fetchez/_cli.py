@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli
@@ -11,20 +10,17 @@ This module contains the CLI for the Fetchez library.
 :license: MIT, see LICENSE for more details.
 """
 
-import sys
-import logging
 import argparse
 import inspect
+import logging
 import signal
+import sys
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any
 
-from . import utils
-from . import spatial
-from . import core
-from . import __version__
+from . import __version__, core, spatial, utils
 from .recipe import Recipe
-from .registry import ModuleRegistry, HookRegistry, RecipeRegistry, PresetRegistry
+from .registry import HookRegistry, ModuleRegistry, PresetRegistry, RecipeRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +28,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # CLI Decorator and Decorations and logging
 # =============================================================================
-def cli_opts(help_text: Optional[str] = None, **arg_help):
+def cli_opts(help_text: str | None = None, **arg_help):
     """Decorator to attach CLI help text to FetchModule classes.
 
     Args:
@@ -166,7 +162,7 @@ def _populate_subparser(subparser, module_cls, global_args=None):
 # =============================================================================
 # Registry & Help Helpers
 # =============================================================================
-def get_module_cli_desc(m: Dict) -> str:
+def get_module_cli_desc(m: dict) -> str:
     """Generates a formatted, categorized list of modules using Registry metadata."""
 
     CATEGORY_ORDER = [
@@ -177,7 +173,7 @@ def get_module_cli_desc(m: Dict) -> str:
         "Reference",
         "Generic",
     ]
-    grouped_modules: Dict[Any, Any] = {}
+    grouped_modules: dict[Any, Any] = {}
 
     for key, val in m.items():
         if key in val.get("aliases", []):
@@ -411,6 +407,7 @@ def init_presets():
     """Generate a default presets.yaml file."""
 
     import yaml
+
     from . import config
 
     config_dir = config.CONFIG_PATH
@@ -901,8 +898,8 @@ def fetchez_cli():
             global_hook_objs.append(DryRun())
 
     if global_args.inventory:
-        from .hooks.inventory import Inventory
         from .hooks.dryrun import DryRun
+        from .hooks.inventory import Inventory
 
         fmt = global_args.inventory
         global_hook_objs.append(Inventory(format=fmt))
@@ -915,9 +912,9 @@ def fetchez_cli():
         global_hook_objs.append(PipeOutput())
 
     if global_args.audit_log:
+        from .hooks.audit import Audit
         from .hooks.checksum import Checksum
         from .hooks.enrich import MetadataEnrich
-        from .hooks.audit import Audit
 
         global_hook_objs.append(Checksum(algo="md5"))
         global_hook_objs.append(MetadataEnrich())
@@ -970,9 +967,12 @@ def fetchez_cli():
                 current_cmd = "url_fetcher"
                 current_args = [f"--url={arg}"]
         else:
-            if current_cmd and current_cmd not in ["file", "url_fetcher"]:
-                current_args.append(arg)
-            elif current_cmd == "file" and arg.startswith("-"):
+            if (
+                current_cmd
+                and current_cmd not in ["file", "url_fetcher"]
+                or current_cmd == "file"
+                and arg.startswith("-")
+            ):
                 current_args.append(arg)
             elif Path(arg).is_file():
                 if current_cmd == "file":
@@ -1062,7 +1062,7 @@ def fetchez_cli():
         if mod_kwargs.get("outdir") is None:
             mod_kwargs["outdir"] = global_args.outdir
 
-        if "mod_hook" in mod_kwargs and mod_kwargs["mod_hook"]:
+        if mod_kwargs.get("mod_hook"):
             mod_kwargs["hook"] = init_hooks(mod_kwargs["mod_hook"])
         else:
             mod_kwargs["hook"] = []

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.cptcity
@@ -17,12 +16,11 @@ available palettes and allows searching by name/category.
 import logging
 import zipfile
 from io import BytesIO
-from typing import Optional
+
 import lxml.etree
 
-from fetchez import core
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +49,7 @@ class CPTCity(FetchModule):
 
     """Fetch various CPT files for DEM hillshades, bathymetry, and visualization."""
 
-    def __init__(self, query: Optional[str] = None, **kwargs):
+    def __init__(self, query: str | None = None, **kwargs):
         super().__init__(name="cpt_city", **kwargs)
         self.query = query
 

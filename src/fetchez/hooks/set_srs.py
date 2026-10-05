@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.set_srs
@@ -11,8 +10,9 @@ Change the default 'src_srs' of an entry.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import logging
+import os
+
 from fetchez.hooks import FetchHook
 from fetchez.utils import parse_arg_to_dict, wgs84_to_utm_zone
 

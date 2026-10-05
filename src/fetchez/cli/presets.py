@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.presets
@@ -12,19 +11,20 @@ Discoverability and documentation for processing macros (presets).
 """
 
 import sys
-import yaml
-import click
 from pathlib import Path
 
+import click
+import yaml
+
 from fetchez.api import search_presets
+from fetchez.recipe import Recipe
 from fetchez.registry import PresetRegistry
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
-from fetchez.recipe import Recipe
 
 
 @click.group(
@@ -46,7 +46,6 @@ def presets_group():
       or list them in your Recipe's hook list.
     """
     # As such, Presets can reference other Presets as well as Hooks.
-    pass
 
 
 def print_grouped_presets(grouped_hooks, key="Provider"):

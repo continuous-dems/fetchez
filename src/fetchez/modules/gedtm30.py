@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.gedtm30
@@ -12,13 +11,13 @@ from OpenLandMap.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import csv
 import logging
+import os
 from io import StringIO
-from fetchez import core
+
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

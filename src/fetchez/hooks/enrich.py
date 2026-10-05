@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.enrich
@@ -13,8 +12,8 @@ Enrich the entry with some metadata
 
 import logging
 import mimetypes
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from fetchez.hooks import FetchHook
 

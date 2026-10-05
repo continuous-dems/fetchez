@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.gmrt
@@ -12,12 +11,9 @@ Fetch data from the Global Multi-Resolution Topography (GMRT) synthesis.
 """
 
 import logging
-from typing import Optional
-from fetchez import core
+
+from fetchez import cli, core, spatial, utils
 from fetchez.modules import FetchModule
-from fetchez import utils
-from fetchez import spatial
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +35,7 @@ GMRT_HEADERS = {
 # =============================================================================
 ## GMRT Functions
 # =============================================================================
-def gmrt_fetch_point(latitude: float, longitude: float) -> Optional[str]:
+def gmrt_fetch_point(latitude: float, longitude: float) -> str | None:
     """Fetch a single point elevation from GMRT."""
 
     data = {"longitude": longitude, "latitude": latitude}
@@ -155,8 +151,8 @@ class GMRT(FetchModule):
                         f"[GMRT] Found {len(urls)} pre-rendered static tiles for region."
                     )
                     for url in urls:
-                        import urllib.parse
                         import os
+                        import urllib.parse
 
                         parsed = urllib.parse.urlparse(url)
                         dst_fn = os.path.basename(parsed.path)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli
@@ -11,27 +10,28 @@ The main command-line interface for the Fetchez framework.
 :license: MIT, see LICENSE for more details.
 """
 
-import click
 import logging
 from typing import Optional
 
-from fetchez.utils import TqdmLoggingHandler, FetchezMainGroup
+import click
 
-from .pipeline import pipeline_group
-from .run import run_recipe
-from .modules import modules_group
-from .hooks import hooks_group
-from .recipes import recipes_group
-from .streams import streams_group
-from .data_types import data_types_group
-from .regions import regions_group
+from fetchez.utils import FetchezMainGroup, TqdmLoggingHandler
+
 from .cache import cache_group
+from .data_types import data_types_group
+from .hooks import hooks_group
+from .modules import modules_group
+from .pipeline import pipeline_group
+from .recipes import recipes_group
+from .regions import regions_group
+from .run import run_recipe
+from .streams import streams_group
 
 
 # =============================================================================
 # CLI Decorator and Decorations and logging
 # =============================================================================
-def cli_opts(help_text: Optional[str] = None, **arg_help):
+def cli_opts(help_text: str | None = None, **arg_help):
     """Decorator to attach CLI help text to FetchModule classes.
 
     Args:

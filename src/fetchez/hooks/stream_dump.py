@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.stream_dump
@@ -11,8 +10,8 @@ This dumps the contents of a stream
 :license: MIT, see LICENSE for more details.
 """
 
-import pprint
 import logging
+import pprint
 import threading
 
 from fetchez.hooks import FetchHook

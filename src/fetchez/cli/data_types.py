@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.data_types
@@ -12,18 +11,19 @@ Discoverability and documentation for fetchez data_types.
 """
 
 import sys
-import yaml
-import click
 from pathlib import Path
 
+import click
+import yaml
+
+from fetchez.api import search_data_types
 from fetchez.registry import DataTypeRegistry
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
-from fetchez.api import search_data_types
 
 
 @click.group(
@@ -38,8 +38,6 @@ def data_types_group():
     DataTypes in Fetchez describe the various types of data that
     are discovered and returnd from Fetchez Modules.
     """
-
-    pass
 
 
 @data_types_group.command("list", cls=FetchezMainCommand)

@@ -1,14 +1,14 @@
 # test_cli.py
-import pytest
 import subprocess
 import sys
-import yaml
 
-from fetchez.utils import parse_hook_string
+import pytest
+import yaml
+from click.testing import CliRunner
+
 from fetchez.cli import cli
 from fetchez.cli.pipeline import organize_pipeline_commands
-
-from click.testing import CliRunner
+from fetchez.utils import parse_hook_string
 
 # Testing CLI using subprocess
 

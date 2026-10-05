@@ -1,11 +1,11 @@
 # tests/hooks/test_spatial_cull.py
 
-from shapely.geometry import box
-import shapely.wkt
 import shapely.wkb
+import shapely.wkt
+from shapely.geometry import box
 
-from fetchez.modules.base import FetchModule
 from fetchez.hooks.spatial_cull import SpatialCullHook
+from fetchez.modules.base import FetchModule
 
 
 def test_cull_respects_minimum_coverage_threshold():

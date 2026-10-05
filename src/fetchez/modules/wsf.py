@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.wsf
@@ -14,13 +13,11 @@ Data is organized in 2x2 degree GeoTIFF tiles.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import logging
+import os
 
-from fetchez import core
+from fetchez import cli, core, fred
 from fetchez.modules import FetchModule
-from fetchez import fred
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 

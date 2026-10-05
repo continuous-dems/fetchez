@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.margrav
@@ -12,8 +11,9 @@ Fetch Marine Gravity data from Scripps Institution of Oceanography (UCSD).
 """
 
 from urllib.parse import urlencode
-from fetchez.modules import FetchModule
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 MARGRAV_CGI_URL = "https://topex.ucsd.edu/cgi-bin/get_data.cgi"
 # Note: This points to the global predicted topography grid derived from gravity

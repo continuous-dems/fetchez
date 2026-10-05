@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.buoys
@@ -15,15 +14,13 @@ standard meteorological data and historical archives.
 :license: MIT, see LICENSE for more details.
 """
 
-import logging
 import datetime
-import lxml.html
-from typing import Optional, Set
+import logging
 
-from fetchez import core
+import lxml.html
+
+from fetchez import cli, core, spatial
 from fetchez.modules import FetchModule
-from fetchez import spatial
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +61,11 @@ class Buoys(FetchModule):
 
     def __init__(
         self,
-        station_id: Optional[str] = None,
+        station_id: str | None = None,
         radius: int = 100,
         datatype: str = "realtime",
         min_year: int = 2010,
-        max_year: Optional[int] = None,
+        max_year: int | None = None,
         **kwargs,
     ):
         super().__init__(name="buoys", **kwargs)
@@ -78,7 +75,7 @@ class Buoys(FetchModule):
         self.min_year = min_year
         self.max_year = max_year if max_year else datetime.datetime.now().year
 
-    def _get_stations_from_region(self) -> Set[str]:
+    def _get_stations_from_region(self) -> set[str]:
         """Perform radial search to find stations in the region."""
 
         if not self.wgs_region:

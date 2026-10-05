@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.usgs_of1221
@@ -8,19 +7,19 @@ fetchez.modules.usgs_of1221
 USGS Open Record 1211 (High-Resolution Coastal Bathymetry) module using FRED.
 """
 
+import io
 import logging
-from urllib.parse import urljoin
-from pathlib import Path
 import tarfile
 import tempfile
 import zipfile
-import io
+from pathlib import Path
+from urllib.parse import urljoin
 
-from fetchez import core
-from fetchez import fred
-from fetchez.utils import str_or
-from fetchez.modules.base import FetchModule
 from tqdm.auto import tqdm
+
+from fetchez import core, fred
+from fetchez.modules.base import FetchModule
+from fetchez.utils import str_or
 
 logger = logging.getLogger(__name__)
 

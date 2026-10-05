@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.base
@@ -11,22 +10,22 @@ This holds the FetchModule super class
 :license: MIT, see LICENSE for more details.
 """
 
-import os
-import time
-import logging
-import urllib.parse
-import json
 import hashlib
-import tempfile
 import inspect
-from pathlib import Path
+import json
+import logging
+import os
+import tempfile
+import time
+import urllib.parse
+from collections.abc import Mapping
 from math import floor
-from typing import List, Dict, Any, Mapping
+from pathlib import Path
+from typing import Any
 
 import pyproj
 
-from fetchez import spatial
-from fetchez import utils
+from fetchez import spatial, utils
 from fetchez.core import Fetch
 
 logger = logging.getLogger(__name__)
@@ -40,12 +39,12 @@ class FetchModule:
     meta_category = "Generic"
     meta_desc = "Base module class."
     meta_agency = "Unknown"
-    meta_tags: List[Any] = []
-    meta_aliases: List[Any] = []
-    meta_urls: Dict[Any, Any] = {}
+    meta_tags: list[Any] = []
+    meta_aliases: list[Any] = []
+    meta_urls: dict[Any, Any] = {}
 
     # The kinds of data entries this module can provide.
-    meta_provides: List[Any] = []
+    meta_provides: list[Any] = []
 
     def __init__(
         self,
@@ -250,7 +249,7 @@ class FetchModule:
         }
     )
 
-    _MODULE_ID_DEFAULTS: Dict[str, Any] = {
+    _MODULE_ID_DEFAULTS: dict[str, Any] = {
         "region": None,
         "min_year": None,
         "max_year": None,
@@ -323,7 +322,7 @@ class FetchModule:
     def canonical_module_config_from_kwargs(
         cls,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Return canonical module configuration from constructor arguments."""
         config = dict(kwargs)
 
@@ -373,7 +372,7 @@ class FetchModule:
 
         return cls._canonicalize_module_value(config)
 
-    def canonical_module_config(self) -> Dict[str, Any]:
+    def canonical_module_config(self) -> dict[str, Any]:
         """Return canonical configuration for this module invocation."""
         return self.canonical_module_config_from_kwargs(**self._init_kwargs)
 

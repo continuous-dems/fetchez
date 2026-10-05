@@ -1,5 +1,7 @@
-import pytest
 import copy
+
+import pytest
+
 from fetchez.registry import BundleRegistry, PresetRegistry
 
 

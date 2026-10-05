@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.bing
@@ -11,12 +10,12 @@ Fetch Microsoft Global ML Building Footprints.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import csv
 import logging
-from fetchez import core
+import os
+
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 # Soft Dependency: mercantile (for QuadKey calculation)
 try:

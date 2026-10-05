@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.dnc
@@ -8,10 +7,11 @@ fetchez.modules.dnc
 Fetch Digital Nautical Chart (DNC) Bathymetry data via NRL WFS.
 """
 
-from urllib.parse import urlencode
-from fetchez.modules import FetchModule
-from fetchez import cli
 import logging
+from urllib.parse import urlencode
+
+from fetchez import cli
+from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
 

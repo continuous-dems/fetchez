@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.path
@@ -13,8 +12,9 @@ Useful for injecting local data into the processing pipeline (dlim).
 """
 
 from pathlib import Path
-from fetchez.modules import FetchModule
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 
 @cli.cli_opts(

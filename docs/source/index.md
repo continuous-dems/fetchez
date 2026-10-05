@@ -82,7 +82,11 @@ bathy_mods = fetchez.search("bathymetry")
 files = fetchez.get("nos_hydro", region=[-120, -118, 33, 34], min_year=2020)
 
 # Fetch Electronic Nautical Chart data from NOAA
-files = fetchez.get("charts", region=[-120, -118, 33, 34], hooks=['unzip', 'filename_filter:match=.000,stage="pre"', 'audit'])
+files = fetchez.get(
+    "charts",
+    region=[-120, -118, 33, 34],
+    hooks=["unzip", 'filename_filter:match=.000,stage="pre"', "audit"],
+)
 ```
 
 ## How Fetchez Fits Together

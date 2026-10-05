@@ -1,7 +1,7 @@
-from fetchez.modules.local_fs import LocalFS
-from fetchez.modules.dav import DAV
-
 import pytest
+
+from fetchez.modules.dav import DAV
+from fetchez.modules.local_fs import LocalFS
 
 
 @pytest.fixture

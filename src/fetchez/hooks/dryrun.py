@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.dryrun
@@ -12,6 +11,7 @@ Empty the download queue before downloads begin.
 """
 
 import logging
+
 from fetchez.hooks import FetchHook
 
 logger = logging.getLogger(__name__)

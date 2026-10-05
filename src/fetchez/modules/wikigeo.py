@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.wikigeo
@@ -13,9 +12,9 @@ Useful for building context, labeling maps, or identifying features.
 """
 
 from urllib.parse import urlencode
+
+from fetchez import cli, spatial
 from fetchez.modules import FetchModule
-from fetchez import cli
-from fetchez import spatial
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 

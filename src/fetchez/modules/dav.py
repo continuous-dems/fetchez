@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.dav
@@ -14,18 +13,15 @@ Data Access Viewer (DAV) API.
 
 import logging
 from pathlib import Path
+from typing import Any
 from urllib.parse import urljoin
-from typing import List, Dict, Optional, Any
+
 import requests
-
-from pyproj import CRS, Transformer
 from pyogrio.raw import read
+from pyproj import CRS, Transformer
 
-from fetchez import core
+from fetchez import cli, core, utils
 from fetchez.modules import FetchModule
-from fetchez import utils
-from fetchez import cli
-
 from fetchez.modules.tnm import TheNationalMap
 
 logger = logging.getLogger(__name__)
@@ -66,12 +62,12 @@ class DAV(FetchModule):
 
     def __init__(
         self,
-        survey_id: Optional[str] = None,
-        datatype: Optional[str] = "lidar",
-        title_filter: Optional[str] = None,
+        survey_id: str | None = None,
+        datatype: str | None = "lidar",
+        title_filter: str | None = None,
         want_footprints: bool = False,
         keep_footprints: bool = False,
-        name: Optional[str] = "dav",
+        name: str | None = "dav",
         **kwargs,
     ):
         super().__init__(name=name, **kwargs)
@@ -94,7 +90,7 @@ class DAV(FetchModule):
         poly = f"POLYGON(({w} {s}, {e} {s}, {e} {n}, {w} {n}, {w} {s}))"
         return f"SRID=4269;{poly}"
 
-    def _get_features(self) -> List[Dict[Any, Any]]:
+    def _get_features(self) -> list[dict[Any, Any]]:
         """Query the DAV API for missions in the region."""
 
         if self.wgs_region is None:
@@ -129,7 +125,7 @@ class DAV(FetchModule):
             logger.error(f"DAV API Query Error: {exception}")
             return []
 
-    def _find_index_zip(self, bulk_url: str) -> Optional[str]:
+    def _find_index_zip(self, bulk_url: str) -> str | None:
         """Find the tile index zip file given the Bulk Download landing page URL."""
 
         try:

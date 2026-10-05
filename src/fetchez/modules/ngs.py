@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.ngs
@@ -12,8 +11,9 @@ Fetch National Geodetic Survey (NGS) Monuments (Survey Marks) from NOAA.
 """
 
 from urllib.parse import urlencode
-from fetchez.modules import FetchModule
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 NGS_SEARCH_URL = "https://geodesy.noaa.gov/api/nde/bounds?"
 

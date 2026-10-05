@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.list_entries
@@ -11,9 +10,10 @@ List the urls gathered from the module.
 :license: MIT, see LICENSE for more details.
 """
 
-import sys
 import logging
+import sys
 import threading
+
 from fetchez.hooks import FetchHook
 
 logger = logging.getLogger(__name__)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.localize_cache
@@ -11,10 +10,11 @@ Localize fetchez cache into a specific directory.
 :license: MIT, see LICENSE for more details.
 """
 
+import logging
 import os
 import shutil
-import logging
 from pathlib import Path
+
 from fetchez.hooks import FetchHook
 
 logger = logging.getLogger(__name__)

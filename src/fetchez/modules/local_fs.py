@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.local_fs
@@ -11,16 +10,16 @@ Unified handler for local files, file lists, and directory crawling with spatial
 :license: MIT, see LICENSE for more details.
 """
 
-import json
 import glob
+import json
 import logging
 from pathlib import Path
-from typing import Optional, Any, Union, List
+from typing import Any
 
+from fetchez import cli
 from fetchez.modules import FetchModule
 from fetchez.spatial import Region, regions_intersect_p
 from fetchez.utils import str2bool
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +45,11 @@ class LocalFS(FetchModule):
 
     def __init__(
         self,
-        path: Optional[Union[str, Path]] = None,
-        paths: Optional[Union[List[Union[str, Path]], str]] = None,
+        path: str | Path | None = None,
+        paths: list[str | Path] | str | None = None,
         ext: str = ".tif",
-        datatype: Optional[Any] = None,
-        data_type: Optional[Any] = None,
+        datatype: Any | None = None,
+        data_type: Any | None = None,
         want_inf: bool = False,
         **kwargs,
     ):
@@ -66,7 +65,7 @@ class LocalFS(FetchModule):
         self.want_inf = str2bool(want_inf)
 
         # Normalize explicit file/path inputs into a single list
-        self.targets: List[Path] = []
+        self.targets: list[Path] = []
 
         for input_item in [path, paths]:
             if not input_item:
@@ -80,7 +79,7 @@ class LocalFS(FetchModule):
                     if clean_item:
                         self.targets.append(Path(clean_item).resolve())
 
-    def _read_inf(self, inf_path: Path) -> Optional[Region]:
+    def _read_inf(self, inf_path: Path) -> Region | None:
         """Attempt to parse an existing .inf sidecar file for spatial bounds."""
 
         try:

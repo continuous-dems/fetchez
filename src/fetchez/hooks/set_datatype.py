@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.set_datatype
@@ -11,8 +10,9 @@ Assigns the data_tpe to data entries based on module name or patterns.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import logging
+import os
+
 from fetchez.hooks import FetchHook
 from fetchez.utils import parse_arg_to_dict
 

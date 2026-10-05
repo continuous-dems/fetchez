@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.tides
@@ -19,12 +18,12 @@ https://api.tidesandcurrents.noaa.gov/api/prod/
 """
 
 import logging
-from urllib.parse import urlencode
 from datetime import datetime, timedelta
-from typing import Optional, Dict
+from urllib.parse import urlencode
+
+from fetchez import cli
 from fetchez.core import Fetch
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 # Service for finding stations (ArcGIS REST)
 STATION_SEARCH_URL = "https://mapservices.weather.noaa.gov/static/rest/services/NOS_Observations/CO_OPS_Products/FeatureServer/0/query?"
@@ -84,13 +83,13 @@ class Tides(FetchModule):
 
     def __init__(
         self,
-        station: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        station: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         datum: str = "MLLW",
         product: str = "water_level",
-        interval: Optional[str] = None,
-        mode: Optional[str] = None,
+        interval: str | None = None,
+        mode: str | None = None,
         **kwargs,
     ):
         super().__init__(name="tides", **kwargs)
@@ -187,7 +186,7 @@ class Tides(FetchModule):
                 title=f"Station {self.station} Data",
             )
 
-    def get_datums_in_region(self) -> Dict[str, dict]:
+    def get_datums_in_region(self) -> dict[str, dict]:
         """Directly returns a dictionary of station datums for the current region."""
 
         if not self.wgs_region:

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.hydronos
@@ -11,15 +10,12 @@ Fetch NOS Hydrographic Surveys (BAGs and XYZ soundings) from NOAA.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import json
 import logging
-from typing import Optional, Dict
+import os
 
-from fetchez import core
+from fetchez import cli, core, utils
 from fetchez.modules import FetchModule
-from fetchez import utils
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +56,11 @@ class HydroNOS(FetchModule):
         self,
         where: str = "1=1",
         layer: int = 0,
-        datatype: Optional[str] = None,
-        survey_id: Optional[str] = None,
-        exclude_survey_id: Optional[str] = None,
-        min_year: Optional[int] = None,
-        max_year: Optional[int] = None,
+        datatype: str | None = None,
+        survey_id: str | None = None,
+        exclude_survey_id: str | None = None,
+        min_year: int | None = None,
+        max_year: int | None = None,
         **kwargs,
     ):
         super().__init__(name="hydronos", **kwargs)
@@ -163,7 +159,7 @@ class HydroNOS(FetchModule):
             self._flag(f"could not check {url}; keeping it")
         return status != "missing"
 
-    def _process_download(self, attrs: Dict, year: int):
+    def _process_download(self, attrs: dict, year: int):
         """Process download URL."""
 
         survey_id = attrs.get("SURVEY_ID")

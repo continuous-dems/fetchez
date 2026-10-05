@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.arcticdem
@@ -14,14 +13,12 @@ Fetch ArcticDEM high-resolution digital surface models.
 
 import logging
 from pathlib import Path
-from typing import Optional
-from fetchez import core
-from fetchez.modules import FetchModule
-from fetchez import cli
-from fetchez import utils
 
-from pyproj import Transformer
 from pyogrio.raw import read
+from pyproj import Transformer
+
+from fetchez import cli, core, utils
+from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +52,7 @@ class ArcticDEM(FetchModule):
     This module uses 'pyproj' and 'pyogrio'.
     """
 
-    def __init__(self, where: Optional[str] = None, **kwargs):
+    def __init__(self, where: str | None = None, **kwargs):
         super().__init__(name="arcticdem", **kwargs)
         self.where = where
 

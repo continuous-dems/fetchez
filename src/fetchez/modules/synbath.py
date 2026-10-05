@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.synbath
@@ -11,8 +10,8 @@ Fetch UCSD SynBath Global Synthetic Bathymetry.
 :license: MIT, see LICENSE for more details.
 """
 
-from fetchez.modules import FetchModule
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 # The latest stable release (V2.0)
 SYNBATH_URL = "https://topex.ucsd.edu/pub/synbath/SYNBATH_V2.0.nc"

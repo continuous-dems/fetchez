@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.usgs_ds702
@@ -19,11 +18,11 @@ import zipfile
 from pathlib import Path
 from urllib.parse import urljoin
 
-from fetchez import core
-from fetchez import fred
+from tqdm.auto import tqdm
+
+from fetchez import core, fred
 from fetchez.modules.base import FetchModule
 from fetchez.utils import str_or
-from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 

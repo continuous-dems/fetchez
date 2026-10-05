@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.streams.base
@@ -15,8 +14,8 @@ import queue
 import threading
 
 from fetchez.core import run_fetchez
-from fetchez.utils import parse_hook_string
 from fetchez.hooks import FetchHook
+from fetchez.utils import parse_hook_string
 
 
 class QueueSinkHook(FetchHook):

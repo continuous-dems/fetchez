@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from fetchez.core import Fetch, R_HEADERS
+from fetchez.core import R_HEADERS, Fetch
 
 
 @pytest.fixture(autouse=True)

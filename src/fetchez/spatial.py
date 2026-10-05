@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.spatial
@@ -13,19 +12,18 @@ standard bounding boxes. Adaptded from CUDEM.
 """
 
 import json
-import math
 import logging
+import math
 import warnings
 from pathlib import Path
-from typing import Union, List, Tuple, Optional
 
-from shapely.geometry import shape, box
-from shapely import from_wkb
-from pyproj import Transformer
-from pyogrio.raw import read
 from pyogrio import read_info
+from pyogrio.raw import read
+from pyproj import Transformer
+from shapely import from_wkb
+from shapely.geometry import box, shape
 
-from fetchez.utils import str_or, _linspace
+from fetchez.utils import _linspace, str_or
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +196,7 @@ class Region:
             return (None, None)
         return ((self.xmin + self.xmax) / 2.0, (self.ymin + self.ymax) / 2.0)
 
-    def chunk(self, chunk_size: float = 1.0) -> List["Region"]:
+    def chunk(self, chunk_size: float = 1.0) -> list["Region"]:
         """Split into smaller sub-regions."""
 
         if not self.valid_p():
@@ -208,14 +206,12 @@ class Region:
         cur_w = self.xmin
         while cur_w < self.xmax:
             next_w = cur_w + chunk_size
-            if next_w > self.xmax:
-                next_w = self.xmax
+            next_w = min(next_w, self.xmax)
 
             cur_s = self.ymin
             while cur_s < self.ymax:
                 next_s = cur_s + chunk_size
-                if next_s > self.ymax:
-                    next_s = self.ymax
+                next_s = min(next_s, self.ymax)
 
                 # Check for tiny slivers
                 if (next_w - cur_w > 1e-9) and (next_s - cur_s > 1e-9):
@@ -372,7 +368,7 @@ class Region:
         return int(x_start), int(y_start), int(x_size), int(y_size)
 
     def geo_transform(
-        self, x_inc: float = 0, y_inc: Optional[float] = None, node: str = "grid"
+        self, x_inc: float = 0, y_inc: float | None = None, node: str = "grid"
     ):
         """Return raster dimensions and geotransform for a region.
 
@@ -530,7 +526,7 @@ class Region:
 # =============================================================================
 # Helper / Parser Functions
 # =============================================================================
-def region_from_vector(fn: str, single_region: bool = False) -> Optional[List[Region]]:
+def region_from_vector(fn: str, single_region: bool = False) -> list[Region] | None:
     """Parse the bounding box of any OGR-supported vector file using pygorio."""
 
     if not Path(fn).exists():
@@ -571,7 +567,7 @@ def region_from_vector(fn: str, single_region: bool = False) -> Optional[List[Re
     return regions
 
 
-def region_from_geojson(fn: str) -> Optional[List[Region]]:
+def region_from_geojson(fn: str) -> list[Region] | None:
     """Parse the bounding box(es) of a GeoJSON file."""
 
     if not Path(fn).exists():
@@ -618,7 +614,7 @@ def region_from_geojson(fn: str) -> Optional[List[Region]]:
     return None
 
 
-def region_from_place(query: str, centered: bool = True) -> Optional[Region]:
+def region_from_place(query: str, centered: bool = True) -> Region | None:
     """Resolve 'loc:PlaceName' to a bounding box."""
 
     from .modules.nominatim import Nominatim
@@ -644,7 +640,7 @@ def region_from_place(query: str, centered: bool = True) -> Optional[Region]:
     return None
 
 
-def parse_region(input_r: Union[str, List]) -> List[Region]:
+def parse_region(input_r: str | list) -> list[Region]:
     """Main function to parse region input into a list of Region objects."""
 
     def _parse_crs(r_string: str) -> tuple[str, str | None]:
@@ -762,7 +758,7 @@ def region_valid_p(region, check_xy=True):
     return Region.from_list(region).valid_p(check_xy) if region else False
 
 
-def region_center(region: Tuple[float, float, float, float]):
+def region_center(region: tuple[float, float, float, float]):
     """Calculate the center of a region."""
 
     w, e, s, n = region
@@ -772,7 +768,7 @@ def region_center(region: Tuple[float, float, float, float]):
     return center_lon, center_lat
 
 
-def region_to_shapely(region: Tuple[float, float, float, float]):
+def region_to_shapely(region: tuple[float, float, float, float]):
     """Convert a fetchez region (xmin, xmax, ymin, ymax) to a shapely box.
 
     fetchez regions are like GMT: (west, east, south, north) while
@@ -786,7 +782,7 @@ def region_to_shapely(region: Tuple[float, float, float, float]):
     return box(west, south, east, north)
 
 
-def region_to_wkt(region: Tuple[float, float, float, float]):
+def region_to_wkt(region: tuple[float, float, float, float]):
     """Convert a fetchez region (xmin, xmax, ymin, ymax) to WKT (via shapely)"""
 
     polygon = region_to_shapely(region)
@@ -810,14 +806,14 @@ def _extract_coords(coords):
             yield from _extract_coords(item)
 
 
-def region_to_bbox(region: Tuple[float, float, float, float]):
+def region_to_bbox(region: tuple[float, float, float, float]):
     """Convert a fetchez region to a `bbox`"""
 
     w, e, s, n = region
     return (w, s, e, n)
 
 
-def region_to_geojson_geom(region: Tuple[float, float, float, float]):
+def region_to_geojson_geom(region: tuple[float, float, float, float]):
     w, e, s, n = region
     return {
         "type": "Polygon",

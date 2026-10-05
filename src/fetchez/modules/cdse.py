@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.cdse
@@ -12,19 +11,17 @@ Copernicus Data Space Ecosystem (CDSE) using OData and internal nodes.
 :license: MIT, see LICENSE for more details.
 """
 
-import requests
 import datetime
-import time
-import re
 import logging
+import re
+import time
 import xml.etree.ElementTree as ET
 
-from fetchez import core
-from fetchez.modules import FetchModule
-from fetchez import cli
-from fetchez import utils
+import requests
 
+from fetchez import cli, core, utils
 from fetchez.core import CUDEM_USER_AGENT
+from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
 

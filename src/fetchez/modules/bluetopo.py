@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.bluetopo
@@ -16,7 +15,6 @@ created as part of the Office of Coast Survey's National Bathymetric Source proj
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 try:
     import boto3
@@ -29,7 +27,7 @@ except ImportError:
 
 from pyogrio.raw import read
 
-from fetchez import core, cli
+from fetchez import cli, core
 from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
@@ -79,7 +77,7 @@ class BlueTopo(FetchModule):
         """Return an anonymous S3 client."""
         return boto3.client("s3", config=Config(signature_version=UNSIGNED))
 
-    def _get_index_url(self, s3_client) -> Optional[str]:
+    def _get_index_url(self, s3_client) -> str | None:
         """Dynamically find the Tile Scheme index file URL from S3."""
         try:
             r = s3_client.list_objects(
@@ -123,7 +121,7 @@ class BlueTopo(FetchModule):
                     self._bluetopo_index_fn
                 )
                 if status != 0:
-                    raise IOError("Failed to download BlueTopo index.")
+                    raise OSError("Failed to download BlueTopo index.")
 
             logger.info("Querying tile index with pyogrio...")
 

@@ -89,7 +89,11 @@ Use `fetchez modules list`, `fetchez modules bundles list`, `fetchez hooks list`
 import fetchez
 
 # Fetch Electronic Nautical Chart data from NOAA
-files = fetchez.get("charts", region=[-120, -118, 33, 34], hooks=['unzip', 'filename_filter:match=.000', 'audit'])
+files = fetchez.get(
+    "charts",
+    region=[-120, -118, 33, 34],
+    hooks=["unzip", "filename_filter:match=.000", "audit"],
+)
 ```
 
 ### DEM Building with Globato

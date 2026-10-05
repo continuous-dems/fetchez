@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.core
@@ -14,29 +13,28 @@ threading, and the base FetchModule class.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
-import time
 import base64
-import threading
-import netrc
+import collections
+import concurrent.futures
 import io
 import logging
-import collections
-from pathlib import Path
-from tqdm.auto import tqdm
+import netrc
+import os
+import threading
+import time
 import urllib.parse
+from pathlib import Path
+from typing import Any
 from urllib.error import HTTPError
-from urllib.request import Request, build_opener, HTTPCookieProcessor
-from typing import List, Dict, Optional, Any, Tuple
-import concurrent.futures
+from urllib.request import HTTPCookieProcessor, Request, build_opener
 
-import requests
+import filelock
 import lxml.etree
 import lxml.html as lh
-import filelock
+import requests
+from tqdm.auto import tqdm
 
-from . import utils
-from . import __version__
+from . import __version__, utils
 
 STOP_EVENT = threading.Event()
 
@@ -63,21 +61,19 @@ HOOK_LOCK = threading.Lock()
 # =============================================================================
 # Helper Functions
 # =============================================================================
-def fetches_callback(r: List[Any]):
+def fetches_callback(r: list[Any]):
     """Default callback for fetches processes.
     r: [url, local-fn, data-type, fetch-status-or-error-code]
     """
 
-    pass
 
-
-def urlencode_(opts: Dict) -> str:
+def urlencode_(opts: dict) -> str:
     """Encode `opts` for use in a URL."""
 
     return urllib.parse.urlencode(opts)
 
 
-def urlencode(opts: Dict, doseq: bool = True) -> str:
+def urlencode(opts: dict, doseq: bool = True) -> str:
     """Encode `opts` for use in a URL.
 
     Args:
@@ -89,10 +85,10 @@ def urlencode(opts: Dict, doseq: bool = True) -> str:
     return urllib.parse.urlencode(opts, doseq=doseq)
 
 
-def xml2py(node) -> Optional[Dict]:
+def xml2py(node) -> dict | None:
     """Parse an xml file into a python dictionary."""
 
-    texts: Dict[Any, Any] = {}
+    texts: dict[Any, Any] = {}
     if node is None:
         return None
 
@@ -128,9 +124,9 @@ def xml2py(node) -> Optional[Dict]:
 
 def get_userpass(
     authenticator_url: str,
-    env_user: Optional[str] = None,
-    env_pass: Optional[str] = None,
-) -> Tuple[Optional[str], Optional[str]]:
+    env_user: str | None = None,
+    env_pass: str | None = None,
+) -> tuple[str | None, str | None]:
     """Retrieve username and password from netrc for a given URL."""
 
     # Environmental Variables
@@ -160,11 +156,11 @@ def get_userpass(
 
 
 def get_raw_credentials(
-    url: Optional[str] = None,
+    url: str | None = None,
     authenticator_url: str = "https://urs.earthdata.nasa.gov",
-    env_user: Optional[str] = None,
-    env_pass: Optional[str] = None,
-) -> Tuple[Optional[str], Optional[str]]:
+    env_user: str | None = None,
+    env_pass: str | None = None,
+) -> tuple[str | None, str | None]:
     """Get raw (username, password) from .netrc or interactive prompt.
     Optionally validate against an HTTP `url`.
     """
@@ -211,11 +207,11 @@ def get_raw_credentials(
 
 
 def get_credentials(
-    url: Optional[str] = None,
+    url: str | None = None,
     authenticator_url: str = "https://urs.earthdata.nasa.gov",
-    env_user: Optional[str] = None,
-    env_pass: Optional[str] = None,
-) -> Optional[str]:
+    env_user: str | None = None,
+    env_pass: str | None = None,
+) -> str | None:
     """Wrapper for get_raw_credentials that returns a Base64 Basic Auth string."""
 
     username, password = get_raw_credentials(
@@ -629,10 +625,10 @@ class Fetch:
         self,
         url: str,
         callback=fetches_callback,
-        headers: Optional[Dict] = None,
+        headers: dict | None = None,
         verify: bool = True,
         allow_redirects: bool = True,
-        auth: Optional[Any] = None,
+        auth: Any | None = None,
     ):
         self.url = url
         self.callback = callback
@@ -647,14 +643,14 @@ class Fetch:
     def fetch_req(
         self,
         method: str = "GET",
-        params: Optional[Dict] = None,
-        data: Optional[Any] = None,
-        json: Optional[Dict] = None,
+        params: dict | None = None,
+        data: Any | None = None,
+        json: dict | None = None,
         tries: int = 5,
         # timeout: Optional[Union[float, Tuple]] = None,
-        timeout: Optional[float] = 30,
-        read_timeout: Optional[float] = 120,
-    ) -> Optional[requests.Response]:
+        timeout: float | None = 30,
+        read_timeout: float | None = 120,
+    ) -> requests.Response | None:
         """Fetch src_url and return the requests object (iterative retry)."""
 
         req = None
@@ -763,9 +759,7 @@ class Fetch:
         except Exception:
             ## Fallback empty XML
             results = lxml.etree.fromstring(
-                '<?xml version="1.0"?><!DOCTYPE _[<!ELEMENT _ EMPTY>]><_/>'.encode(
-                    "utf-8"
-                )
+                b'<?xml version="1.0"?><!DOCTYPE _[<!ELEMENT _ EMPTY>]><_/>'
             )
         return results
 
@@ -773,7 +767,7 @@ class Fetch:
         self,
         dst_fn: str | Path,
         method: str = "GET",
-        params: Optional[Dict] = None,
+        params: dict | None = None,
         overwrite: bool = False,
         timeout: int = 30,
         read_timeout: int = 120,
@@ -970,7 +964,7 @@ class Fetch:
                                 final_size = Path(part_fn).stat().st_size
                                 if final_size < total_size:
                                     # If smaller, the connection was most likely cut.
-                                    raise IOError(
+                                    raise OSError(
                                         f"Incomplete download: {final_size}/{total_size} bytes"
                                     )
 
@@ -989,8 +983,8 @@ class Fetch:
                             return 0
 
                     except (
+                        OSError,
                         requests.exceptions.RequestException,
-                        IOError,
                         UnboundLocalError,
                     ) as e:
                         if attempt < tries - 1:
@@ -1013,7 +1007,7 @@ class Fetch:
         return -1
 
     def fetch_ftp_file(
-        self, dst_fn: str | Path, params: Optional[Dict] = None, overwrite: bool = False
+        self, dst_fn: str | Path, params: dict | None = None, overwrite: bool = False
     ):
         """Fetch an ftp file via ftplib with a progress bar."""
 
@@ -1043,20 +1037,22 @@ class Fetch:
             except ftplib.error_perm:
                 total_size = None
 
-            with open(dst_fn, "wb") as local_file:
-                with tqdm(
+            with (
+                open(dst_fn, "wb") as local_file,
+                tqdm(
                     total=total_size,
                     unit="B",
                     unit_scale=True,
                     desc=Path(dst_fn).name,
                     leave=True,
-                ) as pbar:
+                ) as pbar,
+            ):
 
-                    def callback(data):
-                        local_file.write(data)
-                        pbar.update(len(data))
+                def callback(data):
+                    local_file.write(data)
+                    pbar.update(len(data))
 
-                    ftp.retrbinary(f"RETR {path}", callback)
+                ftp.retrbinary(f"RETR {path}", callback)
 
             ftp.quit()
             logger.info(f"Fetched remote ftp file: {Path(self.url).name}.")
@@ -1085,9 +1081,9 @@ def _fetch_worker(module, entry, verbose=True):
 
 # List[FetchModule]
 def run_fetchez(
-    modules: List[Any],
+    modules: list[Any],
     threads: int = 3,
-    global_hooks: Optional[List[Any]] = None,
+    global_hooks: list[Any] | None = None,
     ignore_failures: bool = True,
 ):
     """Run Fetchez in parallel with hooks.
@@ -1204,7 +1200,7 @@ def run_fetchez(
                     try:
                         status = future.result()
                         if status != 0:
-                            raise IOError(
+                            raise OSError(
                                 f"Fetch worker returned non-zero status code: {status}"
                             )
                     except Exception as e:
@@ -1388,7 +1384,7 @@ def run_fetchez(
 
     # --- Post Hooks ---
     # Module-level Post-Hooks
-    results_by_mod: Dict[Any, Any] = {m: [] for m in modules}
+    results_by_mod: dict[Any, Any] = {m: [] for m in modules}
     for r_tuple in final_results_with_owner:
         owner_mod, entry = r_tuple
         if owner_mod in results_by_mod:

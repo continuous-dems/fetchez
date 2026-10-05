@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.uhslc
@@ -15,11 +14,9 @@ of Hawaii Sea Level Center (UHSLC).
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
-from fetchez import core
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +51,9 @@ class UHSLC(FetchModule):
 
     def __init__(
         self,
-        quality: Optional[str] = "rq",
-        resolution: Optional[str] = "hourly",
-        name: Optional[str] = "uhslc",
+        quality: str | None = "rq",
+        resolution: str | None = "hourly",
+        name: str | None = "uhslc",
         **kwargs,
     ):
         super().__init__(name=name, **kwargs)

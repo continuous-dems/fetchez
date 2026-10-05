@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.audit
@@ -11,8 +10,8 @@ Post-fetchez audit (summary of all operations, etc)
 :license: MIT, see LICENSE for more details.
 """
 
-import json
 import csv
+import json
 import logging
 from pathlib import Path
 

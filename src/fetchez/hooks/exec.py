@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks..exec
@@ -11,10 +10,11 @@ Run subprocess on the entry fn; using format templates.
 :license: MIT, see LICENSE for more details.
 """
 
-import subprocess
-import shlex
 import logging
+import shlex
+import subprocess
 from pathlib import Path
+
 from fetchez.hooks import FetchHook
 
 logger = logging.getLogger(__name__)

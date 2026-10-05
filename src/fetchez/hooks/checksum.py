@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.checksum
@@ -11,8 +10,8 @@ Calculate the checksum of each result entry.
 :license: MIT, see LICENSE for more details.
 """
 
-import logging
 import hashlib
+import logging
 from pathlib import Path
 
 from fetchez.hooks import FetchHook

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.osm
@@ -11,11 +10,10 @@ Fetch OpenStreetMap (OSM) data via the Overpass API.
 :license: MIT, see LICENSE for more details.
 """
 
-from typing import Optional
 from urllib.parse import urlencode
+
+from fetchez import cli, spatial
 from fetchez.modules import FetchModule
-from fetchez import cli
-from fetchez import spatial
 
 OVERPASS_API = "https://overpass-api.de/api/interpreter"
 
@@ -100,8 +98,8 @@ class OSM(FetchModule):
     def __init__(
         self,
         query: str = "coastline",
-        tag: Optional[str] = None,
-        chunk_size: Optional[str] = None,
+        tag: str | None = None,
+        chunk_size: str | None = None,
         **kwargs,
     ):
         super().__init__(name="osm", **kwargs)

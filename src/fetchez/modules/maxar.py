@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 globato.modules.maxar
@@ -9,9 +8,11 @@ Maxar Open Data Program.
 Crawls the static STAC catalog on S3 for disaster response imagery.
 """
 
-from fetchez import cli
-from .stac import STACModule
 import logging
+
+from fetchez import cli
+
+from .stac import STACModule
 
 logger = logging.getLogger(__name__)
 

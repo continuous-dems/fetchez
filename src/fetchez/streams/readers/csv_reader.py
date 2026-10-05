@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.streams.readers.csv_reader
@@ -12,7 +11,9 @@ Basic CSV reader to create a generic 'list' stream.
 """
 
 import csv
+
 from fetchez.utils import int_or, str_or
+
 from .base import BaseReader
 
 

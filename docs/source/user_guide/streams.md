@@ -11,18 +11,17 @@ import fetchez
 
 # Initialize a stream from a local dataset (or remote URL)
 stream = fetchez.read(
-    "path/to/lidar_data/",
-    ext=".laz",
-    region=[-124.1, -123.9, 44.58, 44.64]
+    "path/to/lidar_data/", ext=".laz", region=[-124.1, -123.9, 44.58, 44.64]
 )
 
 # Chain processing hooks
-stream.pipe("points2pixels", x_inc="1s", y_inc="1s", want_sums=True) \
-      .pipe("multi_stack", output="final_dem.tif", overwrite=True)
+stream.pipe("points2pixels", x_inc="1s", y_inc="1s", want_sums=True).pipe(
+    "multi_stack", output="final_dem.tif", overwrite=True
+)
 
 # Iterate the stream (This triggers the background engine)
 for chunk in stream:
-    pass # Data is processed automatically by the hooks!
+    pass  # Data is processed automatically by the hooks!
 ```
 
 ## Format Readers
@@ -38,6 +37,7 @@ To build a custom reader, extend BaseReader and implement _read_chunks() and _ex
 import numpy as np
 from fetchez.streams.readers.base import BaseReader
 
+
 class MyCustomReader(BaseReader):
     name = "custom-reader"
     meta_extensions = ["dat", "xyz"]
@@ -49,9 +49,9 @@ class MyCustomReader(BaseReader):
 
     def _extract_bounds(self, chunk):
         """Required for automatic .inf generation."""
-        xmin, xmax = np.min(chunk['x']), np.max(chunk['x'])
-        ymin, ymax = np.min(chunk['y']), np.max(chunk['y'])
-        zmin, zmax = np.min(chunk['z']), np.max(chunk['z'])
+        xmin, xmax = np.min(chunk["x"]), np.max(chunk["x"])
+        ymin, ymax = np.min(chunk["y"]), np.max(chunk["y"])
+        zmin, zmax = np.min(chunk["z"]), np.max(chunk["z"])
         return xmin, xmax, ymin, ymax, zmin, zmax, len(chunk)
 ```
 

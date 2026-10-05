@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.hydrolakes
@@ -11,8 +10,8 @@ Fetch HydroLAKES Global Lake Polygons.
 :license: MIT, see LICENSE for more details.
 """
 
-from fetchez.modules import FetchModule
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 HYDROLAKES_SHP_URL = (
     "https://data.hydrosheds.org/file/hydrolakes/HydroLAKES_polys_v10_shp.zip"

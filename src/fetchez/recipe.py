@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.recipe
@@ -12,31 +11,30 @@ Loads a configuration (The Recipe) and executes it against the target region.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import copy
-import json
-import yaml
-
 import inspect
+import json
 import logging
+import os
 import tracemalloc
 from pathlib import Path
+from typing import Any
 
+import yaml
+
+from . import __version__ as fetchez_version
 from .core import run_fetchez
-from .spatial import yield_parsed_regions, Region
 from .registry import (
-    ModuleRegistry,
+    BundleRegistry,
     HookRegistry,
     ModifierRegistry,
-    SchemaRegistry,
+    ModuleRegistry,
     PresetRegistry,
-    BundleRegistry,
     RecipeRegistry,
+    SchemaRegistry,
 )
-from .utils import TqdmLoggingHandler, colorize, CYAN
-from . import __version__ as fetchez_version
-
-from typing import Any, Optional
+from .spatial import Region, yield_parsed_regions
+from .utils import CYAN, TqdmLoggingHandler, colorize
 
 logger = logging.getLogger(__name__)
 
@@ -248,8 +246,9 @@ class Recipe:
                 for i, hook in enumerate(global_hooks, 1):
                     h_name = hook.get("name", "Unknown")
                     f.write(f"{i}. **`{h_name}`**\n")
-                    for k, v in hook.get("args", {}).items():
-                        f.write(f"    - `{k}`: `{v}`\n")
+                    f.writelines(
+                        f"    - `{k}`: `{v}`\n" for k, v in hook.get("args", {}).items()
+                    )
                 f.write("\n")
 
             f.write("---\n\n")
@@ -270,8 +269,7 @@ class Recipe:
                     if not args:
                         f.write("- *Defaults only*\n")
                     else:
-                        for k, v in args.items():
-                            f.write(f"- `{k}`: `{v}`\n")
+                        f.writelines(f"- `{k}`: `{v}`\n" for k, v in args.items())
 
                     # Print module-specific hooks
                     mod_hooks = mod.get("hooks", [])
@@ -280,8 +278,10 @@ class Recipe:
                         for i, hook in enumerate(mod_hooks, 1):
                             h_name = hook.get("name", "Unknown")
                             f.write(f"{i}. `{h_name}`\n")
-                            for k, v in hook.get("args", {}).items():
-                                f.write(f"    - `{k}`: `{v}`\n")
+                            f.writelines(
+                                f"    - `{k}`: `{v}`\n"
+                                for k, v in hook.get("args", {}).items()
+                            )
                     f.write("\n")
 
         logger.debug(f"Saved execution receipt to {receipt_filename}")
@@ -301,9 +301,7 @@ class Recipe:
                 )
                 raise RuntimeError("Fetchez version incompatibility.")
 
-    def _resolve_path(
-        self, path: str, base: Optional[str] = None
-    ) -> Optional[str | Any]:
+    def _resolve_path(self, path: str, base: str | None = None) -> str | Any | None:
         """Resolves output paths relative to the recipe file."""
 
         if not isinstance(path, str):
@@ -543,8 +541,8 @@ class Recipe:
     # Yield the config for each iteration, etc.
     def run(
         self,
-        outdir: Optional[str] = None,
-        shared_cache: Optional[str] = None,
+        outdir: str | None = None,
+        shared_cache: str | None = None,
         overwrite: bool = False,
         refresh: bool = False,
         ignore_failures: bool = False,

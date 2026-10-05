@@ -1,8 +1,8 @@
 # test_spatial.py
 
 import pytest
-from fetchez.spatial import parse_region
-from fetchez.spatial import Region
+
+from fetchez.spatial import Region, parse_region
 
 
 def test_parse_region_with_epsg():

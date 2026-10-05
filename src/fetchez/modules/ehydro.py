@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.ehydro
@@ -11,14 +10,13 @@ Fetch USACE eHydro bathymetric survey data.
 :license: MIT, see LICENSE for more details.
 """
 
+import datetime
 import json
 import logging
-import datetime
-from typing import Optional
 from urllib.parse import urlencode
-from fetchez import core
+
+from fetchez import cli, core
 from fetchez.modules import FetchModule
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +61,9 @@ class eHydro(FetchModule):
     def __init__(
         self,
         where: str = "1=1",
-        survey: Optional[str] = None,
-        min_year: Optional[str] = None,
-        max_year: Optional[str] = None,
+        survey: str | None = None,
+        min_year: str | None = None,
+        max_year: str | None = None,
         **kwargs,
     ):
         super().__init__(name="ehydro", **kwargs)

@@ -157,8 +157,10 @@ def test_fallback_bbox_uses_fetchez_region_order():
 
 def test_spatial_claim_audit_records_authoritative_and_accepted_geometry(tmp_path):
     import json
-    import shapely
     from types import SimpleNamespace
+
+    import shapely
+
     from fetchez.hooks.spatial_claim import SpatialClaimHook
 
     mod = SimpleNamespace(name="tnm")

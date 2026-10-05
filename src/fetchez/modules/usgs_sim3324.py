@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.usgs_sim3324
@@ -18,8 +17,7 @@ from urllib.parse import urljoin
 from shapely.geometry import box, mapping
 from tqdm.auto import tqdm
 
-from fetchez import core
-from fetchez import fred
+from fetchez import core, fred
 from fetchez.modules.base import FetchModule
 from fetchez.utils import str_or
 

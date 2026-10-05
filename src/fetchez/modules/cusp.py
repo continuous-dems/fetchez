@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.cusp
@@ -14,8 +13,9 @@ Uses the 'Generative Tile' strategy for 5x5 degree tiles.
 
 import logging
 import math
-from fetchez.modules import FetchModule
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
 

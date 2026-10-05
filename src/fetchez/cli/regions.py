@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.regions
@@ -11,13 +10,14 @@ Spatial management commands for generating, formatting, and splitting bounding b
 :license: MIT, see LICENSE for more details.
 """
 
-import sys
-import click
 import json
 import math
+import sys
 
-from fetchez.utils import FetchezMainGroup, FetchezMainCommand
+import click
+
 from fetchez.spatial import yield_parsed_regions
+from fetchez.utils import FetchezMainCommand, FetchezMainGroup
 
 REGION_COMMANDS = ["echo", "buffer", "split", "transform"]
 
@@ -63,8 +63,6 @@ def regions_group():  # ctx, region_str):
 
     # ctx.ensure_object(dict)
     # ctx.obj["region_str"] = region_str
-
-    pass
 
 
 @regions_group.command("echo", cls=FetchezMainCommand)

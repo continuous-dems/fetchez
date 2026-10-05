@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.proj
@@ -14,11 +13,11 @@ Fetch transformation grids via the PROJ Content Delivery Network (CDN).
 import json
 import logging
 from pathlib import Path
-from typing import Optional
-from fetchez import core, cli, spatial
-from fetchez.modules import FetchModule
 
 from shapely.geometry import shape
+
+from fetchez import cli, core, spatial
+from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +58,7 @@ class PROJ(FetchModule):
     For NOAA Tidal Grids (MLLW, MHHW), use the 'vdatum' module.
     """
 
-    def __init__(
-        self, query: Optional[str] = None, epsg: Optional[str] = None, **kwargs
-    ):
+    def __init__(self, query: str | None = None, epsg: str | None = None, **kwargs):
         super().__init__(name="proj", **kwargs)
         self.query = query.lower() if query else None
         self.epsg = str(epsg) if epsg else None

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.transfer_log
@@ -11,8 +10,9 @@ Generates a report of successful and failed downloads.
 :license: MIT, see LICENSE for more details.
 """
 
-import os
 import logging
+import os
+
 from fetchez.hooks import FetchHook
 
 logger = logging.getLogger(__name__)

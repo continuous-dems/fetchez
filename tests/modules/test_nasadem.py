@@ -1,8 +1,10 @@
 # tests/modules/test_nasadem.py
+import logging
+
 import pytest
 import requests
-import logging
-from fetchez.modules.nasadem import NASADEM, HEADERS
+
+from fetchez.modules.nasadem import HEADERS, NASADEM
 
 logger = logging.getLogger(__name__)
 

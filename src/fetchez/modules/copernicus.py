@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.copernicus
@@ -12,13 +11,12 @@ Fetch data from the Copernicus Digital Elevation Model (DEM).
 """
 
 import logging
-from typing import Optional, List, Any
+from typing import Any
+
 from tqdm.auto import tqdm
 
-from fetchez import core
+from fetchez import cli, core, fred
 from fetchez.modules import FetchModule
-from fetchez import fred
-from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
@@ -73,11 +71,11 @@ class CopernicusDEM(FetchModule):
     auto-update on first run.
     """
 
-    def __init__(self, datatype: Optional[str] = None, update: bool = False, **kwargs):
+    def __init__(self, datatype: str | None = None, update: bool = False, **kwargs):
         super().__init__(name="copernicus", **kwargs)
         self.datatype = datatype
         self.force_update = update
-        self.where: List[Any] = []
+        self.where: list[Any] = []
 
         self.headers = HEADERS
 

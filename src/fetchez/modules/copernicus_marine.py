@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.copernicus_marine
@@ -13,11 +12,13 @@ the copernincusmarine api.
 """
 
 import logging
-import filelock
 from pathlib import Path
-from fetchez.modules import FetchModule
-from fetchez.core import get_raw_credentials
+
+import filelock
+
 from fetchez import cli
+from fetchez.core import get_raw_credentials
+from fetchez.modules import FetchModule
 
 try:
     import copernicusmarine
@@ -58,7 +59,7 @@ class CopernicusMarineSDB(FetchModule):
         )
         if not self.username or not self.password:
             logger.warning("No credentials found in .netrc for CDSE.")
-            return None
+            return
 
     def run(self):
         if not HAS_COPMARINE:

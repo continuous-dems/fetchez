@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 visualize_tides.py
@@ -8,16 +7,16 @@ visualize_tides.py
 Recipe: Fetch and Plot NOAA Tide Data.
 """
 
-import sys
 import argparse
 import logging
+import sys
 from pathlib import Path
 
 # Dependencies
 try:
-    import pandas as pd
-    import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
+    import matplotlib.pyplot as plt
+    import pandas as pd
 except ImportError:
     sys.stderr.write("ERROR: Requires 'pandas' and 'matplotlib'. Install via pip.\n")
     sys.exit(1)

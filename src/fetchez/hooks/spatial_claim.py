@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Resolve prioritized authoritative footprints into accepted spatial claims.
 
@@ -12,9 +11,9 @@ entries are clipped by the union of higher-priority authoritative footprints.
 from __future__ import annotations
 
 import json
+import logging
 import math
 from pathlib import Path
-import logging
 from typing import Any
 
 import shapely

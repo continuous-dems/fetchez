@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.recipes
@@ -12,21 +11,23 @@ Discoverability and documentation for fetchez recipes.
 """
 
 import sys
-import yaml
-import click
 from pathlib import Path
 
+import click
+import yaml
+
+from fetchez.api import search_recipes
 from fetchez.recipe import Recipe, load_recipe_config
 from fetchez.registry import RecipeRegistry
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
-from fetchez.api import search_recipes
-from .schemas import schemas_group
+
 from .modifiers import modifiers_group
+from .schemas import schemas_group
 
 RECIPE_COMMANDS = [
     "copy",
@@ -57,8 +58,6 @@ def recipes_group():
     Use `fetchez recipes list` and `fetchez recipes info` to discover available
     recipes.
     """
-
-    pass
 
 
 @recipes_group.command("list", cls=FetchezMainCommand)

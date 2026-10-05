@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.nasadem
@@ -12,8 +11,9 @@ Fetch NASA Digital Elevation Model (NASADEM) data via OpenTopography.
 """
 
 import math
-from fetchez.modules import FetchModule
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 # OpenTopography S3 Mirror (Public)
 NASADEM_BASE_URL = (

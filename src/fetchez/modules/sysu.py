@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.sysu
@@ -15,9 +14,10 @@ https://zenodo.org/records/17958545
 """
 
 import logging
+
 from fetchez import cli
-from fetchez.modules import FetchModule
 from fetchez.core import CUDEM_USER_AGENT
+from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
 

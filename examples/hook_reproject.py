@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 hook_reproject.py
@@ -21,8 +20,9 @@ Description:
   target CRS.
 """
 
-import os
 import logging
+import os
+
 from fetchez.hooks import FetchHook
 
 # Soft import so the hook doesn't crash fetchez if GDAL isn't installed

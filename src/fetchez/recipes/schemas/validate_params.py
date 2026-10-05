@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.recipes.schemas.validate_modules
@@ -15,8 +14,8 @@ Checks for missing dependencies from specific Modules.
 """
 
 import inspect
-from fetchez.registry import ModuleRegistry
-from fetchez.registry import HookRegistry
+
+from fetchez.registry import HookRegistry, ModuleRegistry
 
 from .base import BaseSchema
 

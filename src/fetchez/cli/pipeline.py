@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.pipeline
@@ -13,20 +12,21 @@ Build a fetchez pipeline.
 
 import click
 import yaml
+
 from fetchez.recipe import Recipe
 from fetchez.registry import (
-    ModuleRegistry,
     BundleRegistry,
-    PresetRegistry,
     HookRegistry,
     # SchemaRegistry,
+    ModuleRegistry,
+    PresetRegistry,
 )
 from fetchez.spatial import parse_region, region_help_msg
 from fetchez.utils import (
-    parse_hook_string,
-    parse_arg_to_list,
-    FetchezMainGroup,
     FetchezMainCommand,
+    FetchezMainGroup,
+    parse_arg_to_list,
+    parse_hook_string,
 )
 
 

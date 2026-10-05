@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.vdatum
@@ -12,19 +11,16 @@ multi-grid geopotential models such as xGEOID.
 :license: MIT, see LICENSE for more details.
 """
 
+import logging
 import os
 import re
-import logging
-import requests
 import zipfile
-
 from pathlib import Path
-from typing import Any, Optional, Self
+from typing import Any, Self
 
-from fetchez import cli
-from fetchez import core
-from fetchez import fred
-from fetchez import utils
+import requests
+
+from fetchez import cli, core, fred, utils
 from fetchez.modules import FetchModule
 
 logger = logging.getLogger(__name__)
@@ -97,8 +93,8 @@ class VDatum(FetchModule):
 
     def __init__(
         self,
-        datatype: Optional[str] = None,
-        coverage: Optional[str] = None,
+        datatype: str | None = None,
+        coverage: str | None = None,
         update: bool = False,
         **kwargs: Any,
     ):
@@ -130,11 +126,11 @@ class VDatum(FetchModule):
     @staticmethod
     def _bbox_from_values(
         values: dict[str, str],
-        prefix: Optional[str] = None,
-    ) -> Optional[tuple[float, float, float, float]]:
+        prefix: str | None = None,
+    ) -> tuple[float, float, float, float] | None:
         """Extract a geographic bbox from parsed VDatum metadata."""
 
-        def get_value(name: str) -> Optional[str]:
+        def get_value(name: str) -> str | None:
             if prefix is None:
                 # Regional .met files commonly use keys such as
                 # ``tidal.minlat`` / ``tidal.maxlat``.
@@ -207,7 +203,7 @@ class VDatum(FetchModule):
     def _find_multigrid_inf(
         archive: zipfile.ZipFile,
         namelist: list[str],
-    ) -> Optional[tuple[str, dict[str, str]]]:
+    ) -> tuple[str, dict[str, str]] | None:
         """Find an INF describing a multi-grid model package.
 
         xGEOID packages contain an INF with a ``grids=`` declaration and
@@ -256,7 +252,7 @@ class VDatum(FetchModule):
         values: dict[str, str],
         component: str,
         key: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Return a component-specific INF value case-insensitively."""
 
         wanted = f"{component}.{key}".casefold()
@@ -271,7 +267,7 @@ class VDatum(FetchModule):
     def _component_resolution(
         values: dict[str, str],
         component: str,
-    ) -> Optional[float]:
+    ) -> float | None:
         """Return a representative grid spacing for component ranking."""
 
         candidates = []
@@ -309,7 +305,7 @@ class VDatum(FetchModule):
         namelist: list[str],
         values: dict[str, str],
         component: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Resolve the GTX archive member belonging to one INF component."""
 
         source = VDatum._component_value(
@@ -478,7 +474,7 @@ class VDatum(FetchModule):
         self,
         archive: zipfile.ZipFile,
         namelist: list[str],
-    ) -> Optional[tuple[float, float, float, float]]:
+    ) -> tuple[float, float, float, float] | None:
         """Find the bbox for a conventional regional VDatum package."""
 
         # Prefer .met because it describes the downloaded coverage itself.
@@ -577,11 +573,10 @@ class VDatum(FetchModule):
         return base, version, stem
 
     @staticmethod
-    def _standalone_model_name(zip_name: str) -> Optional[str]:
+    def _standalone_model_name(zip_name: str) -> str | None:
         stem = Path(zip_name).stem.casefold()
 
-        if stem.startswith("vdatum_"):
-            stem = stem[len("vdatum_") :]
+        stem = stem.removeprefix("vdatum_")
 
         if stem in STANDALONE_MODELS:
             return stem

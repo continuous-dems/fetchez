@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.usiei
@@ -12,8 +11,9 @@ Query the US Interagency Elevation Inventory (USIEI) via ArcGIS REST API.
 """
 
 from urllib.parse import urlencode
-from fetchez.modules import FetchModule
+
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 USIEI_MAP_SERVER_URL = (
     "https://coast.noaa.gov/arcgis/rest/services/"

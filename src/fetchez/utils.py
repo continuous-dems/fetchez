@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.utils
@@ -12,27 +11,26 @@ and basic user interaction. Based on cudem.utils
 :license: MIT, see LICENSE for more details.
 """
 
-import os
-import sys
 import datetime
-import getpass
-import logging
-import shutil
-import tempfile
-from tqdm.auto import tqdm
-import re
-import inspect
-import click
-from pathlib import Path
-from typing import Optional, Dict, Any, List
-import filelock
-
 import fnmatch
-import hashlib
-import tarfile
+import getpass
 import gzip
+import hashlib
+import inspect
+import logging
+import os
+import re
+import shutil
+import sys
+import tarfile
+import tempfile
 import zipfile
+from pathlib import Path
+from typing import Any
 
+import click
+import filelock
+from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +107,7 @@ def _cli_logo(name="fetchez", desc="", version=""):
 class FetchezMainGroup(click.Group):
     """Custom group to categorize the main CLI commands."""
 
-    def __init__(self, fetchez_commands: Optional[List[str]] = None, **kwargs):
+    def __init__(self, fetchez_commands: list[str] | None = None, **kwargs):
         super().__init__(**kwargs)
 
         self.fetchez_commands = fetchez_commands or []
@@ -225,7 +223,7 @@ def get_password() -> str:
     return password.strip()
 
 
-def int_or(val: Any, or_val: Optional[int] = None) -> Optional[int]:
+def int_or(val: Any, or_val: int | None = None) -> int | None:
     """Return val if val is an integer, else return or_val"""
 
     try:
@@ -237,7 +235,7 @@ def int_or(val: Any, or_val: Optional[int] = None) -> Optional[int]:
         return or_val
 
 
-def float_or(val: Any, or_val: Optional[float] = None) -> Optional[float]:
+def float_or(val: Any, or_val: float | None = None) -> float | None:
     """Return val if val is a float, else return or_val"""
 
     try:
@@ -247,8 +245,8 @@ def float_or(val: Any, or_val: Optional[float] = None) -> Optional[float]:
 
 
 def str_or(
-    instr: Any, or_val: Optional[str] = None, replace_quote: bool = True
-) -> Optional[str]:
+    instr: Any, or_val: str | None = None, replace_quote: bool = True
+) -> str | None:
     """Return val if val is a string, else return or_val"""
 
     if instr is None:
@@ -260,7 +258,7 @@ def str_or(
         return or_val
 
 
-def str2bool(v: Any) -> Optional[bool]:
+def str2bool(v: Any) -> bool | None:
     """Convert a string (or other type) to a boolean.
 
     Accepts:
@@ -293,7 +291,7 @@ def str2bool(v: Any) -> Optional[bool]:
         return None
 
 
-def str_truncate_middle(s: Optional[str], n: Optional[int] = 80) -> str:
+def str_truncate_middle(s: str | None, n: int | None = 80) -> str:
     """Truncate the middle of the input string, replace with `...`"""
 
     s = str_or(s, "")
@@ -306,7 +304,7 @@ def str_truncate_middle(s: Optional[str], n: Optional[int] = 80) -> str:
     return str(s)
 
 
-def format_dataset_id(dataset_id: Optional[str]) -> str:
+def format_dataset_id(dataset_id: str | None) -> str:
     """Extracts Context + Basename for logging."""
 
     from urllib.parse import urlparse
@@ -356,7 +354,7 @@ def inc2str(inc: float) -> str:
     )
 
 
-def str2inc(inc_str: Optional[str]) -> Optional[float]:
+def str2inc(inc_str: str | None) -> float | None:
     """Convert a GMT-style inc_str (e.g. 6s) to geographic units.
 
     c/s - arc-seconds
@@ -443,7 +441,7 @@ def _parse_value_string(val_str: str) -> Any:
         return val_str.strip('"')
 
 
-def make_temp_fn(basename: str, temp_dir: Optional[str] = None) -> str:
+def make_temp_fn(basename: str, temp_dir: str | None = None) -> str:
     """Generate a temporary filename."""
 
     basename_path = Path(basename)
@@ -493,7 +491,7 @@ def parse_fmod_argparse(fmod):
     return opts, mod, mod_args
 
 
-def fmod2dict(fmod: str, dict_args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def fmod2dict(fmod: str, dict_args: dict[str, Any] | None = None) -> dict[str, Any]:
     """Convert factory module string to a dict.
 
     Args:
@@ -626,9 +624,14 @@ def parse_hook_string(hook_str, default_name=None):
             v = eq_parts[1].strip()
 
             # Strip surrounding quotes so the hook gets a clean string
-            if len(v) >= 2 and v.startswith('"') and v.endswith('"'):
-                v = v[1:-1]
-            elif len(v) >= 2 and v.startswith("'") and v.endswith("'"):
+            if (
+                len(v) >= 2
+                and v.startswith('"')
+                and v.endswith('"')
+                or len(v) >= 2
+                and v.startswith("'")
+                and v.endswith("'")
+            ):
                 v = v[1:-1]
 
             if v.lower() in ["true", "yes"]:
@@ -650,7 +653,7 @@ def parse_hook_string(hook_str, default_name=None):
     return hook
 
 
-def parse_source_string(source_str: str, default_hooks: Optional[List] = None) -> Dict:
+def parse_source_string(source_str: str, default_hooks: list | None = None) -> dict:
     """Parses a source string into a Fetchez module dictionary.
 
     Supports local file auto-detection and chaining hooks via '+'.
@@ -694,6 +697,7 @@ def parse_source_string(source_str: str, default_hooks: Optional[List] = None) -
 def compile_sources(sources):
 
     import yaml
+
     from fetchez.registry import BundleRegistry
 
     BundleRegistry.load_all()
@@ -917,7 +921,7 @@ def _extract_lock_path(
 ) -> Path:
     """Return a stable lock path for an archive/output pair."""
     key = hashlib.sha256(
-        f"{src_file.resolve()}::{outdir.resolve()}".encode("utf-8")
+        f"{src_file.resolve()}::{outdir.resolve()}".encode()
     ).hexdigest()[:16]
     return outdir / f".{src_file.name}.{key}.extract.lock"
 
@@ -947,7 +951,7 @@ def _safe_member_path(
 
 def _member_matches(
     member_name: str,
-    patterns: Optional[List[str]],
+    patterns: list[str] | None,
 ) -> bool:
     """Return True when an archive member matches one of the requested patterns."""
     if not patterns:
@@ -967,7 +971,7 @@ def _publish_extracted_file(
     temp_path: Path,
     dest_path: Path,
     *,
-    expected_size: Optional[int] = None,
+    expected_size: int | None = None,
     overwrite: bool = False,
 ) -> bool:
     """Atomically publish one extracted file.
@@ -1005,11 +1009,11 @@ def _complete_destination_exists(
 def _extract_zip(
     archive: zipfile.ZipFile,
     outdir: Path,
-    members: Optional[List[str]],
+    members: list[str] | None,
     overwrite: bool,
-) -> List[Path]:
+) -> list[Path]:
     """Extract selected ZIP members into a staging directory."""
-    extracted: List[tuple[Path, Path, Optional[int]]] = []
+    extracted: list[tuple[Path, Path, int | None]] = []
 
     with tempfile.TemporaryDirectory(
         prefix=f".{outdir.name}.extract-",
@@ -1043,7 +1047,7 @@ def _extract_zip(
 
             extracted.append((temp_path, dest_path, info.file_size))
 
-        result: List[Path] = []
+        result: list[Path] = []
 
         for temp_path, dest_path, expected_size in extracted:
             _publish_extracted_file(
@@ -1070,11 +1074,11 @@ def _extract_zip(
 def _extract_tar(
     archive: tarfile.TarFile,
     outdir: Path,
-    members: Optional[List[str]],
+    members: list[str] | None,
     overwrite: bool,
-) -> List[Path]:
+) -> list[Path]:
     """Extract selected regular TAR members into a staging directory."""
-    extracted: List[tuple[Path, Path, Optional[int]]] = []
+    extracted: list[tuple[Path, Path, int | None]] = []
 
     with tempfile.TemporaryDirectory(
         prefix=f".{outdir.name}.extract-",
@@ -1112,7 +1116,7 @@ def _extract_tar(
 
             extracted.append((temp_path, dest_path, info.size))
 
-        result: List[Path] = []
+        result: list[Path] = []
 
         for temp_path, dest_path, expected_size in extracted:
             _publish_extracted_file(
@@ -1139,7 +1143,7 @@ def _extract_gzip(
     src_file: Path,
     outdir: Path,
     overwrite: bool,
-) -> List[Path]:
+) -> list[Path]:
     """Decompress one GZIP file and atomically publish its output."""
     dest_path = outdir / src_file.stem
     dest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1173,9 +1177,9 @@ def _extract_gzip(
 def p_f_extract(
     src_file: str | Path,
     outdir: str | Path = "./",
-    members: Optional[List[str]] = None,
+    members: list[str] | None = None,
     overwrite: bool = False,
-) -> List[Path]:
+) -> list[Path]:
     """Safely extract or decompress an archive.
 
     Supports ZIP, TAR, TAR.GZ, TGZ, and GZ archives.
@@ -1206,9 +1210,7 @@ def p_f_extract(
     suffix = src_file.name.casefold()
 
     # GZIP is special because .tar.gz must be treated as a TAR archive.
-    if suffix.endswith((".tar.gz", ".tgz")):
-        archive_type = "tar"
-    elif suffix.endswith(".tar"):
+    if suffix.endswith((".tar.gz", ".tgz")) or suffix.endswith(".tar"):
         archive_type = "tar"
     elif suffix.endswith(".zip"):
         archive_type = "zip"
@@ -1247,10 +1249,10 @@ def p_f_extract(
 
 def p_f_unzip(
     src_file: str | Path,
-    fns: Optional[List[str]] = None,
+    fns: list[str] | None = None,
     outdir: str | Path = "./",
     overwrite: bool = False,
-) -> List[Path]:
+) -> list[Path]:
     """Compatibility wrapper for extracting ZIP files."""
     return p_f_extract(
         src_file,
@@ -1262,10 +1264,10 @@ def p_f_unzip(
 
 def p_f_untar(
     src_file: str | Path,
-    fns: Optional[List[str]] = None,
+    fns: list[str] | None = None,
     outdir: str | Path = "./",
     overwrite: bool = False,
-) -> List[Path]:
+) -> list[Path]:
     """Extract selected TAR archive members."""
     return p_f_extract(
         src_file,
@@ -1279,7 +1281,7 @@ def p_f_gunzip(
     src_file: str | Path,
     outdir: str | Path = "./",
     overwrite: bool = False,
-) -> List[Path]:
+) -> list[Path]:
     """Decompress one GZIP file."""
     return p_f_extract(
         src_file,

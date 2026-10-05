@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.streams.readers.base
@@ -12,8 +11,8 @@ Base fetchez Reader class to create 'streams'
 """
 
 import json
-import math
 import logging
+import math
 
 from fetchez.spatial import Region
 
@@ -78,7 +77,6 @@ class BaseReader:
                     json.dump(meta, f, indent=4)
             except Exception:
                 logger.debug(f"Could not write inf file {out_path}")
-                pass
 
         return meta
 

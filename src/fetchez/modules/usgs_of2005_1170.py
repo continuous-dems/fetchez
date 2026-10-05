@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.usgs_of2005_1170
@@ -17,8 +16,7 @@ from urllib.parse import urljoin
 from shapely.geometry import box, mapping
 from tqdm.auto import tqdm
 
-from fetchez import core
-from fetchez import fred
+from fetchez import core, fred
 from fetchez.modules.base import FetchModule
 from fetchez.utils import str_or
 
@@ -247,12 +245,14 @@ class USGS_OF2005_1170(FetchModule):
             # Skip if user specified a specific dataset and this isn't it,
             # or if they specified a folder category and it doesn't belong to it
             if self.datatype != "all":
-                if self.datatype in self.CATALOG and dataset_id != self.datatype:
-                    continue
-                # Folder category match (e.g. "sidescan" or "habitat")
-                elif self.datatype not in self.CATALOG and not self.CATALOG[dataset_id][
-                    "path"
-                ].startswith(f"{self.datatype}/"):
+                if (
+                    self.datatype in self.CATALOG
+                    and dataset_id != self.datatype
+                    or self.datatype not in self.CATALOG
+                    and not self.CATALOG[dataset_id]["path"].startswith(
+                        f"{self.datatype}/"
+                    )
+                ):
                     continue
 
             data_link = surv.get("DataLink")

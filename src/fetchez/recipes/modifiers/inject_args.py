@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.recipes.modifiers.inject_args
@@ -12,8 +11,9 @@ from a recipe.
 :license: MIT, see LICENSE for more details.
 """
 
-from fetchez.recipes.modifiers.base import BaseModifier
 import logging
+
+from fetchez.recipes.modifiers.base import BaseModifier
 
 logger = logging.getLogger(__name__)
 

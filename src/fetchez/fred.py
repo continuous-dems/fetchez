@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.fred
@@ -17,13 +16,11 @@ that lack a public API but provide file lists (e.g., NCEI Thredds, USACE).
 import json
 import logging
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Tuple
-
-from . import utils
-from . import config
-from . import spatial
+from typing import Any
 
 from shapely.geometry import shape
+
+from . import config, spatial, utils
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +69,7 @@ class FRED:
         else:
             self.path = Path(self.filename)
 
-        self.features: List[Any] = []
+        self.features: list[Any] = []
         self._load()
 
     def _load(self):
@@ -91,7 +88,7 @@ class FRED:
                 )
                 logger.debug(msg)
 
-            except (json.JSONDecodeError, IOError) as e:
+            except (OSError, json.JSONDecodeError) as e:
                 logger.error(f"Corrupt or unreadable index at {self.path}: {e}")
                 self.features = []
         else:
@@ -119,10 +116,10 @@ class FRED:
             with open(self.path, "w", encoding="utf-8") as f:
                 json.dump(data, f, separators=(",", ":"))  # Compact JSON
             logger.info(f"Saved {len(self.features)} items to {self.name} index.")
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Failed to save FRED index {self.path}: {e}")
 
-    def add_survey(self, geom: Dict, **kwargs):
+    def add_survey(self, geom: dict, **kwargs):
         """Add a single survey entry to the FRED database.
 
         Args:
@@ -142,10 +139,10 @@ class FRED:
 
     def search(
         self,
-        region: Optional[Tuple[float, float, float, float]] = None,
-        where: Optional[List[str]] = None,
-        layer: Optional[str] = None,
-    ) -> List[Dict]:
+        region: tuple[float, float, float, float] | None = None,
+        where: list[str] | None = None,
+        layer: str | None = None,
+    ) -> list[dict]:
         """Search for data in the reference vector file.
 
         Args:
@@ -202,7 +199,7 @@ class FRED:
         logger.debug(f"FRED Search found {len(results)} items.")
         return results
 
-    def _get_unique_values(self, field: str) -> List[Any]:
+    def _get_unique_values(self, field: str) -> list[Any]:
         """Helper to see unique values for a field (e.g. Agency)."""
 
         values = set()
@@ -213,8 +210,8 @@ class FRED:
         return list(values)
 
     def _detect_spatial_fields(
-        self, row: Dict
-    ) -> Tuple[Optional[float], Optional[float], Optional[float], Optional[float]]:
+        self, row: dict
+    ) -> tuple[float | None, float | None, float | None, float | None]:
         """Attempt to find W/E/S/N in a dictionary using common abbreviations."""
 
         keys_w = ["w", "west", "xmin", "min_lon", "min_x", "left"]
@@ -228,7 +225,7 @@ class FRED:
                 if k in row:
                     return float(row[k])
                 # Try Case-Insensitive
-                for rk in row.keys():
+                for rk in row:
                     if rk.lower() == k:
                         return float(row[rk])
             return None
@@ -238,7 +235,7 @@ class FRED:
     def ingest(
         self,
         source_file: str,
-        field_map: Optional[Dict[str, str]] = None,
+        field_map: dict[str, str] | None = None,
         wipe: bool = False,
     ):
         """Ingest a file listing (CSV or JSON) into the FRED index.

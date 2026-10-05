@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.config
@@ -12,9 +11,10 @@ config file ~/.fetchez/ ...
 """
 
 import json
-import yaml
-from pathlib import Path
 import logging
+from pathlib import Path
+
+import yaml
 
 home_dir = Path.home()
 CONFIG_PATH = home_dir / ".fetchez"

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 class2xyz (fetchez hook) — LITE
@@ -58,11 +57,10 @@ Notes:
 from __future__ import annotations
 
 import hashlib
-import re
 import logging
 import math
+import re
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
 from pathlib import Path
 
 from fetchez.hooks import FetchHook
@@ -91,7 +89,7 @@ def _as_int(v, default: int) -> int:
         return default
 
 
-def _parse_classes(v) -> Optional[List[int]]:
+def _parse_classes(v) -> list[int] | None:
     """
     Parse a classification list.
 
@@ -109,7 +107,7 @@ def _parse_classes(v) -> Optional[List[int]]:
     if v is None or v == "":
         return None
     if isinstance(v, (list, tuple)):
-        out: List[int] = []
+        out: list[int] = []
         for x in v:
             try:
                 out.append(int(x))
@@ -125,7 +123,7 @@ def _parse_classes(v) -> Optional[List[int]]:
 
     # Split on common separators. (Avoid commas in CLI values; use | or + instead.)
     toks = [t for t in re.split(r"[,\|\+;\s]+", s) if t]
-    out: List[int] = []
+    out: list[int] = []
     for tok in toks:
         out.append(int(tok))
     return sorted(set(out)) if out else None
@@ -147,7 +145,7 @@ def _looks_geographic_bbox(xmin: float, xmax: float, ymin: float, ymax: float) -
     return (xmin >= -180.0 and xmax <= 180.0) and (ymin >= -90.0 and ymax <= 90.0)
 
 
-def _dp_from_scale(scale: Optional[float], fallback: int = 3) -> int:
+def _dp_from_scale(scale: float | None, fallback: int = 3) -> int:
     """Infer decimal places from LAS header scale (e.g., 0.001 -> 3 dp)."""
     try:
         if scale is None or scale <= 0:
@@ -161,7 +159,7 @@ def _dp_from_scale(scale: Optional[float], fallback: int = 3) -> int:
         return fallback
 
 
-def _class_tag(classes: Optional[List[int]]) -> str:
+def _class_tag(classes: list[int] | None) -> str:
     if not classes:
         return "call"
     # already sorted/unique from _parse_classes
@@ -259,7 +257,7 @@ class Class2XYZ(FetchHook):
         return str(Path(self.out_dir) / f"{base}_{tag}{self.suffix}.xyz")
 
     def _log_enabled_once(
-        self, xy_dp: int, z_dp: int, geo: bool, z_scale: Optional[float]
+        self, xy_dp: int, z_dp: int, geo: bool, z_scale: float | None
     ):
         if self._logged_enabled:
             return
@@ -273,7 +271,7 @@ class Class2XYZ(FetchHook):
 
     def _infer_precisions_from_header(
         self, las_path: str
-    ) -> Tuple[bool, int, int, Optional[float]]:
+    ) -> tuple[bool, int, int, float | None]:
         try:
             import laspy  # type: ignore
         except Exception:
@@ -295,7 +293,7 @@ class Class2XYZ(FetchHook):
             )
             xy_default = self._xy_geo_precision if geo else self._xy_proj_precision
 
-            z_scale_val: Optional[float] = None
+            z_scale_val: float | None = None
             scales = getattr(hdr, "scales", None)
             if scales is not None and len(scales) >= 3:
                 try:
@@ -316,7 +314,7 @@ class Class2XYZ(FetchHook):
 
     def _run_laspy(
         self, las_path: str, out_xyz: str, xy_dp: int, z_dp: int
-    ) -> Tuple[bool, int]:
+    ) -> tuple[bool, int]:
         try:
             import laspy  # type: ignore
         except Exception:
@@ -402,12 +400,12 @@ class Class2XYZ(FetchHook):
                         f.write("\n".join(lines.tolist()))
                         f.write("\n")
                     except Exception:
-                        for i in range(n):
-                            f.write(
-                                f"{xfmt_py.format(x[i])}{self.delimiter}"
-                                f"{yfmt_py.format(y[i])}{self.delimiter}"
-                                f"{zfmt_py.format(z[i])}\n"
-                            )
+                        f.writelines(
+                            f"{xfmt_py.format(x[i])}{self.delimiter}"
+                            f"{yfmt_py.format(y[i])}{self.delimiter}"
+                            f"{zfmt_py.format(z[i])}\n"
+                            for i in range(n)
+                        )
 
                     points_written += n
 
@@ -422,7 +420,7 @@ class Class2XYZ(FetchHook):
         return True, points_written
 
     def run(self, entries):
-        out_entries: List[Tuple[object, dict]] = []
+        out_entries: list[tuple[object, dict]] = []
 
         for mod, entry in entries:
             out_entries.append((mod, entry))

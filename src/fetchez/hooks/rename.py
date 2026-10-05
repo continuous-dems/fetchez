@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.rename
@@ -11,9 +10,9 @@ Rename an entry fn.
 :license: MIT, see LICENSE for more details.
 """
 
+import logging
 import os
 import re
-import logging
 
 from fetchez.hooks import FetchHook
 

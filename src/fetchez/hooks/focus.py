@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.focus
@@ -12,6 +11,7 @@ Pipeline control hooks for artifact focus.
 """
 
 import logging
+
 from fetchez.hooks import FetchHook
 
 logger = logging.getLogger(__name__)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.builtins.file_ops.unzip
@@ -11,11 +10,11 @@ Extract/Decompress files (.zip, .tar, .tar.gz, .tgz, .gz).
 :license: MIT, see LICENSE for more details.
 """
 
-import zipfile
-import tarfile
 import gzip
-import shutil
 import logging
+import shutil
+import tarfile
+import zipfile
 from pathlib import Path
 
 from fetchez.hooks import FetchHook

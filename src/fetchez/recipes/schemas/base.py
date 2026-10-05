@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.recipes.schemas.base
@@ -31,8 +30,6 @@ class BaseSchema:
         """Subclasses must override this to inject their domain-specific rules.
         Append any error strings to self.errors.
         """
-
-        pass
 
     def run(self, config):
         """executes the validation and returns the standardized output."""

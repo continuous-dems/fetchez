@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.profiles
@@ -12,18 +11,19 @@ Discoverability and documentation for fetching profiles.
 """
 
 import sys
-import yaml
-import click
 from pathlib import Path
 
+import click
+import yaml
+
+from fetchez.api import search_profiles
 from fetchez.registry import ProfileRegistry
 from fetchez.utils import (
+    FetchezMainCommand,
+    FetchezMainGroup,
     group_registry_by_key,
     print_grouped_registry,
-    FetchezMainGroup,
-    FetchezMainCommand,
 )
-from fetchez.api import search_profiles
 
 
 @click.group(
@@ -39,8 +39,6 @@ def profiles_group():
     and 'lat', another uses 'x' and 'y'). Profiles are YAML dictionaries that
     tell a Reader exactly how to parse a specific dataset's format.
     """
-
-    pass
 
 
 @profiles_group.command("list", cls=FetchezMainCommand)

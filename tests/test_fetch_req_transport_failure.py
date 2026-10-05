@@ -2,8 +2,8 @@
 
 import io
 
-import requests
 import pytest
+import requests
 
 from fetchez import core
 

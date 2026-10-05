@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.modules.checkpoints_3dep
@@ -11,8 +10,8 @@ fetchez.modules.checkpoints_3dep
 :license: MIT, see LICENSE for more details.
 """
 
-from fetchez.modules import FetchModule
 from fetchez import cli
+from fetchez.modules import FetchModule
 
 CHECKPOINTS_3DEP_URL = "https://www.sciencebase.gov/catalog/file/get/67075e6bd34e969edc59c3e7?f=__disk__80%2F12%2F9e%2F80129e86d18461ed921b288f13e08c62e8590ffb"
 REFERER = "https://www.sciencebase.gov/vocab/category/item/identifier"

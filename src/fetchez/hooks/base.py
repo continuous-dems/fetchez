@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.hooks.base
@@ -85,8 +84,6 @@ class FetchHook:
         Called once after all processing is complete.
         Override this to close files, finalize grids, or print summaries.
         """
-
-        pass
 
     def run(self, entries):
         """Execute the hook.

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 fetchez.cli.cache
@@ -12,11 +11,13 @@ Manage fetchez caches.
 """
 
 import os
-import time
 import shutil
-import click
+import time
 from pathlib import Path
-from fetchez.utils import FetchezMainGroup, FetchezMainCommand
+
+import click
+
+from fetchez.utils import FetchezMainCommand, FetchezMainGroup
 
 CACHE_COMMANDS = ["info", "clear", "update-registry"]
 
@@ -28,8 +29,6 @@ CACHE_COMMANDS = ["info", "clear", "update-registry"]
 )
 def cache_group():
     """Manage the hidden Fetchez cache."""
-
-    pass
 
 
 @cache_group.command("info", cls=FetchezMainCommand)
