@@ -526,6 +526,9 @@ class MBDB(FetchModule):
                 unverified.append(download_url)
 
             _, mask_geom = self.check_inf_region(download_url)
+            results_geom = None
+            if mask_geom is not None:
+                results_geom = mask_geom.export_to_wkt()
 
             # Pass the geometry to the entry
             self.add_entry_to_results(
@@ -534,7 +537,7 @@ class MBDB(FetchModule):
                 data_type="mbs",
                 agency="NOAA NCEI",
                 license="Public Domain",
-                geometry=mask_geom.export_to_wkt(),
+                geometry=results_geom,
             )
             if self.want_inf:
                 # Add Metadata File
