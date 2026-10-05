@@ -432,7 +432,7 @@ Pipeline Composition:
 
   Source components are Modules or Bundles.
 
-    \b
+  \b
   Processing components are Hooks or Presets. Their scope is determined by
   their position in the command chain:
 
@@ -450,7 +450,7 @@ Examples:
 
     fetchez build audit tnm
 
-    \b
+      \b
       audit -> global hook
       tnm   -> module
 
@@ -458,7 +458,7 @@ Examples:
 
     fetchez build tnm raster_warp --res 1s
 
-    \b
+      \b
       tnm         -> module
       raster_warp -> hook attached to tnm
 
@@ -470,7 +470,7 @@ Examples:
         tnm raster_warp --res 1s \\
         copernicus checksum
 
-    \b
+      \b
       audit       -> global hook
       tnm         -> first module
       raster_warp -> hook attached to tnm
