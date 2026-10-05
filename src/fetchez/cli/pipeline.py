@@ -421,90 +421,30 @@ def pipeline_group(
     refresh,
     fail_fast,
 ):
-    """
-Build and optionally execute an ad-hoc Fetchez pipeline.
-
-The `build` command composes registered Modules, Bundles, Hooks, and Presets
-into a Fetchez recipe. Components are chained from left to right and may be
-executed immediately or exported as reusable YAML.
-
-Pipeline Composition:
-
-  Source components are Modules or Bundles.
-
-  \b
-  Processing components are Hooks or Presets. Their scope is determined by
-  their position in the command chain:
+    """Build and optionally execute an ad-hoc Fetchez pipeline.
 
     \b
-    * Hooks and Presets before the first source are global.
-    * Hooks and Presets after a Module or Bundle apply to that source.
-    * Processing components continue to apply to the most recent source
-      until another Module or Bundle is encountered.
-
-  Module and Hook arguments follow the component they configure.
-
-Examples:
-
-  Apply a global hook before fetching a source:
-
-    fetchez build audit tnm
-
-      \b
-      audit -> global hook
-      tnm   -> module
-
-  Attach processing to a single source:
-
-    fetchez build tnm raster_warp --res 1s
-
-      \b
-      tnm         -> module
-      raster_warp -> hook attached to tnm
-
-  Compose multiple independently processed sources:
+    Components are chained from left to right:
+      * Modules and Bundles provide data sources.
+      * Hooks and Presets before the first source are global.
+      * Hooks and Presets after a source apply to that source.
 
     \b
-    fetchez build \\
-        audit \\
-        tnm raster_warp --res 1s \\
-        copernicus checksum
-
-      \b
-      audit       -> global hook
-      tnm         -> first module
-      raster_warp -> hook attached to tnm
-      copernicus  -> second module
-      checksum    -> hook attached to copernicus
-
-  Select members of a registered bundle:
+    Examples:
+      fetchez build audit tnm
+      fetchez build tnm raster_warp --res 1s
+      fetchez build -R <W/E/S/N> glob-tnm --select products=1m/1_9as
 
     \b
-    fetchez build \\
-        -R <W/E/S/N> \\
-        glob-tnm --select products=1m/1_9as
-
-Hooks may also be supplied using `--hook` and `--global-hook` for concise or
-backward-compatible command construction.
-
-Use `--export` to write the generated recipe to YAML instead of executing it:
-
-    fetchez build -R <W/E/S/N> --export pipeline.yaml tnm audit
-
-The exported recipe can later be reproduced with:
-
-    fetchez run pipeline.yaml
-
-Component Discovery:
+    Use:
+      fetchez modules list
+      fetchez modules bundles list
+      fetchez hooks list
+      fetchez hooks presets list
 
     \b
-    fetchez modules list           List available data modules
-    fetchez modules bundles list   List curated data bundles
-    fetchez hooks list             List processing hooks
-    fetchez hooks presets list     List hook presets
-
-Use any registered component directly in the build chain.
-Run `fetchez build <component> --help` to inspect its component-specific options.
+    Export a reusable recipe with --export and run it later with:
+      fetchez run recipe.yaml
     """
 
     ctx.ensure_object(dict)

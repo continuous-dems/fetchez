@@ -9,8 +9,12 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path("../..").resolve()))
-sys.path.insert(0, str(Path("../_ext").resolve()))
+HERE = Path(__file__).resolve().parent
+PROJECT_ROOT = HERE.parents[1]  # repo root: docs/source -> docs -> repo
+DOCS_ROOT = HERE.parent  # docs/
+
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+sys.path.insert(0, str(DOCS_ROOT / "_ext"))
 
 project = "Fetchez"
 copyright = "2026, The Continuous-DEMs Development Team."
