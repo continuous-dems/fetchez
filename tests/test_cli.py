@@ -141,7 +141,7 @@ def test_build_help():
     result = run_fetchez(["build", "--help"])
 
     assert result.returncode == 0
-    assert "Build and optionally execute a pipeline" in result.stdout
+    assert "Build and optionally execute an ad-hoc Fetchez pipeline." in result.stdout
 
 
 def test_run_help():
