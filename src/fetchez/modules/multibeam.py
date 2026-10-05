@@ -534,7 +534,7 @@ class MBDB(FetchModule):
                 data_type="mbs",
                 agency="NOAA NCEI",
                 license="Public Domain",
-                geometry=mask_geom,
+                geometry=mask_geom.export_to_wkt(),
             )
             if self.want_inf:
                 # Add Metadata File

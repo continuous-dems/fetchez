@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Slight refactor of pipeline (run) click cli
 - Refactor cli commands. `run` -> `build`; `recipe run` -> `run`: build pipelines, run recipes.
+- Bundle hooks are now either `override_hook`a or `append_hook`
 
 ### FIXED
 
