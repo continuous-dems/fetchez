@@ -432,6 +432,7 @@ Pipeline Composition:
 
   Source components are Modules or Bundles.
 
+    \b
   Processing components are Hooks or Presets. Their scope is determined by
   their position in the command chain:
 
