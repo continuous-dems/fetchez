@@ -12,11 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - modules.base identity pops the default non-set arguments from the sub-module
 - Add `module_allowed` and `bundle_allowed` in cli.pipeline, so extensions can use the common commands and restrict modules by tag/cat/etc.
 - Allow hooks on bundles; applied to every child module.
+- Added positional Hook/Preset scoping: processing components before the first source are global, while those following a Module or Bundle are attached to that source.
+- Added dynamic component-specific CLI options from registry metadata.
+- Added Bundle member selection with `--select KEY=VALUE`.
+- Added Bundle `append_hooks` semantics while preserving `hooks` as sparse overrides of existing child hooks.
+- Added `PipelineExecutor` filtering hooks so extensions can expose domain-specific subsets of registered Modules, Bundles, Hooks, and Presets.
 
 ### CHANGED
 
 - Slight refactor of pipeline (run) click cli
 - Refactor cli commands. `run` -> `build`; `recipe run` -> `run`: build pipelines, run recipes.
+- Expanded `fetchez build` into a registry-driven pipeline composer supporting Modules, Bundles, Hooks, and Presets as dynamic chained commands.
+- Simplified and accelerated `fetchez build --help` by moving dynamic component discovery to the dedicated registry listing commands.
 
 ### FIXED
 

@@ -15,9 +15,9 @@
   <a href="https://doi.org/10.5281/zenodo.22130386"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22130386.svg" alt="DOI"></a>
 </p>
 
-**Fetchez** is a robust, highly modular and extensible Python framework designed to orchestrate complex geospatial data engineering workflows.
+**Fetchez** is a modular and extensible geospatial data engineering framework for discovering, retrieving, caching, transforming, and composing spatial data workflows.
 
-Originally developed as the core fetching engine for the [CUDEM](https://github.com/ciresdem/cudem) project, Fetchez has evolved into a standalone geospatial ETL platform. It seamlessly retrieves Bathymetry, Topography, Imagery, and Oceanographic data from dozens of global repositories (NOAA, USGS, Copernicus, ESA) and processes it on the fly.
+Originally developed as the core fetching engine for the [CUDEM](https://github.com/ciresdem/cudem) project, Fetchez has evolved into a standalone geospatial ETL and workflow platform. Registered data Modules, Bundles, processing Hooks, Presets, recipe Modifiers, and Schemas can be composed through Python, YAML recipes, or the registry-driven command-line interface.
 
 ---
 
@@ -35,19 +35,53 @@ pip install fetchez[full]
 ```
 
 ## 🐄 Quickstart
-Fetch Copernicus topography and NOAA multibeam bathymetry for a specific bounding box in one command:
+
+Compose and run an ad-hoc geospatial pipeline directly from registered Fetchez components.
 
 ### CLI
 
-```bash
-fetchez run -R loc:"Miami, FL" --global-hook audit copernicus multibeam
-```
-
-Or run a full processing pipeline from a YAML recipe:
+Fetch Copernicus topography and NOAA multibeam bathymetry for Miami and apply a global audit hook:
 
 ```bash
-fetchez recipes run recipes/my_dem_project.yaml
+fetchez build -R loc:"Miami, FL" audit copernicus multibeam
 ```
+
+Components are chained from left to right. Hooks and presets before the first data source are global; hooks and presets following a module or bundle apply only to that source.
+
+For example, apply raster processing only to Copernicus while auditing the complete workflow:
+
+```bash
+fetchez build \
+    -R loc:"Miami, FL" \
+    audit \
+    copernicus raster_warp --res 1s \
+    multibeam
+```
+
+Registered bundles can also be filtered directly from the CLI:
+
+```bash
+fetchez build \
+    -R loc:"Miami, FL" \
+    glob-tnm --select products=1m/1_9as
+```
+
+Export an ad-hoc pipeline as a reusable YAML recipe:
+
+```bash
+fetchez build \
+    -R loc:"Miami, FL" \
+    --export miami.yaml \
+    audit copernicus multibeam
+```
+
+Run the saved recipe later:
+
+```bash
+fetchez run miami.yaml
+```
+
+Use `fetchez modules list`, `fetchez modules bundles list`, `fetchez hooks list`, and `fetchez hooks presets list` to discover available components.
 
 ### Python
 
@@ -59,28 +93,38 @@ files = fetchez.get("charts", region=[-120, -118, 33, 34], hooks=['unzip', 'file
 ```
 
 ### DEM Building with Globato
-While **Fetchez** handles the data retrieval, data stream initiation and processing pipeline engine, its sister project and Fetchez extension, **Globato**, provides the `multi_stack` accumulators and `mr-globato` multi-resolution interpolation engines needed to turn those streams into production-grade Digital Elevation Models. [Check it out!](https://github.com/continuous-dems/globato)
+
+Fetchez provides the generic discovery, retrieval, streaming, processing, recipe, and execution framework. Its sister project and Fetchez extension, **Globato**, adds the elevation-source vocabulary, DEM-oriented presets, MultiStack accumulation, and multi-resolution interpolation workflows used to build reproducible coastal and topobathymetric DEMs.
+
+Globato reuses the Fetchez pipeline model while exposing a curated DEM-focused command-line interface.
+
+[Check out Globato](https://github.com/continuous-dems/globato).
 
 ---
 
 ## 📚 Documentation
+
 Would you like to know more? Check out our [Official Documentation](https://fetchez.readthedocs.io) to learn about:
 
-* **Modules & Bundles:** Discover and learn about [more than 100 public datasets](https://fetchez.readthedocs.io/en/latest/modules/index.html) available through Fetchez.
+* **Modules & Bundles:** Discover more than [more than 100 public geospatial data sources](https://fetchez.readthedocs.io/en/latest/modules/index.html) and compose curated source collections.
 
-* **The Python API:** Build custom fetch modules and run full processing pipelines in your apps.
+* **Pipeline Building:** Build ad-hoc workflows directly from registered Modules, Bundles, Hooks, and Presets with `fetchez build`.
 
-* **Recipes & YAML:** Build and run custom workflows from a simple YAML or JSON configuration.
+* **Recipes & YAML:** Save, share, reproduce, and execute complete workflows with `fetchez run`.
 
-* **Hooks & Presets:** Automate unzipping, filtering, and processing fetch modules.
+* **Hooks & Presets:** Stream, filter, transform, inspect, and process data throughout the Fetchez execution lifecycle.
 
-* **Recipe Modifiers:** Catcha recipe before it runs and modify it on the fly at runtime.
+* **Bundle Selection:** Select subsets of reusable data bundles using declarative configuration fields from YAML or the CLI.
 
-* **Domain Schemas:** Enforce rigorous geospatial standards automatically.
+* **Recipe Modifiers:** Mutate assembled recipes before execution to apply workflow-level policy or conditional composition.
 
-* **Custom Plugins:** Write your own data fetch modules, processing hooks, extensions and recipes.
+* **Domain Schemas:** Validate recipes against reusable domain-specific requirements.
 
-* **Execution Lifecycle:** Learn about the distinct phases (`manifest` -> `file` -> `stream` -> `collection`) of fetchez module hook processing.
+* **Python API:** Search for components, retrieve data, and construct processing workflows directly from Python.
+
+* **Plugins & Extensions:** Add custom Modules, Hooks, Readers, Streams, Bundles, Presets, Schemas, and domain-specific extensions without modifying Fetchez core.
+
+* **Execution Lifecycle:** Learn how Fetchez moves data through manifest, file, stream, and collection processing stages.
 
 ---
 
@@ -88,9 +132,9 @@ Would you like to know more? Check out our [Official Documentation](https://fetc
 
 This project is used by the following open-source projects:
 
-* **[globato](https://github.com/continuous-dems/globato)** - A full Fetchez extension, optimized hooks, modules, streams and more to aid in the development of DEMs.
-* **[ivert](https://github.com/continuous-dems/ivert)** - The ICESat-2 Validation of Elevations Reporting Tool.
-* **[transformez](https://github.com/continuous-dems/transformez)** - A standalone Python engine for converting geospatial data between vertical datums.
+* **[Globato](https://github.com/continuous-dems/globato)** — A Fetchez extension for reproducible coastal and topobathymetric DEM construction using curated elevation sources, MultiStack accumulation, and multi-resolution interpolation workflows.
+* **[IVERT](https://github.com/continuous-dems/ivert)** — The ICESat-2 Validation of Elevations Reporting Tool.
+* **[Transformez](https://github.com/continuous-dems/transformez)** — A geospatial reference transformation framework for vertical and spatial datum workflows, with Fetchez integration.
 
 *Are you using this project? Open a Pull Request to add your project to the list!*
 

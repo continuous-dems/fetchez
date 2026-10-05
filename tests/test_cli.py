@@ -6,6 +6,7 @@ import yaml
 
 from fetchez.utils import parse_hook_string
 from fetchez.cli import cli
+from fetchez.cli.pipeline import organize_pipeline_commands
 
 from click.testing import CliRunner
 
@@ -140,7 +141,7 @@ def test_build_help():
     result = run_fetchez(["build", "--help"])
 
     assert result.returncode == 0
-    assert "Build and optionally execute a pipeline" in result.stdout
+    assert "Build and optionally execute an ad-hoc Fetchez pipeline." in result.stdout
 
 
 def test_run_help():
@@ -219,3 +220,65 @@ def test_dynamic_module_help_uses_cli_metadata(runner):
 #     bundle = config["modules"][0]
 
 #     assert bundle["select"]["products"] == ["1m", "1_9as"]
+
+
+def test_hooks_before_first_module_are_global():
+    commands = [
+        {"type": "hook", "name": "audit"},
+        {"type": "module", "module": "tnm", "args": {}},
+    ]
+
+    modules, globals_ = organize_pipeline_commands(commands)
+
+    assert globals_ == [{"name": "audit"}]
+    assert modules == [
+        {"module": "tnm", "args": {}},
+    ]
+
+
+def test_hooks_after_module_attach_to_module():
+    commands = [
+        {"type": "module", "module": "tnm", "args": {}},
+        {"type": "hook", "name": "audit"},
+        {"type": "hook", "name": "checksum"},
+    ]
+
+    modules, globals_ = organize_pipeline_commands(commands)
+
+    assert globals_ == []
+    assert modules[0]["hooks"] == [
+        {"name": "audit"},
+        {"name": "checksum"},
+    ]
+
+
+def test_hooks_after_bundle_become_append_hooks():
+    commands = [
+        {"type": "module", "bundle": "glob-tnm", "args": {}},
+        {"type": "hook", "name": "audit"},
+    ]
+
+    modules, globals_ = organize_pipeline_commands(commands)
+
+    assert globals_ == []
+    assert modules[0]["append_hooks"] == [
+        {"name": "audit"},
+    ]
+
+
+def test_preset_scope_follows_position():
+    commands = [
+        {"type": "preset", "preset": "audit-full"},
+        {"type": "module", "module": "tnm", "args": {}},
+        {"type": "preset", "preset": "raster-standard"},
+    ]
+
+    modules, globals_ = organize_pipeline_commands(commands)
+
+    assert globals_ == [
+        {"preset": "audit-full"},
+    ]
+
+    assert modules[0]["hooks"] == [
+        {"preset": "raster-standard"},
+    ]

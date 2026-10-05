@@ -25,10 +25,6 @@ from fetchez.spatial import parse_region, region_help_msg
 from fetchez.utils import (
     parse_hook_string,
     parse_arg_to_list,
-    colorize,
-    CYAN,
-    GREEN,
-    BOLD,
     FetchezMainGroup,
     FetchezMainCommand,
 )
@@ -43,24 +39,32 @@ def add_options(options):
     return decorator
 
 
-def _module_cli_options(mod_meta):
-    """Return dynamically generated Click options for a module."""
-    options = []
-
-    for key, val in mod_meta.get("cli_args", {}).items():
-        if key in {
+def _component_cli_options(meta, exclude=None):
+    exclude = set(exclude or ())
+    exclude.update(
+        {
             "self",
             "kwargs",
             "src_region",
             "callback",
             "name",
             "params",
-            "hook",
-            "weight",
-        }:
+        }
+    )
+
+    options = []
+
+    for key, val in meta.get("cli_args", {}).items():
+        if key in exclude:
             continue
 
-        options.append([f"--{key.replace('_', '-')}", val["desc"], val["default"]])
+        options.append(
+            [
+                f"--{key.replace('_', '-')}",
+                val["desc"],
+                val["default"],
+            ]
+        )
 
     return options
 
@@ -69,8 +73,10 @@ def _parse_bundle_selectors(values):
     def _parse_selector_value(value):
         try:
             return yaml.safe_load(value)
-        except Exception:
+        except yaml.YAMLError:
             return value
+        except Exception:
+            raise
 
     selectors = {}
     for value in values or []:
@@ -95,9 +101,12 @@ def _parse_bundle_selectors(values):
 
 def make_module_command(name, mod_meta):
     help_text = mod_meta.get("cli_help_text", f"Run the {name} module")
-    mod_args = _module_cli_options(mod_meta)
+    mod_args = _component_cli_options(
+        mod_meta,
+        exclude={"hook", "weight"},
+    )
 
-    @click.command(name=name, help=help_text, hidden=True, cls=FetchezMainCommand)
+    @click.command(name=name, help=help_text, hidden=False, cls=FetchezMainCommand)
     @click.option("--weight", type=float, default=1.0)
     @click.option("--hook", multiple=True, help="Attach a processing hook")
     @add_options(mod_args)
@@ -116,7 +125,7 @@ def make_module_command(name, mod_meta):
 def make_bundle_command(name, bundle_def):
     help_text = bundle_def.get("description", "")
 
-    @click.command(name=name, help=help_text, hidden=True, cls=FetchezMainCommand)
+    @click.command(name=name, help=help_text, hidden=False, cls=FetchezMainCommand)
     @click.option("--weight", type=float, default=1.0)
     @click.option(
         "--select",
@@ -147,6 +156,51 @@ def make_bundle_command(name, bundle_def):
         return result
 
     return bundle_cmd
+
+
+def make_hook_command(name, hook_def):
+    help_text = hook_def.get(
+        "cli_help_text",
+        f"Apply the {name} hook",
+    )
+    hook_args = _component_cli_options(hook_def)
+
+    @click.command(
+        name=name,
+        help=help_text,
+        hidden=False,
+        cls=FetchezMainCommand,
+    )
+    @add_options(hook_args)
+    def dynamic_hook_cmd(**kwargs):
+        return {
+            "type": "hook",
+            "name": name,
+            "args": kwargs,
+        }
+
+    return dynamic_hook_cmd
+
+
+def make_preset_command(name, preset_def):
+    help_text = preset_def.get(
+        "description",
+        f"Apply the {name} preset",
+    )
+
+    @click.command(
+        name=name,
+        help=help_text,
+        hidden=False,
+        cls=FetchezMainCommand,
+    )
+    def dynamic_preset_cmd():
+        return {
+            "type": "preset",
+            "preset": name,
+        }
+
+    return dynamic_preset_cmd
 
 
 def make_pipeline_config(
@@ -184,6 +238,43 @@ def make_pipeline_config(
     return config
 
 
+def _attach_module_hook(component, hook):
+    if "bundle" in component:
+        component.setdefault("append_hooks", []).append(hook)
+    else:
+        component.setdefault("hooks", []).append(hook)
+
+
+def organize_pipeline_commands(commands):
+    modules = []
+    global_hooks = []
+    current_module = None
+
+    for command in commands:
+        command_type = command.get("type")
+
+        if command_type == "module":
+            current_module = {
+                key: value for key, value in command.items() if key != "type"
+            }
+            modules.append(current_module)
+            continue
+
+        if command_type in {"hook", "preset"}:
+            hook = {key: value for key, value in command.items() if key != "type"}
+
+            if current_module is None:
+                global_hooks.append(hook)
+            else:
+                _attach_module_hook(current_module, hook)
+
+            continue
+
+        raise ValueError(f"Unsupported pipeline command type: {command_type!r}")
+
+    return modules, global_hooks
+
+
 # class PipelineExecutor(click.Group):
 class PipelineExecutor(FetchezMainGroup):
     def module_allowed(self, name, meta):
@@ -192,9 +283,17 @@ class PipelineExecutor(FetchezMainGroup):
     def bundle_allowed(self, name, bundle):
         return True
 
+    def hook_allowed(self, name, meta):
+        return True
+
+    def preset_allowed(self, name, preset):
+        return True
+
     def list_commands(self, ctx):
         ModuleRegistry.load_all()
         BundleRegistry.load_all()
+        HookRegistry.load_all()
+        PresetRegistry.load_all()
 
         names = {
             name
@@ -206,6 +305,18 @@ class PipelineExecutor(FetchezMainGroup):
             name
             for name, bundle in BundleRegistry.get_registry().items()
             if self.bundle_allowed(name, bundle)
+        )
+
+        names.update(
+            name
+            for name, meta in HookRegistry.get_registry().items()
+            if self.hook_allowed(name, meta)
+        )
+
+        names.update(
+            name
+            for name, preset in PresetRegistry.get_registry().items()
+            if self.preset_allowed(name, preset)
         )
 
         return sorted(names)
@@ -227,67 +338,28 @@ class PipelineExecutor(FetchezMainGroup):
                 return None
             return make_bundle_command(name, bundle_def)
 
+        HookRegistry.load_all()
+        hook_meta = HookRegistry.get_info(name)
+
+        if hook_meta:
+            if not self.hook_allowed(name, hook_meta):
+                return None
+            return make_hook_command(name, hook_meta)
+
+        PresetRegistry.load_all()
+        preset_def = PresetRegistry.get_yaml(name)
+
+        if preset_def:
+            if not self.preset_allowed(name, preset_def):
+                return None
+            return make_preset_command(name, preset_def)
+
         return None
 
     def format_commands(self, ctx, formatter):
-        """Override the default Click help to group modules by category."""
-
-        commands = []
-        for subcommand in self.list_commands(ctx):
-            cmd = self.get_command(ctx, subcommand)
-            if cmd is None or cmd.hidden:
-                continue
-            commands.append((subcommand, cmd))
-
-        if not commands:
-            return
-
-        grouped_commands = {}
-        for name, cmd in commands:
-            mod_meta = ModuleRegistry.get_info(name)
-
-            if mod_meta:
-                category = mod_meta.get("category", "Other Modules")
-            else:
-                category = f"{colorize(colorize('Curated Data Bundles', GREEN), BOLD)}"
-
-            if category not in grouped_commands:
-                grouped_commands[category] = []
-
-            grouped_commands[category].append((name, cmd))
-
-        # Print the bundles first, then alphabetize the remaining categories
-        bundle_key = f"{colorize(colorize('Curated Data Bundles', GREEN), BOLD)}"
-        if bundle_key in grouped_commands:
-            with formatter.section(bundle_key):
-                formatter.write_dl(
-                    [
-                        (
-                            f"{colorize(colorize(name, CYAN), BOLD):<30}",
-                            cmd.get_short_help_str(limit=80),
-                        )
-                        for name, cmd in grouped_commands.pop(bundle_key)
-                    ]
-                )
-
-        # Print the rest of the categories
-        for category, cmds in sorted(grouped_commands.items()):
-            formatted_category = (
-                f"{colorize(colorize(category, GREEN), BOLD)}"
-                if category != "Other Modules"
-                else category
-            )
-
-            with formatter.section(formatted_category):
-                formatter.write_dl(
-                    [
-                        (
-                            f"{colorize(colorize(name, CYAN), BOLD):<30}",
-                            cmd.get_short_help_str(limit=80),
-                        )
-                        for name, cmd in cmds
-                    ]
-                )
+        # Dynamic pipeline components are intentionally omitted from build help.
+        # Discover them through the registry-specific list commands instead.
+        pass
 
 
 @click.command(
@@ -349,53 +421,31 @@ def pipeline_group(
     refresh,
     fail_fast,
 ):
-    """Build and optionally execute a pipeline from modules and bundles.
+    """Build and optionally execute an ad-hoc Fetchez pipeline.
 
     \b
-    The `build` command composes an ad-hoc Fetchez recipe from registered
-    Modules and Bundles, optionally attaching processing Hooks and Presets.
+    Components are chained from left to right:
+      * Modules and Bundles provide data sources.
+      * Hooks and Presets before the first source are global.
+      * Hooks and Presets after a source apply to that source.
 
     \b
-    Use `--export` to save the constructed pipeline as a reusable YAML recipe
-    instead of executing it immediately.
+    Examples:
+      fetchez build audit tnm
+      fetchez build tnm raster_warp --res 1s
+      fetchez build -R <W/E/S/N> glob-tnm --select products=1m/1_9as
 
     \b
-    How CLI Pipelines Work:
-      The `build` command allows you to chain multiple Data Modules together
-      and apply Processing Hooks to them.
+    Use:
+      fetchez modules list
+      fetchez modules bundles list
+      fetchez hooks list
+      fetchez hooks presets list
 
     \b
-      * Module Arguments follow the module name (e.g., `copernicus --datatype 3`).
-      * Module Hooks (--hook) apply only to the module they follow.
-      * Global Hooks (--global-hook) apply to all data flowing through the pipeline.
-
-    \b
-    Syntax:
-      fetchez build -R <W/E/S/N> [--global-hook <name>] <module_1> [--hook <name>] <module_2> ...
-
-    \b
-    Compose interactively:
-      fetchez build -R ... glob-tnm --select products=1m/1_9as --export dem.yaml
-
-    \b
-    Reproduce later:
-      fetchez run dem.yaml
-
-    \b
-    * Run `fetchez modules` to learn more about supported modules and extensions..
-    * Run `fetchez hooks` to learn more about supported hooks and extensions.
+    Export a reusable recipe with --export and run it later with:
+      fetchez run recipe.yaml
     """
-
-    # \b
-    # Examples:
-    #   # Fetch lidar data from NOAAs Digtial Coast and filter out files containing the word "noise"
-    #   $ fetchez build -R loc:seattle digital_coast --hook filename_filter:exclude=noise,stage=manifest
-
-    #   # Fetch multibeam and topography, and run an audit on everything
-    #   $ fetchez build -R -120/-119/33/34 --global-hook audit mbdb tnm
-
-    #   # Export a complex CLI pipeline to a YAML recipe without running it
-    #   $ fetchez build -R loc:hawaii --export hawaii_recipe.yaml copernicus --weight 1.5 mbdb
 
     ctx.ensure_object(dict)
     src_region = parse_region(region) if region else None
@@ -423,7 +473,7 @@ def process_pipeline(
     HookRegistry.load_all()
     PresetRegistry.load_all()
 
-    modules = [cmd for cmd in commands if cmd.pop("type", None) == "module"]
+    modules, command_global_hooks = organize_pipeline_commands(commands)
 
     parsed_global_hooks = []
     for h in global_hook:
@@ -431,12 +481,18 @@ def process_pipeline(
         if parsed_h.get("name") in PresetRegistry.get_registry().keys():
             parsed_h["preset"] = parsed_h.pop("name")
         elif parsed_h.get("name") not in HookRegistry.get_registry().keys():
-            click.secho(
-                f"Warning: Hook or Preset '{h}' not found in registry! Skipping.",
-                fg="yellow",
-            )
-            continue
+            if not fail_fast:
+                click.secho(
+                    f"Warning: Hook or Preset '{h}' not found in registry!",
+                    fg="yellow",
+                )
+                continue
+            else:
+                raise ValueError(f"Hook or Preset '{h}' not found in registry!")
+
         parsed_global_hooks.append(parsed_h)
+
+    parsed_global_hooks.extend(command_global_hooks)
 
     # parsed_global_hooks = [parse_hook_string(h) for h in global_hook]
     parsed_modifiers = [parse_hook_string(m) for m in modifier]

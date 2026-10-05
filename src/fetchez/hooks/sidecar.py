@@ -17,10 +17,14 @@ from pathlib import Path
 from datetime import datetime
 
 from fetchez.hooks import FetchHook
+from fetchez import cli
 
 logger = logging.getLogger(__name__)
 
 
+@cli.cli_opts(
+    help_text="Genearte a sidecar metdata file",
+)
 class Sidecar(FetchHook):
     """Write a metadata sidecar file (.meta.json) for every download.
 
