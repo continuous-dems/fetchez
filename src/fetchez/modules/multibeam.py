@@ -526,9 +526,10 @@ class MBDB(FetchModule):
                 unverified.append(download_url)
 
             _, mask_geom = self.check_inf_region(download_url)
-            results_geom = None
-            if mask_geom is not None:
+            try:
                 results_geom = mask_geom.export_to_wkt()
+            except Exception:
+                results_geom = None
 
             # Pass the geometry to the entry
             self.add_entry_to_results(
