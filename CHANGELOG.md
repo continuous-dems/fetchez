@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0 - 2026-10-06]
+
 ### ADDED
 
 - modules.base identity pops the default non-set arguments from the sub-module
@@ -24,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor cli commands. `run` -> `build`; `recipe run` -> `run`: build pipelines, run recipes.
 - Expanded `fetchez build` into a registry-driven pipeline composer supporting Modules, Bundles, Hooks, and Presets as dynamic chained commands.
 - Simplified and accelerated `fetchez build --help` by moving dynamic component discovery to the dedicated registry listing commands.
+- Update the mbdb modules entries to include the mb survey id.
 
 ### FIXED
 
