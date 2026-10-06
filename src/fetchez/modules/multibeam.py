@@ -500,6 +500,7 @@ class MBDB(FetchModule):
         for feature in features:
             attrs = feature.get("attributes", {})
             data_file = attrs.get("DATA_FILE")
+            survey_id = attrs.get("SURVEY_NAME")
 
             if not data_file:
                 continue
@@ -536,6 +537,7 @@ class MBDB(FetchModule):
                 url=download_url,
                 dst_fn=os.path.basename(download_url),
                 data_type="mbs",
+                survey_id=survey_id,
                 agency="NOAA NCEI",
                 license="Public Domain",
                 geometry=results_geom,
