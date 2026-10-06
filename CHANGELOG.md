@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### FIXED
 
 - Resotre discovery of cli decorator's help_text in the registry.
+- `ReaderRegistry.get_reader` lets reader kwargs override a profile's reader args instead of raising `TypeError` when both set the same argument.
 
 ## [0.9.3 - 2026-10-02]
 

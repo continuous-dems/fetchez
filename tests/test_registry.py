@@ -459,3 +459,27 @@ def test_module_registry_preserves_cli_metadata():
         == ' - Data type: "lidar", "raster" (DEM), '
         '"imagery", "landcover"'
     )
+
+
+def test_get_reader_kwargs_override_profile_args(monkeypatch):
+    """Caller kwargs override a profile's reader args instead of colliding with them."""
+
+    from fetchez.registry import ProfileRegistry, ReaderRegistry
+
+    class FakeReader:
+        def __init__(self, src, region=None, **kwargs):
+            self.kwargs = kwargs
+
+    profile = {
+        "reader": {"name": "fake-reader", "args": {"delimiter": ",", "skiprows": 1}}
+    }
+    monkeypatch.setattr(ProfileRegistry, "load_all", classmethod(lambda cls: None))
+    monkeypatch.setattr(
+        ProfileRegistry, "get_yaml", classmethod(lambda cls, name: profile)
+    )
+    monkeypatch.setattr(
+        ReaderRegistry, "get_class", classmethod(lambda cls, name: FakeReader)
+    )
+
+    reader = ReaderRegistry.get_reader("x.xyz", "fake-profile", skiprows=0, weight=2)
+    assert reader.kwargs == {"delimiter": ",", "skiprows": 0, "weight": 2}

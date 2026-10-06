@@ -595,7 +595,7 @@ class ReaderRegistry(PluginRegistry):
                 reader = cls.get_class(reader_name)
                 if reader:
                     profile_args = profile_reader.get("args", {})
-                    return reader(src, region=region, **profile_args, **kwargs)
+                    return reader(src, region=region, **{**profile_args, **kwargs})
             else:
                 logger.debug(f"No reader profile found, checking `{term}` data-type")
                 reader = cls.get_reader_for_dtype(term)
