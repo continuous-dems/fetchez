@@ -32,6 +32,16 @@ from shapely.geometry import Polygon
 
 logger = logging.getLogger(__name__)
 
+
+class EarthdataSearchError(RuntimeError):
+    """A CMR granule search failed, so its result says nothing about what exists.
+
+    Raised instead of returning no results: a search that could not reach CMR,
+    or got back an answer it could not read, would otherwise look the same as
+    one that found no granules.
+    """
+
+
 CMR_SEARCH_URL = "https://cmr.earthdata.nasa.gov/search/granules.json?"
 HARMONY_BASE_URL = "https://harmony.earthdata.nasa.gov"
 
@@ -260,16 +270,22 @@ class EarthData(FetchModule):
 
         req = core.Fetch(self._cmr_url).fetch_req(params=params)
 
+        # A failed request is falsy, whether no answer came back or an HTTP error.
         if not req:
-            logger.error("CMR Request failed.")
-            return
+            status = getattr(req, "status_code", None)
+            raise EarthdataSearchError(
+                f"CMR search for {self.short_name} failed"
+                + (f" (HTTP {status})" if status is not None else " (no response)")
+                + "."
+            )
 
         try:
             feed = req.json().get("feed", {})
             entries = feed.get("entry", [])
         except Exception as e:
-            logger.error(f"Error parsing CMR response: {e}")
-            return
+            raise EarthdataSearchError(
+                f"Could not read the CMR response for {self.short_name}: {e}"
+            ) from e
         logger.debug(f"CMR returned {len(entries)} potential granules.")
 
         # Prepare Shapely Polygon for precise filtering
