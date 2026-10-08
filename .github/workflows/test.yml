@@ -12,20 +12,43 @@ concurrency:
 
 jobs:
   build:
+    name: "pytest (Python ${{ matrix.python-version }}, ${{ matrix.resolution }} dependencies)"
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.14"]
+        resolution: ["highest"]
+        # Also install each dependency at the lowest version pyproject.toml
+        # allows, so the suite fails if fetchez starts using something newer
+        # than a stated minimum.
+        include:
+          - python-version: "3.12"
+            resolution: "lowest-direct"
 
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Install uv
+      - name: Install uv and Python
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
 
       - name: Install dependencies
-        run: uv sync --group test
+        env:
+          RESOLUTION: ${{ matrix.resolution }}
+        # The test tools are constrained to what the first step installed,
+        # so they cannot upgrade a dependency past its minimum.
+        run: |
+          uv pip install --resolution "$RESOLUTION" -e .
+          uv pip freeze --exclude-editable > "$RUNNER_TEMP/installed.txt"
+          uv pip install --group test --constraint "$RUNNER_TEMP/installed.txt"
+          uv pip list
 
       - name: Test
-        run: uv run pytest -vv -r ap --cov
+        run: pytest -vv -r ap --cov
 
       - name: Package the extension
         run: uv build
