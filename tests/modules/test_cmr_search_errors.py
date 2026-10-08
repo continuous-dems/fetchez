@@ -109,14 +109,15 @@ def test_fetchez_get_still_returns_nothing_for_a_failed_search(tmp_path, monkeyp
     [None, FakeResponse(status_code=503), FakeResponse(bad_json=True)],
     ids=["no-response", "http-error", "unreadable"],
 )
-def test_with_raising_off_a_failed_search_warns_and_finds_nothing(
-    tmp_path, monkeypatch, caplog, response
+@pytest.mark.parametrize("strict_search", [False, "false"])
+def test_with_strict_search_off_a_failed_search_warns_and_finds_nothing(
+    tmp_path, monkeypatch, caplog, response, strict_search
 ):
-    """raise_on_search_error=False keeps going, but never silently."""
+    """strict_search off keeps going, but never silently; a string from the command line works too."""
     _answer(monkeypatch, response)
 
     with caplog.at_level(logging.WARNING, logger="fetchez.modules.earthdata"):
-        module = _search(tmp_path, raise_on_search_error=False)
+        module = _search(tmp_path, strict_search=strict_search)
 
     assert module.results == []
     assert "Treating it as no results" in caplog.text

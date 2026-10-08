@@ -24,6 +24,7 @@ from tqdm.auto import tqdm
 from typing import Dict, Optional
 
 from fetchez import core
+from fetchez import utils
 from fetchez.modules import FetchModule
 from fetchez import spatial
 from fetchez import cli
@@ -111,7 +112,7 @@ class EarthData(FetchModule):
         subset: bool = False,
         subset_job_id: Optional[str] = None,
         harmony_ping: Optional[str] = None,
-        raise_on_search_error: bool = True,
+        strict_search: bool = True,
         **kwargs,
     ):
         super().__init__(name="cmr", **kwargs)
@@ -125,8 +126,8 @@ class EarthData(FetchModule):
         self.subset_job_id = subset_job_id
         self.harmony_ping = harmony_ping  # see harmony_ping_for_status
         # A failed CMR search raises EarthdataSearchError by default; with this
-        # False it logs a warning and the module returns no results instead.
-        self.raise_on_search_error = raise_on_search_error
+        # off it logs a warning and the module returns no results instead.
+        self.strict_search = utils.str2bool(strict_search) is not False
 
         # URLs
         self._cmr_url = CMR_SEARCH_URL
@@ -267,8 +268,8 @@ class EarthData(FetchModule):
         return data
 
     def _search_failed(self, message, cause=None):
-        """Raise EarthdataSearchError, or warn if raise_on_search_error is off."""
-        if self.raise_on_search_error:
+        """Raise EarthdataSearchError, or warn if strict_search is off."""
+        if self.strict_search:
             raise EarthdataSearchError(message) from cause
         logger.warning(f"{message} Treating it as no results.")
 
