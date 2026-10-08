@@ -6,6 +6,8 @@ lookup of ICESat-2 ATL08/ATL24 granules, for one) then took an outage for a
 granule that does not exist and carried on without it.
 """
 
+import logging
+
 import pytest
 
 import fetchez
@@ -39,13 +41,14 @@ def _answer(monkeypatch, response):
     monkeypatch.setattr(earthdata.core, "Fetch", FakeFetch)
 
 
-def _search(tmp_path):
+def _search(tmp_path, **kwargs):
     module = earthdata.IceSat2(
         src_region=None,
         outdir=str(tmp_path),
         short_name="ATL08",
         filename_filter="20241107234251_08052501_007",
         version="",
+        **kwargs,
     )
     module.run()
     return module
@@ -92,3 +95,21 @@ def test_fetchez_get_still_returns_nothing_for_a_failed_search(tmp_path, monkeyp
         )
         == []
     )
+
+
+@pytest.mark.parametrize(
+    "response",
+    [None, FakeResponse(status_code=503), FakeResponse(bad_json=True)],
+    ids=["no-response", "http-error", "unreadable"],
+)
+def test_with_raising_off_a_failed_search_warns_and_finds_nothing(
+    tmp_path, monkeypatch, caplog, response
+):
+    """raise_on_search_error=False keeps going, but never silently."""
+    _answer(monkeypatch, response)
+
+    with caplog.at_level(logging.WARNING, logger="fetchez.modules.earthdata"):
+        module = _search(tmp_path, raise_on_search_error=False)
+
+    assert module.results == []
+    assert "Treating it as no results" in caplog.text

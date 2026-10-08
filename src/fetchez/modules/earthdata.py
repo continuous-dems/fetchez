@@ -111,6 +111,7 @@ class EarthData(FetchModule):
         subset: bool = False,
         subset_job_id: Optional[str] = None,
         harmony_ping: Optional[str] = None,
+        raise_on_search_error: bool = True,
         **kwargs,
     ):
         super().__init__(name="cmr", **kwargs)
@@ -123,6 +124,9 @@ class EarthData(FetchModule):
         self.subset = subset
         self.subset_job_id = subset_job_id
         self.harmony_ping = harmony_ping  # see harmony_ping_for_status
+        # A failed CMR search raises EarthdataSearchError by default; with this
+        # False it logs a warning and the module returns no results instead.
+        self.raise_on_search_error = raise_on_search_error
 
         # URLs
         self._cmr_url = CMR_SEARCH_URL
@@ -262,6 +266,12 @@ class EarthData(FetchModule):
 
         return data
 
+    def _search_failed(self, message, cause=None):
+        """Raise EarthdataSearchError, or warn if raise_on_search_error is off."""
+        if self.raise_on_search_error:
+            raise EarthdataSearchError(message) from cause
+        logger.warning(f"{message} Treating it as no results.")
+
     def _run_cmr_search(self):
         """Execute standard CMR Granule Search."""
 
@@ -273,19 +283,21 @@ class EarthData(FetchModule):
         # A failed request is falsy, whether no answer came back or an HTTP error.
         if not req:
             status = getattr(req, "status_code", None)
-            raise EarthdataSearchError(
+            self._search_failed(
                 f"CMR search for {self.short_name} failed"
                 + (f" (HTTP {status})" if status is not None else " (no response)")
                 + "."
             )
+            return
 
         try:
             feed = req.json().get("feed", {})
             entries = feed.get("entry", [])
         except Exception as e:
-            raise EarthdataSearchError(
-                f"Could not read the CMR response for {self.short_name}: {e}"
-            ) from e
+            self._search_failed(
+                f"Could not read the CMR response for {self.short_name}: {e}", e
+            )
+            return
         logger.debug(f"CMR returned {len(entries)} potential granules.")
 
         # Prepare Shapely Polygon for precise filtering
