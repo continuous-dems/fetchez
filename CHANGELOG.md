@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Every dependency now has a minimum version that installs on Python 3.12, fetchez's oldest supported Python: the first release with Python 3.12 wheels for compiled packages, or a release from around Python 3.12's own (fall 2023) for pure-Python ones. `shapely>=2.0.3` and `pyogrio>=0.8.0` are a little past their first Python 3.12 wheels, since the earlier releases install alongside numpy 2 but fail to import. CI now also runs the tests with each dependency at its minimum, and on Python 3.14.
 
+### FIXED
+
+- A failed CMR granule search in the Earthdata modules (the `EarthData` class and its `IceSat2`, `SWOT` and `MUR_SST` subclasses) raises `EarthdataSearchError` instead of logging an error and returning no results (#470). A search that couldn't reach CMR, got an HTTP error, or got back an answer it couldn't read looked the same as one that found no granules, so code that runs a module directly took an outage for missing data; globato's lookup of the ATL08 and ATL24 granules for an ATL03 granule, for one, went on without them. fetchez's own command line, `fetchez.get()` and recipes catch the error as they catch any module failure, so they behave as before: the failure is logged and the module gives no results. Passing `strict_search=False` to the module turns the error off: the failure is logged as a warning and the search gives no results.
+
 ## [0.10.0 - 2026-10-06]
 
 ### ADDED
