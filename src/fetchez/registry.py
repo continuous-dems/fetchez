@@ -636,6 +636,43 @@ class ReaderRegistry(PluginRegistry):
 
         return None
 
+    @classmethod
+    def get_reader_from_entry(cls, entry, region=None, **kwargs):
+        profile_name = entry.get("profile")
+        data_type = entry.get("data_type")
+
+        if profile_name:
+            ProfileRegistry.load_all()
+            profile = ProfileRegistry.get_yaml(profile_name)
+            if not profile:
+                logger.warning(f"Reader profile '{profile_name}' not found.")
+                return None
+        elif data_type:
+            profile = DataTypeRegistry.get_default_profile(data_type)
+        else:
+            profile = None
+
+        if profile:
+            cls.load_all()
+            reader_def = profile.get("reader", {})
+            reader_name = reader_def.get("name")
+            reader = cls.get_class(reader_name)
+            if reader:
+                profile_args = reader_def.get("args", {})
+                return reader(
+                    entry["dst_fn"],
+                    region=region,
+                    **{**profile_args, **kwargs},
+                )
+
+        # Preserve existing resolution behavior for now.
+        return cls.get_reader(
+            entry.get("dst_fn"),
+            data_type,
+            region=region,
+            **kwargs,
+        )
+
 
 class RecipeRegistry(YamlRegistry):
     """A registry for discovering and loading YAML recipes."""
@@ -1021,6 +1058,16 @@ class ProfileRegistry(YamlRegistry):
     entry_point_group = "fetchez.streams.profiles"
     user_folder = "streams/profiles"
 
+    @classmethod
+    def get_for_data_type(cls, data_type):
+        cls.load_all()
+
+        return [
+            name
+            for name, profile in cls.get_registry().items()
+            if profile.get("data_type") == data_type
+        ]
+
     # @classmethod
     # def reader_args_from_profile(cls, profile_def):
     #     """Convert yaml definition to list of Hook Objects."""
@@ -1040,6 +1087,25 @@ class DataTypeRegistry(YamlRegistry):
     builtin_pkg = "fetchez.datatypes"
     entry_point_group = "fetchez.datatypes"
     user_folder = "datatypes"
+
+    @classmethod
+    def exists(cls, name):
+        cls.load_all()
+        return cls.get_yaml(name) is not None
+
+    @classmethod
+    def get_default_profile(cls, name):
+        cls.load_all()
+        data_type_config = cls.get_yaml(name)
+        if not data_type_config:
+            return None
+
+        default_profile = data_type_config.get("default_profile")
+        if not default_profile:
+            return None
+
+        ProfileRegistry.load_all()
+        return ProfileRegistry.get_yaml(default_profile)
 
 
 # =============================================================================
