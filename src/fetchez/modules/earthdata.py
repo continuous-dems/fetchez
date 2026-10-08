@@ -24,6 +24,7 @@ from tqdm.auto import tqdm
 from typing import Dict, Optional
 
 from fetchez import core
+from fetchez import utils
 from fetchez.modules import FetchModule
 from fetchez import spatial
 from fetchez import cli
@@ -31,6 +32,16 @@ from fetchez import cli
 from shapely.geometry import Polygon
 
 logger = logging.getLogger(__name__)
+
+
+class EarthdataSearchError(RuntimeError):
+    """A CMR granule search failed, so its result says nothing about what exists.
+
+    Raised instead of returning no results: a search that could not reach CMR,
+    or got back an answer it could not read, would otherwise look the same as
+    one that found no granules.
+    """
+
 
 CMR_SEARCH_URL = "https://cmr.earthdata.nasa.gov/search/granules.json?"
 HARMONY_BASE_URL = "https://harmony.earthdata.nasa.gov"
@@ -101,6 +112,7 @@ class EarthData(FetchModule):
         subset: bool = False,
         subset_job_id: Optional[str] = None,
         harmony_ping: Optional[str] = None,
+        strict_search: bool = True,
         **kwargs,
     ):
         super().__init__(name="cmr", **kwargs)
@@ -113,6 +125,9 @@ class EarthData(FetchModule):
         self.subset = subset
         self.subset_job_id = subset_job_id
         self.harmony_ping = harmony_ping  # see harmony_ping_for_status
+        # A failed CMR search raises EarthdataSearchError by default; with this
+        # off it logs a warning and the module returns no results instead.
+        self.strict_search = utils.str2bool(strict_search) is not False
 
         # URLs
         self._cmr_url = CMR_SEARCH_URL
@@ -252,6 +267,12 @@ class EarthData(FetchModule):
 
         return data
 
+    def _search_failed(self, message, cause=None):
+        """Raise EarthdataSearchError, or warn if strict_search is off."""
+        if self.strict_search:
+            raise EarthdataSearchError(message) from cause
+        logger.warning(f"{message} Treating it as no results.")
+
     def _run_cmr_search(self):
         """Execute standard CMR Granule Search."""
 
@@ -260,15 +281,23 @@ class EarthData(FetchModule):
 
         req = core.Fetch(self._cmr_url).fetch_req(params=params)
 
+        # A failed request is falsy, whether no answer came back or an HTTP error.
         if not req:
-            logger.error("CMR Request failed.")
+            status = getattr(req, "status_code", None)
+            self._search_failed(
+                f"CMR search for {self.short_name} failed"
+                + (f" (HTTP {status})" if status is not None else " (no response)")
+                + "."
+            )
             return
 
         try:
             feed = req.json().get("feed", {})
             entries = feed.get("entry", [])
         except Exception as e:
-            logger.error(f"Error parsing CMR response: {e}")
+            self._search_failed(
+                f"Could not read the CMR response for {self.short_name}: {e}", e
+            )
             return
         logger.debug(f"CMR returned {len(entries)} potential granules.")
 
