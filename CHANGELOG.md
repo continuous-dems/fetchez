@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CHANGED
+
+- Every dependency now has a minimum version that installs on Python 3.12, fetchez's oldest supported Python: the first release with Python 3.12 wheels for compiled packages, or a release from around Python 3.12's own (fall 2023) for pure-Python ones. `shapely>=2.0.3` is one release past its first Python 3.12 wheel, since shapely 2.0.2 installs alongside numpy 2 but fails to import. CI now also runs the tests with each dependency at its minimum, and on Python 3.14.
+
 ## [0.10.0 - 2026-10-06]
 
 ### ADDED

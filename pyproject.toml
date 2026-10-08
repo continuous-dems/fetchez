@@ -26,15 +26,15 @@ classifiers = [
 ]
 
 dependencies = [
-    "requests[security]",
-    "lxml",
-    "tqdm",
-    "pyyaml",
-    "click",
-    "filelock",
-    "pyproj",
-    "shapely",
-    "pyogrio",
+    "requests[security]>=2.31.0",
+    "lxml>=4.9.3",
+    "tqdm>=4.66.0",
+    "pyyaml>=6.0.1",
+    "click>=8.1.7",
+    "filelock>=3.12.4",
+    "pyproj>=3.6.1",
+    "shapely>=2.0.3",
+    "pyogrio>=0.7.0",
 ]
 
 keywords = ["Geospatial"]
