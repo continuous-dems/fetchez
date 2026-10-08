@@ -30,6 +30,13 @@ class FakeResponse:
         return self._payload
 
 
+@pytest.fixture(autouse=True)
+def no_credentials(monkeypatch):
+    """Building an Earthdata module reads Earthdata login credentials, and asks for
+    them on the terminal when there are none (as on CI)."""
+    monkeypatch.setattr(earthdata.core, "get_credentials", lambda **kwargs: None)
+
+
 def _answer(monkeypatch, response):
     class FakeFetch:
         def __init__(self, *args, **kwargs):
