@@ -34,7 +34,7 @@ dependencies = [
     "filelock>=3.12.4",
     "pyproj>=3.6.1",
     "shapely>=2.0.3",
-    "pyogrio>=0.7.0",
+    "pyogrio>=0.8.0",
 ]
 
 keywords = ["Geospatial"]
