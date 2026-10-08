@@ -263,6 +263,7 @@ class DAV(FetchModule):
                         data_type=data_type,
                         agency="NOAA Digital Coast",
                         title=f"Dataset {dataset_id}",
+                        survey_id=self.survey_id,
                         is_bathy=is_bathy,
                         year=year,
                         geometry=geometry_wkb[i],
