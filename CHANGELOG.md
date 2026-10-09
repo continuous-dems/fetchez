@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documented explicit reader configuration through `stream-init` and registered or inline profiles.
 - Expanded the Streams guide with practical Python examples, multi-source workflows, reader development, and extension integration.
 - Clarified the separation between module acquisition arguments, reader profiles, and stream processing while retaining legacy argument support for compatibility.
+- **BREAKING** - reader args passed through module entries are no longer supported by default, to recover this usage set `legacy_entry_kwargs=True` in `stream-init`.
 
 ### FIXED
 
