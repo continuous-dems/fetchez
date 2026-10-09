@@ -28,6 +28,9 @@ class QueueSinkHook(FetchHook):
     def __init__(self, q):
         super().__init__()
         self.q = q
+        # The first exception a stream raised while being read, as the reader
+        # raised it; run_fetchez() only re-raises it wrapped in a RuntimeError.
+        self.error = None
 
     def run(self, entries):
         for _mod, entry in entries:
@@ -35,9 +38,14 @@ class QueueSinkHook(FetchHook):
             if stream:
                 # Intercept the generator
                 def interceptor(s):
-                    for chunk in s:
-                        self.q.put(chunk)
-                        yield chunk
+                    try:
+                        for chunk in s:
+                            self.q.put(chunk)
+                            yield chunk
+                    except Exception as e:
+                        if self.error is None:
+                            self.error = e
+                        raise
 
                 entry["stream"] = interceptor(stream)
         return entries
@@ -110,6 +118,7 @@ class BaseStream:
         run_hooks = self.global_hooks + [sink]
 
         DONE = object()
+        worker_error = []
 
         def background_worker():
             try:
@@ -119,6 +128,8 @@ class BaseStream:
                     global_hooks=run_hooks,
                     ignore_failures=self.ignore_failures,
                 )
+            except Exception as e:
+                worker_error.append(e)
             finally:
                 chunk_queue.put(DONE)
 
@@ -132,3 +143,14 @@ class BaseStream:
                 break
             yield chunk
             chunk_queue.task_done()
+
+        # With ignore_failures off (the default), run_fetchez() raises when a
+        # stream fails, but in this thread that would just end the stream
+        # early, which looks the same as a source with no more data. Raise it
+        # here instead, after the chunks that were read, as the reader's own
+        # exception rather than run_fetchez()'s RuntimeError wrapper.
+        if worker_error and not self.ignore_failures:
+            error = worker_error[0]
+            if sink.error is not None and error.__cause__ is sink.error:
+                raise sink.error
+            raise error
