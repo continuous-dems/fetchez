@@ -93,11 +93,11 @@ def detectors_info(name):
 
 
 @detectors_group.command("detect", cls=FetchezMainCommand)
-@click.argument("name")
-def detectors_detect(name):
+@click.argument("fn")
+def detectors_detect(fn):
     """Detect a Fetchez data_type from a filename or Fetchez entry."""
 
     from fetchez.datatypes.detectors import detect_entry
 
-    entry = {"url": None, "dst_fn": name}
+    entry = {"url": None, "dst_fn": fn}
     click.echo(detect_entry(entry))
