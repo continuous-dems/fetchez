@@ -3,7 +3,7 @@
 
 """
 fetchez.datatypes.detectors.base
-~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2025 - 2026 Regents of the University of Colorado
 :license: MIT, see LICENSE for more details.
