@@ -2,6 +2,21 @@
 
 Fetchez comes builtin with [more than 100 different modules](https://fetchez.readthedocs.io/en/latest/modules/index.html) to access geospatial data from various remote apis and local file-systems.
 
+## Module Reference
+
+For detailed documentation of individual modules, including configuration,
+examples, and limitations, see the Module Reference.
+
+Not every registered module has a dedicated documentation page.
+Use the `fetchez modules` CLI commands or the `ModuleRegistry` to discover
+additional built-in and extension-provided modules.
+
+```{toctree}
+:maxdepth: 2
+
+modules/index
+```
+
 ## Data Modules
 
 Fetchez includes a **Module System** in its `ModuleRegistry` that allows you to access various geospatial data sources locally or from around the world.
