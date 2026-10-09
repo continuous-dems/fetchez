@@ -16,5 +16,6 @@ modifiers
 schemas
 streams
 readers
+detectors
 fred
 ```

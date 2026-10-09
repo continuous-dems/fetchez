@@ -200,9 +200,10 @@ def test_search_queries_all_registries(monkeypatch):
         "readers",
         "profiles",
         "data_types",
+        "detectors",
     }
 
-    assert len(calls) == 11
+    assert len(calls) == 12
     assert all(term == "coastal" for _, term in calls)
 
 

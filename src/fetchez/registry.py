@@ -20,6 +20,8 @@ PresetRegistry
 ModifierRegistry
 SchemaRegistry
 ProfileRegistry
+DataTypeRegistry
+DetectorRegistry
 
 :copyright: (c) 2010-2026 Regents of the University of Colorado
 :license: MIT, see LICENSE for more details.
@@ -46,6 +48,7 @@ from fetchez.recipes.schemas import BaseSchema
 from fetchez.streams import BaseStream
 from fetchez.streams.readers import BaseReader
 from fetchez.utils import get_class_arguments
+from fetchez.datatypes.detectors import BaseDetector, Detection
 
 logger = logging.getLogger(__name__)
 
@@ -1196,6 +1199,68 @@ class DataTypeRegistry(YamlRegistry):
 
         ProfileRegistry.load_all()
         return ProfileRegistry.resolve(default_profile)
+
+
+class DetectorRegistry(PluginRegistry):
+    """Discover and execute data-type detectors."""
+
+    base_class = BaseDetector
+    builtin_pkg = "fetchez.datatypes.detectors"
+    entry_point_group = "fetchez.datatypes.detectors"
+    user_folder = "datatypes/detectors"
+
+    @classmethod
+    def detect(cls, entry):
+        cls.load_all()
+        DataTypeRegistry.load_all()
+
+        results = []
+        seen = set()
+
+        for name in sorted(cls.get_registry()):
+            detector_cls = cls.get_class(name)
+
+            if detector_cls is None or detector_cls in seen:
+                continue
+
+            seen.add(detector_cls)
+
+            try:
+                result = detector_cls().detect(entry)
+            except (OSError, ValueError) as exc:
+                logger.debug("Detector %s failed: %s", name, exc)
+                continue
+
+            if not isinstance(result, Detection):
+                continue
+
+            if not isinstance(result.data_type, str):
+                continue
+
+            if not 0.0 <= result.confidence <= 1.0:
+                continue
+
+            if not DataTypeRegistry.exists(result.data_type):
+                continue
+
+            results.append(
+                (
+                    result.confidence,
+                    getattr(detector_cls, "meta_priority", 100),
+                    name,
+                    result,
+                )
+            )
+
+        if not results:
+            return None
+
+        # Higher confidence first; lower priority value wins ties,
+        # followed by the canonical registry name.
+        return sorted(
+            results,
+            key=lambda item: (-item[0], item[1], item[2]),
+        )[0][3]
 
 
 # =============================================================================

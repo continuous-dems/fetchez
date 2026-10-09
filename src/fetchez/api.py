@@ -45,6 +45,7 @@ from .registry import (
     ReaderRegistry,
     ProfileRegistry,
     DataTypeRegistry,
+    DetectorRegistry,
 )
 
 logger = logging.getLogger(__name__)
@@ -167,6 +168,14 @@ def search_data_types(term) -> Dict[str, Any]:
     return _search_registry(DataTypeRegistry, term)
 
 
+def list_detectors() -> Dict[str, Any]:
+    return _search_registry(DetectorRegistry)
+
+
+def search_detectors(term) -> Dict[str, Any]:
+    return _search_registry(DetectorRegistry, term)
+
+
 def search(term: str) -> Dict[str, Dict[str, Any]]:
     """Search across ALL Fetchez registries simultaneously."""
     return {
@@ -181,6 +190,7 @@ def search(term: str) -> Dict[str, Dict[str, Any]]:
         "readers": _search_registry(ReaderRegistry, term),
         "profiles": _search_registry(ProfileRegistry, term),
         "data_types": _search_registry(DataTypeRegistry, term),
+        "detectors": _search_registry(DetectorRegistry, term),
     }
 
 
