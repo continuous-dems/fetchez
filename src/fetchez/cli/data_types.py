@@ -24,12 +24,13 @@ from fetchez.utils import (
     FetchezMainCommand,
 )
 from fetchez.api import search_data_types
+from .detectors import detectors_group
 
 
 @click.group(
     cls=FetchezMainGroup,
     name="datatypes",
-    fetchez_commands=["dump", "copy", "info", "list"],
+    fetchez_commands=["dump", "copy", "info", "list", "detectors"],
 )
 def data_types_group():
     """Discover and inspect Fetchez entry Data Types.
@@ -120,3 +121,6 @@ def copy_data_type(name):
     click.secho(f"\n✅ Copied '{name}' to {out_path}", fg="green", bold=True)
     click.echo("Fetchez will now prioritize this local file over the built-in version!")
     click.echo("You can open it in any text editor to safely customize the pipeline.\n")
+
+
+data_types_group.add_command(detectors_group, name="detectors")
