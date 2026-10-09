@@ -1,4 +1,4 @@
-# 🌎 Modules
+# 🌎 Modules & Bundles
 
 Fetchez comes builtin with [more than 100 different modules](https://fetchez.readthedocs.io/en/latest/modules/index.html) to access geospatial data from various remote apis and local file-systems.
 
@@ -55,7 +55,7 @@ modules:
 * **Run it:** Your new `grav_and_bath` bundle is now registrered in the `BundleRegistry` and available in the fetchez cli:
 
 ```bash
-fetchez run -R loc:"portland, me" grav_and_bath
+fetchez build -R loc:"portland, me" grav_and_bath
 ```
 
 * **Add it:** You can also use the bundle as a module in `recipes` or can be referenced by other Bundles.
