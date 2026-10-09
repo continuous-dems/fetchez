@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### FIXED
 
 - A failed CMR granule search in the Earthdata modules (the `EarthData` class and its `IceSat2`, `SWOT` and `MUR_SST` subclasses) raises `EarthdataSearchError` instead of logging an error and returning no results (#470). A search that couldn't reach CMR, got an HTTP error, or got back an answer it couldn't read looked the same as one that found no granules, so code that runs a module directly took an outage for missing data; globato's lookup of the ATL08 and ATL24 granules for an ATL03 granule, for one, went on without them. fetchez's own command line, `fetchez.get()` and recipes catch the error as they catch any module failure, so they behave as before: the failure is logged and the module gives no results. Passing `strict_search=False` to the module turns the error off: the failure is logged as a warning and the search gives no results.
+- A stream (`BaseStream`, and so `globato.read()`) whose reader raises partway through a file raises that same exception to the code iterating it, after the chunks read before the failure (#472). The exception was lost in the stream's background thread, so the stream just ended early, the same as a file with no more data. This changes what callers see: with `ignore_failures` off, the default, iterating a stream can now raise where it used to stop quietly. With `ignore_failures=True` a failed stream still ends early, with the error logged.
 
 ## [0.10.0 - 2026-10-06]
 
