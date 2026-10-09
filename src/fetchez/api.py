@@ -209,12 +209,13 @@ def _compile_modules(sources, region=None, shared_cache=None, **kwargs) -> List[
     for mod_def in expanded_defs:
         mod_name = mod_def.get("module")
         mod_args = {**mod_def.get("args", {}), **kwargs}
-        if abs_cache and mod_name not in [
+
+        if abs_cache and mod_name not in {
             "file",
             "local_fs",
             "stdin",
-        ]:
-            mod_def.setdefault("args", {})["outdir"] = abs_cache
+        }:
+            mod_args["outdir"] = abs_cache
 
         raw_hooks = mod_def.get("hooks", [])
         expanded_hooks = PresetRegistry.expand_hooks(raw_hooks)
@@ -473,12 +474,106 @@ class Pipeline:
         ]
 
 
-def read(sources, region=None, shared_cache=None, **kwargs):
-    """Initializes a Fetchez stream."""
+def read(
+    sources: str | dict | list,
+    region=None,
+    shared_cache=None,
+) -> BaseStream:
+    """Create a lazy, composable Fetchez data stream.
 
+    Resolve one or more Fetchez sources into modules and return a
+    BaseStream. Modules are discovered and their entries are processed
+    when the stream is iterated, not when read() is called.
+
+    Sources
+    -------
+    Each source may be:
+
+    - A string naming a registered module, bundle, or local file.
+    - A module-definition dictionary containing "module", optional
+      "args", and optional "hooks".
+    - A list containing any combination of these definitions.
+
+    Module-specific options belong in the source definition's "args"
+    dictionary. They are not passed as global read() keyword arguments.
+
+    Stream processing
+    -----------------
+    The returned BaseStream supports .pipe() for chaining Fetchez
+    hooks. Hooks can be specified by registered name, hook definition,
+    or instantiated hook object.
+
+    Use `.pipe("stream-init", profile=..., **reader_options)` to select
+    and configure a reader explicitly.
+
+    Reader profiles may also be specified directly in entries.
+    Without an explicit stream-init hook, Fetchez can automatically
+    initialize streams when downstream stream hooks require one.
+
+    The returned stream is consumed by iteration. Each iteration
+    executes the underlying pipeline.
+
+    Parameters
+    ----------
+    sources : str, dict, or list
+        One or more Fetchez source definitions.
+    region : str, list, or Region, optional
+        Spatial region used for module discovery and processing.
+    shared_cache : str or Path, optional
+        Shared cache directory for downloaded data.
+
+    Returns
+    -------
+    BaseStream
+        A lazy Fetchez stream supporting .pipe() and iteration.
+
+    Examples
+    --------
+    Read a local CSV file using a registered profile:
+
+    >>> stream = read("observations.csv").pipe(
+    ...     "stream-init", profile="csv-default"
+    ... )
+    >>> for chunk in stream:
+    ...     process(chunk)
+
+    Configure a reader explicitly:
+
+    >>> stream = read("observations.csv").pipe(
+    ...     "stream-init",
+    ...     profile="csv-default",
+    ...     chunk_size=10000,
+    ... )
+
+    Read a configured module:
+
+    >>> stream = read({
+    ...     "module": "tnm",
+    ...     "args": {"products": "1m"},
+    ... })
+
+    Combine multiple sources:
+
+    >>> stream = read([
+    ...     "observations_a.csv",
+    ...     "observations_b.csv",
+    ... ]).pipe("stream-init", profile="csv-default")
+
+    Chain additional processing hooks:
+
+    >>> stream = read("observations.csv").pipe(
+    ...     "stream-init", profile="csv-default"
+    ... ).pipe("my-processing-hook")
+    """
     modules = _compile_modules(
-        sources, region=region, shared_cache=shared_cache, **kwargs
+        sources,
+        region=region,
+        shared_cache=shared_cache,
     )
+
     parsed_region = parse_region(region)[0] if region else None
 
-    return BaseStream(modules=modules, region=parsed_region)
+    return BaseStream(
+        modules=modules,
+        region=parsed_region,
+    )

@@ -2,6 +2,21 @@
 
 Fetchez is designed to be highly extendable. Using **hooks** and **presets**, you can build automated pipelines that process fetched or local data on the fly.
 
+## Hook Reference
+
+For detailed documentation of individual hooks, including configuration,
+examples, and limitations, see the [Hook Reference](hooks/index.md).
+
+Not every registered hook has a dedicated documentation page.
+Use the `fetchez hooks` CLI commands or the `HookRegistry` to discover
+additional built-in and extension-provided hooks.
+
+```{toctree}
+:maxdepth: 2
+
+hooks/index
+```
+
 ## Processing Hooks
 
 Fetchez includes a **Hook System** in its `HookRegistry` that allows you to chain actions together. Hooks run in a pipeline, meaning the output of one hook (e.g., unzipping a file) becomes the input for the next (e.g., streaming and processing it). Hooks can also manipulate or aggregate the fetched data's metadata, trigger outside software or just pass the data in a new direction or make attached artifacts.
