@@ -11,6 +11,7 @@ For an introduction to hook stages, presets, and usage, see [Hooks and Presets](
 ```{toctree}
 :maxdepth: 2
 
+filename_filter
 remote_archive_footprint
 remote_raster_footprint
 ```
