@@ -1,4 +1,4 @@
-# Streams: reading and processing data in Python
+# 🗃️ Streams: reading and processing data in Python
 
 Fetchez provides a composable streaming interface for acquiring files, decoding them with registered readers, and processing data in chunks. The Python API uses `read()` to define sources and `.pipe()` to configure the processing hooks. This is a lightweight alternative to a full YAML recipe for interactive or application-level workflows.
 

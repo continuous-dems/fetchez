@@ -503,7 +503,7 @@ def read(
     hooks. Hooks can be specified by registered name, hook definition,
     or instantiated hook object.
 
-    Use .pipe("stream-init", profile=..., **reader_options) to select
+    Use `.pipe("stream-init", profile=..., **reader_options)` to select
     and configure a reader explicitly.
 
     Reader profiles may also be specified directly in entries.
