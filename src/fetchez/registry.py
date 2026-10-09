@@ -638,36 +638,93 @@ class ReaderRegistry(PluginRegistry):
 
     @classmethod
     def get_reader_from_entry(cls, entry, region=None, **kwargs):
-        profile_name = entry.get("profile")
+        """Resolve and initialize a reader from a Fetchez entry.
+
+        Resolution priority:
+          1. Explicit entry profile (registered name or inline dict).
+          2. Default profile associated with entry data_type.
+          3. Legacy reader dtype/extension resolution.
+
+        Explicit profiles are authoritative: invalid profiles or missing
+        readers do not silently fall back to a different reader.
+
+        Additional kwargs provide execution context and explicit overrides
+        to profile reader arguments.
+        """
+        cls.load_all()
+
+        src = entry.get("dst_fn")
+        if not src:
+            logger.warning("Cannot initialize reader: entry has no dst_fn.")
+            return None
+
+        profile_ref = entry.get("profile")
         data_type = entry.get("data_type")
 
-        if profile_name:
-            ProfileRegistry.load_all()
-            profile = ProfileRegistry.get_yaml(profile_name)
-            if not profile:
-                logger.warning(f"Reader profile '{profile_name}' not found.")
+        # -------------------------------------------------------------
+        # Resolve an explicitly selected profile.
+        # -------------------------------------------------------------
+        if profile_ref is not None:
+            profile = ProfileRegistry.resolve(profile_ref)
+
+            if profile is None:
+                logger.warning(
+                    "Reader profile %r could not be resolved.",
+                    profile_ref,
+                )
                 return None
+
+        # -------------------------------------------------------------
+        # Resolve the data type's default profile.
+        # -------------------------------------------------------------
         elif data_type:
             profile = DataTypeRegistry.get_default_profile(data_type)
+
         else:
             profile = None
 
-        if profile:
-            cls.load_all()
+        # -------------------------------------------------------------
+        # Instantiate a reader from the resolved profile.
+        # -------------------------------------------------------------
+        if profile is not None:
             reader_def = profile.get("reader", {})
             reader_name = reader_def.get("name")
-            reader = cls.get_class(reader_name)
-            if reader:
-                profile_args = reader_def.get("args", {})
-                return reader(
-                    entry["dst_fn"],
-                    region=region,
-                    **{**profile_args, **kwargs},
-                )
 
-        # Preserve existing resolution behavior for now.
+            if not reader_name:
+                logger.warning(
+                    "Resolved profile has no reader name: %r",
+                    profile,
+                )
+                return None
+
+            reader_cls = cls.get_class(reader_name)
+
+            if reader_cls is None:
+                logger.warning(
+                    "Reader '%s' referenced by profile is not registered.",
+                    reader_name,
+                )
+                return None
+
+            reader_args = profile.get("reader", {}).get("args") or {}
+
+            logger.debug(
+                "Initializing reader '%s' for %s.",
+                reader_name,
+                src,
+            )
+
+            return reader_cls(
+                src,
+                region=region,
+                **{**reader_args, **kwargs},
+            )
+
+        # -------------------------------------------------------------
+        # Legacy fallback for entries without a resolved profile.
+        # -------------------------------------------------------------
         return cls.get_reader(
-            entry.get("dst_fn"),
+            src,
             data_type,
             region=region,
             **kwargs,
@@ -1068,6 +1125,39 @@ class ProfileRegistry(YamlRegistry):
             if profile.get("data_type") == data_type
         ]
 
+    @classmethod
+    def resolve(cls, profile, overrides=None):
+        """Resolve a registered or inline reader profile.
+
+        Overrides apply only to reader.args.
+        """
+
+        if isinstance(profile, str):
+            cls.load_all()
+            config = cls.get_yaml(profile)
+
+            if config is None:
+                return None
+
+        elif isinstance(profile, dict):
+            config = copy.deepcopy(profile)
+
+        else:
+            return None
+
+        if not isinstance(config.get("reader"), dict):
+            logger.warning("Invalid profile: missing reader definition.")
+            return None
+
+        if not config["reader"].get("name"):
+            logger.warning("Invalid profile: missing reader.name.")
+            return None
+
+        if overrides:
+            config.setdefault("reader", {}).setdefault("args", {}).update(overrides)
+
+        return config
+
     # @classmethod
     # def reader_args_from_profile(cls, profile_def):
     #     """Convert yaml definition to list of Hook Objects."""
@@ -1105,7 +1195,7 @@ class DataTypeRegistry(YamlRegistry):
             return None
 
         ProfileRegistry.load_all()
-        return ProfileRegistry.get_yaml(default_profile)
+        return ProfileRegistry.resolve(default_profile)
 
 
 # =============================================================================
