@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated DataTypeRegistry with the existing profile and reader infrastructure, supporting explicit profile selection and optional default profiles for generic data type.
 - Added entry-aware reader resolution through ReaderRegistry.get_reader_from_entry(), preserving legacy reader dtype and file-extension fallbacks.
 - Added support for explicit reader output metadata (meta_produces) with backward-compatible meta_category fallback.
+- Added 'resolve' to ProfileRegistry to allow for inline profile definitions outside of the main registry.
 
 ### CHANGED
 
