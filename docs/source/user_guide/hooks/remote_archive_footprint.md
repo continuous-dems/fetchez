@@ -1,4 +1,4 @@
-# Remote archive footprints
+# Remote archive footprints (`remote_archive_footprint`)
 
 `remote_archive_footprint` reads polygon boundaries from a shapefile inside a
 remote ZIP and attaches them to each Fetchez entry before the archive is

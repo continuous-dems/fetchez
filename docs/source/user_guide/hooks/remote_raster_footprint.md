@@ -1,4 +1,4 @@
-# Remote raster footprints
+# Remote raster footprints (`remote_raster_footprint`)
 
 The `remote_raster_footprint` manifest hook reads georeferencing from remote
 rasters before downloading them and sets each entry's `geometry` to the raster's
