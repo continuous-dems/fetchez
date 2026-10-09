@@ -1,4 +1,4 @@
-# 🪝 Hooks
+# 🪝 Hooks & Presets
 
 Fetchez is designed to be highly extendable. Using **hooks** and **presets**, you can build automated pipelines that process fetched or local data on the fly.
 
@@ -43,13 +43,13 @@ Each hook defines it's default `stage`, which can be changed at any time (though
 # Download data.zip
 # Extract data.tif (via unzip hook)
 # Print /path/to/data.tif (via pipe hook)
-fetchez run charts --hook unzip --hook pipe
+fetchez build charts unzip pipe
 
 # warp the copernicus files right when they're downloaded
-fetchez run -R loc:denver copernicus --pipe | xargs gdalwarp -t_srs EPSG:3857
+fetchez build -R loc:denver copernicus pipe | xargs gdalwarp -t_srs EPSG:3857
 
 # build a vrt of the fetched files
-gdalbuildvrt cop_merged.vrt $(fetchez run -R -105/-104/39/40 copernicus --pipe)
+gdalbuildvrt cop_merged.vrt $(fetchez build -R -105/-104/39/40 copernicus pipe)
 ```
 
 ## Hook Presets (Macros)
@@ -60,13 +60,13 @@ You can make your own, or use a pre-configured Preset from fetchez or it's exten
 Instead of running this long command:
 
 ```bash
-fetchez run copernicus --hook checksum:algo=sha256 --hook enrich --hook audit:file=log.json
+fetchez build copernicus checksum --algo sha256 enrich audit --file log.json
 ```
 
 You can define a preset and simply run:
 
 ```bash
-fetchez run copernicus --hook --audit-full
+fetchez build copernicus audit-full
 ```
 
 ### How to create a Preset:
@@ -91,7 +91,7 @@ hooks:
 **Run it:** Your new preset automatically appears in the `fetchez` `PresetRegistry` as a valid hook!
 
 ```bash
-fetchez run charts --hook audit-full
+fetchez build charts audit-full
 ```
 
 **Add it:** You can also use the new preset in `recipes` or referenced by other `presets` and change hook arguments.

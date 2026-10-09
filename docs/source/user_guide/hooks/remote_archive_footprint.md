@@ -1,4 +1,4 @@
-# Remote archive footprints
+# Remote archive footprints (`remote_archive_footprint`)
 
 `remote_archive_footprint` reads polygon boundaries from a shapefile inside a
 remote ZIP and attaches them to each Fetchez entry before the archive is
@@ -14,8 +14,8 @@ GeoPackages such as WESM are a separate reader/integration task.
 Use the hook on archives known to contain footprint polygons. For example:
 
 ```bash
-fetchez run --global-hook list-only -R -124.5/-124.0/41.5/44.0 \
-  tnm --datasets 1_9as --hook remote_archive_footprint
+fetchez build list-only -R -124.5/-124.0/41.5/44.0 \
+  tnm --datasets 1_9as remote_archive_footprint
 ```
 
 If an archive contains multiple shapefiles, select one by its exact member

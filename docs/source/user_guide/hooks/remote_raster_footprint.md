@@ -1,4 +1,4 @@
-# Remote raster footprints
+# Remote raster footprints (`remote_raster_footprint`)
 
 The `remote_raster_footprint` manifest hook reads georeferencing from remote
 rasters before downloading them and sets each entry's `geometry` to the raster's
@@ -14,8 +14,8 @@ pip install 'fetchez[raster]'
 For example, inspect TNM raster extents without downloading the full datasets:
 
 ```bash
-fetchez run --global-hook list-only -R -124.5/-124.0/41.5/44.0 \
-  tnm --datasets 1_as --hook remote_raster_footprint
+fetchez build list-only -R -124.5/-124.0/41.5/44.0 \
+  tnm --datasets 1_as remote_raster_footprint
 ```
 
 The hook replaces existing entry geometry deliberately. Apply it only to direct
