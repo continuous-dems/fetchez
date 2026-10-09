@@ -12,11 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated DataTypeRegistry with the existing profile and reader infrastructure, supporting explicit profile selection and optional default profiles for generic data type.
 - Added entry-aware reader resolution through ReaderRegistry.get_reader_from_entry(), preserving legacy reader dtype and file-extension fallbacks.
 - Added support for explicit reader output metadata (meta_produces) with backward-compatible meta_category fallback.
+- Added 'resolve' to ProfileRegistry to allow for inline profile definitions outside of the main registry.
 
 ### CHANGED
 
 - Every dependency now has a minimum version that installs on Python 3.12, fetchez's oldest supported Python: the first release with Python 3.12 wheels for compiled packages, or a release from around Python 3.12's own (fall 2023) for pure-Python ones. `shapely>=2.0.3` and `pyogrio>=0.8.0` are a little past their first Python 3.12 wheels, since the earlier releases install alongside numpy 2 but fail to import. CI now also runs the tests with each dependency at its minimum, and on Python 3.14.
 - Refactored stream-init to separate reader selection, configuration, spatial metadata handling, and stream initialization.
+- Update `ProfileRegistry.get_reader_from_entry` to accept inline profiles via the new `.resolve`.
 
 ### FIXED
 
