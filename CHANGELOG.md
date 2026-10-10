@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `set-entry` hook as a generic/arbitrary module entry setter. This supersedes the individual setters such as `set-datatype` and `set-srs` (those are still available).
 - Added Documentation sections for individual hooks and modules.
 - Added `DetectorRegistry` for data-type detection.
+- Added `detect_data_type` to the `enrich` hook.
 
 ### CHANGED
 
