@@ -22,6 +22,7 @@ import math
 from fetchez.hooks import FetchHook
 from fetchez.registry import ReaderRegistry
 from fetchez.spatial import Region
+from fetchez.datatypes.detectors import detect_entry
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,9 @@ class DataStream(FetchHook):
         self,
         profile=None,
         data_type=None,
+        detect_data_type=False,
+        overwrite_data_type=False,
+        replace_unknown_data_type=True,
         stream_type=None,
         legacy_entry_kwargs=False,
         legacy_region_mutation=False,
@@ -91,6 +95,10 @@ class DataStream(FetchHook):
 
         self.profile = profile
         self.data_type = data_type
+
+        self.detect_data_type = detect_data_type
+        self.overwrite_data_type = overwrite_data_type
+        self.replace_unknown_data_type = replace_unknown_data_type
 
         # Compatibility only
         self.stream_type = stream_type
@@ -246,6 +254,13 @@ class DataStream(FetchHook):
                 entry.get("url"),
             )
             return
+
+        if self.detect_data_type:
+            detect_entry(
+                entry,
+                overwrite=self.overwrite_data_type,
+                replace_unknown=self.replace_unknown_data_type,
+            )
 
         resolution_entry = self._resolution_entry(entry)
         reader_kwargs = self._reader_kwargs(mod, entry)

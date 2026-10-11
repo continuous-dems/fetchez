@@ -82,17 +82,17 @@ class Extract(FetchHook):
                 continue
 
             for extracted_path in extracted:
-                out_entries.append(
-                    (
-                        mod,
-                        {
-                            **entry,
-                            "dst_fn": str(extracted_path),
-                            "src_fn": str(file_path),
-                            "status": 0,
-                        },
-                    )
-                )
+                child_entry = {
+                    **entry,
+                    "dst_fn": str(extracted_path),
+                    "src_fn": str(file_path),
+                    "status": 0,
+                }
+
+                child_entry.pop("data_type", None)
+                child_entry.pop("profile", None)
+
+                out_entries.append((mod, child_entry))
 
             if self.remove:
                 try:
