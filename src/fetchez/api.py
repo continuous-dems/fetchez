@@ -342,7 +342,7 @@ def get(
 
     if dry_run:
         manifest = []
-        for _mod, entry in mod_instance.results:
+        for entry in mod_instance.results:
             source = (
                 entry.get("url") or entry.get("path") or entry.get("name") or str(entry)
             )

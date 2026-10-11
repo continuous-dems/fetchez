@@ -217,3 +217,25 @@ def test_search_registry_aliases_support_substring_matching():
     result = api._search_registry(DummyRegistry, "fir")
 
     assert "alpha" in result
+
+
+def test_dry_run_returns_urls_from_flat_results(monkeypatch):
+    """`FetchModule.results` is a flat list of entry dicts, not (module, entry) pairs."""
+
+    class FakeModule:
+        def __init__(self, **kwargs):
+            self.results = [
+                {"url": "https://example.com/a.tif"},
+                {"url": "https://example.com/b.tif"},
+            ]
+
+        def run(self):
+            pass
+
+    monkeypatch.setattr(api.ModuleRegistry, "load_all", lambda: None)
+    monkeypatch.setattr(api.HookRegistry, "load_all", lambda: None)
+    monkeypatch.setattr(api.ModuleRegistry, "get_class", lambda name: FakeModule)
+
+    manifest = api.get("fake", dry_run=True, verbose=False)
+
+    assert manifest == ["https://example.com/a.tif", "https://example.com/b.tif"]
