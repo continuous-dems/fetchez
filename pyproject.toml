@@ -142,6 +142,7 @@ module = [
     "copernicusmarine",
     "fsspec",
     "fsspec.*",
+    "affine",
 ]
 ignore_missing_imports = true
 # disable_error_code = ["import-not-found"]
