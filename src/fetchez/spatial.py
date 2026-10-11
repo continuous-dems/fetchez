@@ -39,6 +39,16 @@ Region Formats:
     """
 
 
+def _snap_pixel_boundary(value, tol=1e-9):
+    """Remove floating-point noise near integer pixel boundaries."""
+    nearest = round(value)
+
+    if abs(value - nearest) <= tol:
+        return float(nearest)
+
+    return value
+
+
 # =============================================================================
 # The Region Class
 # =============================================================================
@@ -424,6 +434,85 @@ class Region:
         x_res = (self.xmax - self.xmin) / float(nx)
         y_res = (self.ymax - self.ymin) / float(ny)
         return (self.xmin, x_res, 0, self.ymax, 0, -y_res)
+
+    def to_window(
+        self,
+        transform,
+        width=None,
+        height=None,
+        tol=1e-9,
+    ):
+        """Convert geographic bounds to an integer pixel window.
+
+        The returned tuple is (col_off, row_off, width, height).
+
+        Pixel selection includes every source pixel intersecting the
+        region's bounding box. Values extremely close to integer pixel
+        boundaries are snapped to those boundaries before rounding.
+
+        The original raster grid is preserved; no resampling,
+        reprojection, or half-pixel shift is performed.
+
+        Parameters
+        ----------
+        transform : Affine or tuple
+            Rasterio Affine or six-element GDAL geotransform.
+        width, height : int, optional
+            Raster dimensions used to clip the resulting window.
+        tol : float
+            Numerical snapping tolerance in pixel units.
+        """
+        import math
+        from affine import Affine
+
+        if not self.valid_p():
+            raise ValueError("Cannot calculate window for invalid region.")
+
+        if isinstance(transform, Affine):
+            affine = transform
+        else:
+            affine = Affine.from_gdal(*transform)
+
+        inverse = ~affine
+
+        # Transform all four corners to pixel coordinates.
+        corners = (
+            (self.xmin, self.ymin),
+            (self.xmin, self.ymax),
+            (self.xmax, self.ymin),
+            (self.xmax, self.ymax),
+        )
+
+        pixel_coords = [inverse * (x, y) for x, y in corners]
+
+        def snap(value):
+            nearest = round(value)
+            return nearest if abs(value - nearest) <= tol else value
+
+        col_min = snap(min(p[0] for p in pixel_coords))
+        col_max = snap(max(p[0] for p in pixel_coords))
+        row_min = snap(min(p[1] for p in pixel_coords))
+        row_max = snap(max(p[1] for p in pixel_coords))
+
+        col_start = math.floor(col_min)
+        col_stop = math.ceil(col_max)
+        row_start = math.floor(row_min)
+        row_stop = math.ceil(row_max)
+
+        if width is not None:
+            col_start = max(0, col_start)
+            col_stop = min(width, col_stop)
+
+        if height is not None:
+            row_start = max(0, row_start)
+            row_stop = min(height, row_stop)
+
+        return (
+            col_start,
+            row_start,
+            max(0, col_stop - col_start),
+            max(0, row_stop - row_start),
+        )
 
     # --- Constructors ---
     @classmethod

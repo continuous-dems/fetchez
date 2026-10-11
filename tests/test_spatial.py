@@ -3,6 +3,7 @@
 import pytest
 from fetchez.spatial import parse_region
 from fetchez.spatial import Region
+from rasterio import Affine
 
 
 def test_parse_region_with_epsg():
@@ -54,3 +55,39 @@ def test_geo_transform_grid_node_handles_buffered_exact_cell_extent():
     )
 
     assert reconstructed == pytest.approx(gt)
+
+
+def test_region_to_window_aligned():
+    region = Region(-123.98, -123.95, 41.96, 41.99)
+    transform = Affine(0.01, 0, -124, 0, -0.01, 42)
+
+    assert region.to_window(transform) == (2, 1, 3, 3)
+
+
+def test_region_to_window_fractional():
+    region = Region(-123.985, -123.955, 41.955, 41.985)
+    transform = Affine(0.01, 0, -124, 0, -0.01, 42)
+
+    assert region.to_window(transform) == (1, 1, 4, 4)
+
+
+def test_region_to_window_clipped():
+    region = Region(-124.02, -123.95, 41.96, 42.02)
+    transform = Affine(0.01, 0, -124, 0, -0.01, 42)
+
+    assert region.to_window(
+        transform,
+        width=7,
+        height=5,
+    ) == (0, 0, 5, 4)
+
+
+def test_region_to_window_outside():
+    region = Region(0, 1, 0, 1)
+    transform = Affine(0.01, 0, -124, 0, -0.01, 42)
+
+    assert region.to_window(
+        transform,
+        width=7,
+        height=5,
+    )[2:] == (0, 0)
