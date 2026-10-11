@@ -1,0 +1,4 @@
+name: csv-standard
+data_type: csv
+reader:
+  name: "csvreader"

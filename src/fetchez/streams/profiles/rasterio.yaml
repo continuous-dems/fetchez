@@ -1,0 +1,6 @@
+name: rasterio
+data_type: raster
+reader:
+  name: rasterio
+  args:
+    chunk_size: 512
