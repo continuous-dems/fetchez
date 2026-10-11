@@ -1,0 +1,4 @@
+name: csv
+description: CSV dataset
+category: geospatial, generic
+default_profile: csv-standard
