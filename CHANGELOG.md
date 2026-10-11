@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Documentation sections for individual hooks and modules.
 - Added `DetectorRegistry` for data-type detection.
 - Added `detect_data_type` to the `enrich` hook.
+- Added a generic Rasterio reader supporting windowed single-band and multiband raster-stream output, including optional masks, CRS, geotransforms, and band metadata.
+- Added the rasterio reader profile for explicit raster-stream initialization.
+- Added `Region.to_window()` for numerically stable raster window selection and source-grid alignment.
+- Added a standard CSV reader profile.
 
 ### CHANGED
 
@@ -29,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clarified the separation between module acquisition arguments, reader profiles, and stream processing while retaining legacy argument support for compatibility.
 - **BREAKING** - reader args passed through module entries are no longer supported by default, to recover this usage set `legacy_entry_kwargs=True` in `stream-init`.
 - Updated documentation cli references to align with modern cli usage.
+- Extended `stream-init` with optional data-type detection and normalization using `DetectorRegistry`.
+- Updated extraction to treat extracted files as independent artifacts, clearing inherited data-type and reader-profile assignments.
+- Removed point-specific .inf generation from the generic reader base.
+- Expanded spatial and reader-profile regression tests.
 
 ### FIXED
 
