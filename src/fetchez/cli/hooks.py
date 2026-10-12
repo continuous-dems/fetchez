@@ -15,17 +15,18 @@ import sys
 import click
 
 from fetchez.registry import HookRegistry
-from fetchez.utils import (
+from fetchez.cli.utils import (
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
+    filter_registry,
     FetchezMainGroup,
     FetchezMainCommand,
 )
 from fetchez.api import search_hooks
 from .presets import presets_group
 
-HOOKS_COMMANDS = ["info", "list", "presets", "update-cache"]
+HOOKS_COMMANDS = ["info", "list", "providers", "presets"]
 
 
 @click.group(
@@ -71,24 +72,62 @@ def hooks_group():
 
 @hooks_group.command("search", cls=FetchezMainCommand)
 @click.argument("term")
-def hook_search(term):
+@click.option(
+    "--provider",
+    "-p",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def hook_search(term, provider):
     """Search all available processing hooks by keyword."""
 
     registry = search_hooks(term)
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+        },
+    )
     grouped_hooks = group_registry_by_key(registry, "mod")
     print_grouped_registry(grouped_hooks, "Hooks", "Provider")
     click.echo("\nRun 'fetchez hooks info <name>' for arguments and recipe examples.\n")
 
 
 @hooks_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Filter hooks by name or keyword.")
-def hook_list(search):
-    """List all available processing hooks grouped by category."""
-
+@click.option("--search", "-s")
+@click.option(
+    "--group-by",
+    type=click.Choice(["provider", "category", "stage", "effects"]),
+    default="provider",
+)
+@click.option("--effect", multiple=True)
+@click.option("--accepts", multiple=True)
+@click.option("--produces", multiple=True)
+@click.option("--stage", multiple=True)
+@click.option(
+    "--provider",
+    "-p",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def hook_list(search, group_by, effect, accepts, produces, stage, provider):
     registry = search_hooks(search)
-    grouped_hooks = group_registry_by_key(registry, "mod")
-    print_grouped_registry(grouped_hooks, "Hooks", "Provider")
-    click.echo("\nRun 'fetchez hooks info <name>' for arguments and recipe examples.\n")
+
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+            "effects": effect,
+            "accepts": accepts,
+            "produces": produces,
+            "stage": stage,
+        },
+    )
+
+    group_key = "provider" if group_by == "provider" else group_by
+
+    grouped = group_registry_by_key(registry, group_key)
+    print_grouped_registry(grouped, "Hooks", group_by.title())
 
 
 @hooks_group.command("info", cls=FetchezMainCommand)

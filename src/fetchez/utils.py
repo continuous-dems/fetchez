@@ -730,57 +730,6 @@ def compile_sources(sources):
     return compiled_modules
 
 
-def group_registry_by_key(registry, key="category"):
-    grouped_hooks = {}
-    if isinstance(registry, dict):
-        registry_list = registry.items()
-    elif isinstance(registry, list):
-        registry_list = registry
-    else:
-        registry_list = [registry]
-
-    for name, meta in registry_list:
-        if name.split(".")[-1] in meta.get("aliases", []):
-            continue
-        cat = meta.get(key, "uncategorized").split(".")[0].title()
-        if "fetchez_user" in cat.lower():
-            cat = "User"
-
-        grouped_hooks.setdefault(cat, []).append((name, meta))
-    return grouped_hooks
-
-
-def print_grouped_registry(grouped_hooks, registry_type="Modules", key="Provider"):
-    import click
-
-    click.secho(f"\n📜 Available {registry_type} by {key}:", fg="cyan", bold=True)
-    click.echo("=" * 60)
-
-    for cat in sorted(grouped_hooks.keys()):
-        click.secho(f"\n[ {cat} ]", fg="yellow", bold=True)
-        for name, meta in sorted(
-            grouped_hooks[cat], key=lambda x: x[1].get("category", x[0])
-        ):
-            category = meta.get(
-                "category", meta.get("Category", "Uncategorized")
-            ).title()
-            desc = (
-                meta.get("desc", meta.get("description", "No description provided."))
-                .strip()
-                .split("\n")[0]
-            )
-
-            name_padded = f"{name:<26}"
-            category_padded = f"[{category:^18}]"
-
-            truncated_desc = truncate_string(
-                desc, len(name_padded) + len(category_padded) + 7
-            )
-            click.echo(
-                f"  {click.style(name_padded, bold=True, fg='green')} {click.style(category_padded, fg='blue')} : {truncated_desc}"
-            )
-
-
 def truncate_string(input_string: str, padding: int = 0):
     width, _ = shutil.get_terminal_size()
     width -= padding

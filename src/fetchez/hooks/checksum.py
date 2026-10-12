@@ -32,7 +32,7 @@ class Checksum(FetchHook):
     meta_desc = "Calculate file checksums (md5/sha1/sha256)."
     meta_stage = "file"
     meta_category = "metadata"
-    meta_requires = "file"
+    meta_effects = ["modifies-entries"]
 
     def __init__(self, algo="md5", **kwargs):
         super().__init__(**kwargs)
