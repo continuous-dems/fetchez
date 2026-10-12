@@ -38,6 +38,7 @@ class SetDatatype(FetchHook):
     meta_stage = "manifest"
     meta_category = "metadata"
     meta_aliases = ["set_datatype"]
+    meta_effects = ["modifies-entries"]
 
     def __init__(
         self, data_type=None, default=None, rules=None, match_key=None, **kwargs

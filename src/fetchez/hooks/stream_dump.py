@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 PRINT_LOCK = threading.Lock()
 
 
-class DataStream(FetchHook):
+class StreamDump(FetchHook):
     """Auto-detects file type and attaches a stream."""
 
     name = "stream-dump"
@@ -31,6 +31,7 @@ class DataStream(FetchHook):
     meta_category = "streams"
     meta_requires = "Any"
     meta_aliases = ["stream_dump"]
+    meta_effects = ["consumes-stream"]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

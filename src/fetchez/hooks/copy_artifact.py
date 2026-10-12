@@ -31,7 +31,7 @@ class CopyArtifactHook(FetchHook):
 
     name = "copy-artifact"
     meta_stage = "collection"
-    meta_category = "Pipeline"
+    meta_category = "file-op"
     meta_desc = (
         "Copies resulting artifacts to a target directory. Useful for batch collating."
     )

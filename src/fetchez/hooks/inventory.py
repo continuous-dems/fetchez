@@ -25,7 +25,7 @@ class Inventory(FetchHook):
     meta_desc = "Output a metadata inventory (JSON/CSV)"
     meta_stage = "manifest"  # pre
     meta_category = "metadata"
-    meta_effects = ["consumes-entries", "creates-artifacts"]
+    meta_effects = ["consumes-entries", "creates-artifact"]
 
     def __init__(self, output="inventory.json", out_format="json", **kwargs):
         super().__init__(**kwargs)

@@ -31,6 +31,7 @@ class Audit(FetchHook):
     meta_desc = "Save a run summary of fetch entries to disk."
     meta_stage = "collection"
     meta_category = "metadata"
+    meta_effects = ["consumes-entries", "creates-artifact"]
 
     def __init__(self, output="audit.json", out_format="json", **kwargs):
         super().__init__(**kwargs)

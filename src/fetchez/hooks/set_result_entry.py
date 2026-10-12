@@ -37,6 +37,7 @@ class SetEntryKey(FetchHook):
     meta_stage = "manifest"
     meta_category = "metadata"
     meta_aliases = ["set_entry", "set-entry-key", "set_entry_key"]
+    meta_effects = ["modifies-entries"]
 
     def __init__(
         self,

@@ -21,6 +21,8 @@ class RemoteRasterFootprintHook(FetchHook):
     name = "remote_raster_footprint"
     meta_stage = "manifest"
     meta_desc = "Set entry geometry from a remote raster's outer extent."
+    meta_category = "metadata"
+    meta_effects = ["modifies-entries", "consumes-entries", "consumes-artifact"]
 
     def run(self, entries):
         if not entries:

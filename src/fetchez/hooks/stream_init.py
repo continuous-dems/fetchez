@@ -62,6 +62,7 @@ class DataStream(FetchHook):
     meta_category = "streams"
     meta_requires = "file"
     meta_aliases = ["stream_init", "stream_data"]
+    meta_effects = ["creates-stream"]
 
     # Historical fields that should never be forwarded automatically.
     _LEGACY_RESERVED_KEYS = frozenset(

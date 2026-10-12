@@ -111,6 +111,7 @@ def hook_search(term, provider):
     help="Filter by provider (repeat to include multiple providers).",
 )
 def hook_list(search, group_by, effect, accepts, produces, stage, provider):
+    """List all available processing hooks grouped by category."""
     registry = search_hooks(search)
 
     registry = filter_registry(
