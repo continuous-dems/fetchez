@@ -29,6 +29,108 @@ There are four stages in the Hook lifecycle:
 
 Each hook defines it's default `stage`, which can be changed at any time (though won't always work as expected outside of their desred stage, so be careful changing them).
 
+### Understanding Hook Capabilities
+
+Fetchez hooks are designed to be composable. Some filter entries before downloading, others modify files, create new artifacts, initialize streams, or process streamed data.
+
+Registered hooks can advertise metadata to help you understand their capabilities and determine how they fit into a workflow.
+
+#### What hooks do
+
+The `effects` metadata describes the kinds of operations a hook performs.
+
+| Effect              | Description                                                     |
+|---------------------|-----------------------------------------------------------------|
+| `filters-entries`   | Selects which entries continue through the pipeline.            |
+| `modifies-entries`  | Updates entry metadata or properties.                           |
+| `creates-entries`   | Produces additional entries, such as extracted archive members. |
+| `modifies-artifact` | Changes an existing file.                                       |
+| `creates-artifact`  | Produces an additional file or artifact.                        |
+| `creates-stream`    | Initializes a stream for processing.                            |
+| `filters-chunks`    | Filters streamed data.                                          |
+| `transforms-stream` | Converts one stream representation into another.                |
+| `consumes-stream`   | Reads or observes streamed chunks, possibly generating output.  |
+
+A hook may have several effects. For example, an archive extraction hook can create new files and corresponding entries, while a provenance hook may generate supplementary artifacts.
+
+These descriptions help identify suitable hooks but do not imply that every invocation will produce an output.
+
+#### Data types and stream types
+
+Fetchez distinguishes between an artifact's `data_type` and an initialized stream's `stream_type`.
+
+- **Data type:** Describes the artifact, such as `raster`, `vector`, or `archive`.
+- **Profile:** Selects how a reader interprets an entry.
+- **Stream type:** Describes the representation of chunks produced by that reader, such as `raster-stream` or `point-stream`.
+
+For example, a GeoTIFF identified as `raster` could be read as a generic windowed `raster-stream`, or interpreted by an extension as a point-stream.
+
+Some hooks advertise `accepts` and `produces` metadata describing the stream representations they work with.
+
+```text
+Raster reader
+    produces: raster-stream
+         |
+         v
+Raster-to-points hook
+    accepts: raster-stream
+    produces: point-stream
+         |
+         v
+Point filtering hook
+    accepts: point-stream
+```
+
+Fetchez does not automatically convert between arbitrary stream representations. When a hook requires a different stream type, select an appropriate reader profile or insert a compatible transformation hook.
+
+Hooks that operate only on entry metadata or files generally do not need stream-type declarations.
+
+#### Hook requirements and related components
+
+Some hooks depend on other hooks to complete their work. These dependencies may be declared through `requires` metadata.
+
+For example:
+
+```text
+Requires:
+  global-product-index
+    Scope: global
+    Stage: collection
+```
+
+This indicates that the required hook should also be included in the workflow.
+
+A `related` component is different: it may be useful alongside the selected hook, but is not mandatory.
+
+Declaring a requirement does not automatically insert the missing hook. Recipe validation or modifiers may provide additional dependency handling when configured.
+
+#### Choosing a hook's stage
+
+A hook's registered stage is its default execution point, but many hooks support stage overrides.
+
+For example, a filename filter could run:
+
+- At `manifest` stage to avoid downloading unwanted files.
+- At `file` stage to select files created by an extraction hook.
+- At `collection` stage to filter finalized entries.
+
+Changing a hook's stage changes when it executes, not necessarily what it does. Some hooks require files or streams that are unavailable at earlier stages, so check the hook's documentation before overriding its stage.
+
+#### Discovering hooks
+
+Use the Hook Registry through the CLI to inspect available hooks, including those supplied by installed extensions and local plugins.
+
+```bash
+fetchez hooks list
+fetchez hooks info stream-init
+```
+
+Where available, registry metadata can help identify a hook's default stage, effects, accepted stream types, produced stream types, dependencies, and related components.
+
+Not every hook declares every field. Missing metadata should be interpreted as *not specified*, rather than proof that a hook cannot support a particular workflow.
+
+For detailed arguments, examples, and limitations, see the [Hook Reference](hooks/index.md).
+
 ### Common Built-in Hooks:
 * `unzip`: Automatically extracts `.zip` or `.gz` files.
 * `pipe`: Prints the final absolute path to stdout (useful for piping to GDAL/PDAL).

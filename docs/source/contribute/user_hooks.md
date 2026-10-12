@@ -36,6 +36,132 @@ class AuditLog(FetchHook):
         return entries
 ```
 
+## Hook Metadata and Capabilities
+
+Hooks can declare metadata describing what they do, what they operate on, and which other components they may need. Fetchez uses this information for registry discovery, documentation, and, where supported, compatibility validation.
+
+Every hook already receives and returns collections of `(module, entry)` pairs through `run(entries)`. You do not need to declare `entry` as an accepted or produced type.
+
+### Metadata vocabulary
+
+| Field             | Purpose                                                                       |
+|-------------------|-------------------------------------------------------------------------------|
+| `meta_desc`       | Short, human-readable description of the hook.                                |
+| `meta_stage`      | Default execution stage (`manifest`, `file`, `stream`, or `collection`).      |
+| `meta_category`   | Broad functional grouping for discovery.                                      |
+| `meta_effects`    | Operations performed, such as filtering entries or creating artifacts.        |
+| `meta_accepts`    | Stream types accepted by the hook, when it operates on streams.               |
+| `meta_produces`   | Stream type produced by the hook, when it transforms a stream representation. |
+| `meta_requires`   | Required companion hooks, including their scope and stage when applicable.    |
+| `meta_data_types` | Artifact data types the hook is designed to process (informational).          |
+| `meta_related`    | Other useful or complementary components.                                     |
+
+All fields are optional. Omitted metadata means *unspecified*, not necessarily unsupported.
+
+### Describing hook effects
+
+Use `meta_effects` to describe what your hook changes or creates. A hook may declare multiple effects.
+
+Suggested initial vocabulary:
+
+| Effect              | Meaning                                                                 |
+|---------------------|-------------------------------------------------------------------------|
+| `filters-entries`   | Selects or removes entries from processing.                             |
+| `modifies-entries`  | Changes entry metadata or properties.                                   |
+| `creates-entries`   | Creates additional independently processable entries.                   |
+| `modifies-artifact` | Changes an existing file or artifact.                                   |
+| `creates-artifact`  | Generates a new file or persistent artifact.                            |
+| `creates-stream`    | Initializes a stream from an entry.                                     |
+| `filters-chunks`    | Filters records or chunks within a stream.                              |
+| `transforms-stream` | Changes a stream's representation.                                      |
+| `consumes-stream`   | Consumes or observes streamed data, potentially producing side effects. |
+
+For example, an extraction hook might declare:
+
+```python
+meta_stage = "file"
+meta_effects = ["creates-entries", "creates-artifact"]
+```
+
+A generic filename filter might declare:
+
+```python
+meta_stage = "manifest"
+meta_effects = ["filters-entries"]
+```
+
+Effects describe capabilities, not mandatory outcomes. For example, an extraction hook may produce no new entries when an archive is empty.
+
+### Stream compatibility
+
+For hooks that operate on streamed chunks, `meta_accepts` and `meta_produces` describe stream representations, not artifact data types.
+
+```python
+class RasterToPoints(FetchHook):
+    name = "raster-to-points"
+    meta_stage = "stream"
+    meta_accepts = ["raster-stream"]
+    meta_produces = "point-stream"
+    meta_effects = ["transforms-stream"]
+```
+
+A hook that filters a stream without changing its representation may omit `meta_produces`:
+
+```python
+meta_accepts = ["point-stream"]
+meta_effects = ["filters-chunks"]
+```
+
+Use `meta_produces` only when the output representation is known. For example, `stream-init` initializes a stream, but its output type depends on the selected reader, so it should not declare a fixed `meta_produces`.
+
+Stream types are extensible identifiers. Extensions and local plugins may define their own representations without introducing new Fetchez stream classes or registries.
+
+### Declaring hook dependencies
+
+Use `meta_requires` when a hook depends on another registered hook to perform its intended operation.
+
+```python
+meta_requires = [
+    {
+        "hook": "global-product-index",
+        "scope": "global",
+        "stage": "collection",
+    }
+]
+```
+
+Here, the dependency must be configured as a global collection-stage hook.
+
+Use `meta_related` for helpful companion components that are not required.
+
+Dependency declarations are initially intended for discovery and documentation. They do not automatically insert missing hooks. Recipe schemas or modifiers may provide dependency validation or resolution separately.
+
+### Stages and artifact types
+
+`meta_stage` defines a hook's default execution stage, not a restriction on where it can run. For example, a filename filter may operate during manifest discovery, after archive extraction, or during collection processing.
+
+Similarly, `meta_data_types` can advertise artifact compatibility:
+
+```python
+meta_data_types = ["raster"]
+meta_effects = ["modifies-artifact"]
+```
+
+This does not mean the hook requires a `raster-stream`. Artifact types and stream types are separate concepts.
+
+Hooks should continue handling unsupported inputs appropriately rather than relying exclusively on metadata declarations.
+
+### Contributor recommendations
+
+- Declare only capabilities that the hook actually implements.
+- Keep effects broad and reusable rather than inventing a new effect for every operation.
+- Use `meta_accepts` only when the hook requires a particular stream representation.
+- Use `meta_requires` for genuine dependencies, not optional recommendations.
+- Keep the hook's runtime behavior authoritative; metadata should describe it, not replace its own validation.
+- Document any important stage limitations or assumptions in `meta_desc` and the hook's reference documentation.
+
+Metadata declarations should improve discovery without restricting Fetchez's ability to support arbitrary entries, stream chunks, extensions, and local plugins.
+
 ## Testing Your Hook
 
 ```bash
