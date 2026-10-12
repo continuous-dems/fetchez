@@ -28,6 +28,12 @@ class Extract(FetchHook):
     meta_stage = "file"
     meta_category = "file-op"
     # meta_aliases = ["unzip"]
+    meta_effects = [
+        "creates-entries",
+        "modifies-entries",
+        "consumes-artifact",
+        "creates-artifact",
+    ]
 
     def __init__(
         self,

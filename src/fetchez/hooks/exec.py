@@ -32,7 +32,7 @@ class Exec(FetchHook):
     meta_desc = "Run shell command on file."
     meta_stage = "file"
     meta_category = "file-op"
-    meta_effects = ["consumes-file"]
+    meta_effects = ["consumes-artifact"]
 
     def __init__(self, cmd=None, **kwargs):
         super().__init__(**kwargs)

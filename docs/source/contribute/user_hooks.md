@@ -71,11 +71,11 @@ Suggested initial vocabulary:
 | `creates-entries`   | Creates additional independently processable entries.                   |
 | `modifies-artifact` | Changes an existing file or artifact.                                   |
 | `creates-artifact`  | Generates a new file or persistent artifact.                            |
+| `consumes-artifact` | Consumes or observes and artifact.                                      |
 | `creates-stream`    | Initializes a stream from an entry.                                     |
 | `filters-chunks`    | Filters records or chunks within a stream.                              |
 | `transforms-stream` | Changes a stream's representation.                                      |
 | `consumes-stream`   | Consumes or observes streamed data, potentially producing side effects. |
-| `consumes-file`     | Consumes or observes and artifact without changing the entry            |
 
 For example, an extraction hook might declare:
 
