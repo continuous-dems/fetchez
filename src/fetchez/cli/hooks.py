@@ -94,23 +94,23 @@ def hook_search(term, provider):
 
 
 @hooks_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s")
 @click.option(
     "--group-by",
     type=click.Choice(["provider", "category", "stage", "effects"]),
     default="provider",
+    help="Group results by type.",
 )
-@click.option("--effect", multiple=True)
-@click.option("--accepts", multiple=True)
-@click.option("--produces", multiple=True)
-@click.option("--stage", multiple=True)
+@click.option("--search", help="Filter results by search term.")
 @click.option(
     "--provider",
-    "-p",
     multiple=True,
     help="Filter by provider (repeat to include multiple providers).",
 )
-def hook_list(search, group_by, effect, accepts, produces, stage, provider):
+@click.option("--effect", multiple=True, help="Filter results by effect.")
+@click.option("--accepts", multiple=True, help="Filter results by accepts.")
+@click.option("--produces", multiple=True, help="Filter results by produces.")
+@click.option("--stage", multiple=True, help="Filter results by stage.")
+def hook_list(group_by, search, provider, effect, accepts, produces, stage):
     """List all available processing hooks grouped by category."""
     registry = search_hooks(search)
 

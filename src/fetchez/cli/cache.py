@@ -16,7 +16,7 @@ import time
 import shutil
 import click
 from pathlib import Path
-from fetchez.utils import FetchezMainGroup, FetchezMainCommand
+from fetchez.cli.utils import FetchezMainGroup, FetchezMainCommand
 
 CACHE_COMMANDS = ["info", "clear", "update-registry"]
 
