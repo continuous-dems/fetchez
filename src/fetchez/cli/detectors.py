@@ -15,7 +15,7 @@ import sys
 import click
 
 from fetchez.registry import DetectorRegistry
-from fetchez.utils import (
+from fetchez.cli.utils import (
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,

@@ -15,7 +15,7 @@ import click
 import sys
 from fetchez.api import search_modules
 from fetchez.registry import ModuleRegistry
-from fetchez.utils import (
+from fetchez.cli.utils import (
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,

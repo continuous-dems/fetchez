@@ -19,10 +19,8 @@ from fetchez.registry import (
     RecipeRegistry,
 )
 from fetchez.spatial import region_help_msg
-from fetchez.utils import (
-    parse_hook_string,
-    FetchezMainCommand,
-)
+from fetchez.utils import parse_hook_string
+from fetchez.cli.utils import FetchezMainCommand
 
 
 @click.command("run", cls=FetchezMainCommand)

@@ -18,7 +18,7 @@ from pathlib import Path
 
 from fetchez.recipe import Recipe, load_recipe_config
 from fetchez.registry import RecipeRegistry
-from fetchez.utils import (
+from fetchez.cli.utils import (
     group_registry_by_key,
     print_grouped_registry,
     FetchezMainGroup,

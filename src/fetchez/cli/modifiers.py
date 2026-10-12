@@ -16,7 +16,7 @@ import click
 
 from fetchez.api import search_modifiers
 from fetchez.registry import ModifierRegistry
-from fetchez.utils import (
+from fetchez.cli.utils import (
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,

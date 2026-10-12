@@ -22,9 +22,8 @@ from fetchez.registry import (
     # SchemaRegistry,
 )
 from fetchez.spatial import parse_region, region_help_msg
-from fetchez.utils import (
-    parse_hook_string,
-    parse_arg_to_list,
+from fetchez.utils import parse_hook_string, parse_arg_to_list
+from fetchez.cli.utils import (
     FetchezMainGroup,
     FetchezMainCommand,
 )

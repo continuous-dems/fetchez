@@ -14,7 +14,7 @@ Discoverability and documentation for processing readers.
 import click
 
 from fetchez.api import search_streams
-from fetchez.utils import (
+from fetchez.cli.utils import (
     group_registry_by_key,
     print_grouped_registry,
     FetchezMainGroup,

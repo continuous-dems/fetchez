@@ -16,7 +16,7 @@ import click
 
 from fetchez.api import search_readers
 from fetchez.registry import ReaderRegistry, ProfileRegistry
-from fetchez.utils import (
+from fetchez.cli.utils import (
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,

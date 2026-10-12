@@ -18,7 +18,7 @@ from pathlib import Path
 
 from fetchez.api import search_bundles
 from fetchez.registry import BundleRegistry
-from fetchez.utils import (
+from fetchez.cli.utils import (
     group_registry_by_key,
     print_grouped_registry,
     FetchezMainGroup,
