@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed point-specific .inf generation from the generic reader base.
 - Expanded spatial and reader-profile regression tests.
 - Updated cli `hooks` command for better grouping and discovery.
-- Moved cli related utils from `fetchez.utils` to `fetchez.cli.utils`
+- **BREAKING** - Moved cli related utils from `fetchez.utils` to `fetchez.cli.utils`
 
 ### FIXED
 
