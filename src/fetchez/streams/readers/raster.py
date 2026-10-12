@@ -33,7 +33,7 @@ class RasterReader(BaseReader):
     meta_category = "raster"
     meta_produces = "raster-stream"
 
-    meta_dtype = ["rio", "rasterio", "rio-raster", "raster"]
+    # meta_dtype = ["rio", "rasterio", "rio-raster", "raster"]
     meta_desc = "Read raster bands as windowed raster data streams."
     # meta_extensions = ["tif", "tiff", "vrt"]
 
