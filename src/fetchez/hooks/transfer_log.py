@@ -26,6 +26,7 @@ class TransferLog(FetchHook):
     meta_stage = "collection"  # post
     meta_category = "metadata"
     meta_aliases = ["transfer_log"]
+    meta_effects = ["consumes-entries", "creates-artifact"]
 
     def __init__(self, file="download_report.txt", **kwargs):
         super().__init__(**kwargs)

@@ -31,6 +31,8 @@ class SpatialCullHook(FetchHook):
     name = "spatial_cull"
     meta_stage = "manifest"
     meta_desc = "Cull spatially overlapping records based on priority attributes."
+    meta_category = "Entry-Filter"
+    meta_effects = ["filters-entries", "consumes-entries"]
 
     def __init__(
         self,

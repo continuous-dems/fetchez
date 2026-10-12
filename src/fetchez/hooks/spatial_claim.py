@@ -40,6 +40,12 @@ class SpatialClaimHook(FetchHook):
         "Resolve authoritative source footprints by priority while preserving "
         "partial lower-priority coverage."
     )
+    meta_effects = [
+        "modifies-entries",
+        "consumes-entries",
+        "creates-artifact",
+        "filters-entries",
+    ]
 
     def __init__(
         self,

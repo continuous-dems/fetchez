@@ -35,6 +35,7 @@ class Sidecar(FetchHook):
     meta_desc = "Write a .meta.json sidecar file."
     meta_stage = "file"
     meta_category = "metadata"
+    meta_effects = ["creates-artifact", "consumes-entries", "modifies-entries"]
 
     def run(self, entries):
         for mod, entry in entries:

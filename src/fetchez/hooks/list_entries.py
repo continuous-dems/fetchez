@@ -26,6 +26,7 @@ class ListEntries(FetchHook):
     meta_desc = "Print discovered URLs or filepaths to stdout."
     meta_stage = "manifest"  # pre
     meta_category = "metadata"
+    meta_effects = ["consumes-entries"]
 
     def run(self, entries):
         for _mod, entry in entries:

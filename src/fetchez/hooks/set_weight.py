@@ -38,6 +38,7 @@ class SetWeight(FetchHook):
     meta_stage = "manifest"  # pre
     meta_category = "metadata"
     meta_aliases = ["set_weight"]
+    meta_effects = ["modifies-entries"]
 
     def __init__(self, default=1.0, rules=None, match_key=None, **kwargs):
         super().__init__(**kwargs)

@@ -30,6 +30,7 @@ class Unzip(FetchHook):
     meta_desc = "Extract .zip, .tar, .tar.gz, and .gz files."
     meta_stage = "file"
     meta_category = "file-op"
+    meta_effects = ["creates-artifact", "modifies-entries", "creates-entries"]
 
     def __init__(self, remove=False, overwrite=False, **kwargs):
         """Decompress and/or extract data from archives.

@@ -28,6 +28,7 @@ class PipeOutput(FetchHook):
     meta_desc = "Print absolute file paths to stdout for piping."
     meta_stage = "collection"  # post
     meta_category = "pipeline"
+    meta_effects = ["consumes-entries"]
 
     def run(self, entries):
         """Input is: [url, path, type, status]"""

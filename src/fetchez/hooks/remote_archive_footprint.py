@@ -27,6 +27,8 @@ class RemoteArchiveFootprintHook(FetchHook):
     name = "remote_archive_footprint"
     meta_stage = "manifest"
     meta_desc = "Read footprint polygons from a remote ZIP shapefile."
+    meta_category = "file-op"
+    meta_effects = ["consumes-artifact", "modifies-entries", "consumes-entries"]
 
     def __init__(self, layer=None, fields=None, **kwargs):
         super().__init__(**kwargs)

@@ -43,6 +43,7 @@ class SetSrs(FetchHook):
     meta_stage = "manifest"
     meta_category = "metadata"
     meta_aliases = ["set_srs"]
+    meta_effects = ["modifies-entries"]
 
     def __init__(
         self,
