@@ -50,6 +50,7 @@ The `effects` metadata describes the kinds of operations a hook performs.
 | `filters-chunks`    | Filters streamed data.                                          |
 | `transforms-stream` | Converts one stream representation into another.                |
 | `consumes-stream`   | Reads or observes streamed chunks, possibly generating output.  |
+| `consumes-file`     | Reads or observes file artifacts, possibly generating output.   |
 
 A hook may have several effects. For example, an archive extraction hook can create new files and corresponding entries, while a provenance hook may generate supplementary artifacts.
 

@@ -29,6 +29,7 @@ class MetadataEnrich(FetchHook):
     meta_desc = "Add filesystem metadata and optionally detect data types."
     meta_stage = "file"
     meta_category = "metadata"
+    meta_effects = ["modifies-entries"]
 
     def __init__(
         self,

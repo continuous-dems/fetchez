@@ -22,6 +22,7 @@ class DryRun(FetchHook):
     meta_desc = "Clear the download queue (simulate only)."
     meta_stage = "manifest"  # pre
     meta_category = "pipeline"
+    meta_effects = ["noop"]
 
     def run(self, entries):
         return []
