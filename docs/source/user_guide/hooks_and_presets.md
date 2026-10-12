@@ -45,6 +45,7 @@ The `effects` metadata describes the kinds of operations a hook performs.
 | `modifies-entries`  | Updates entry metadata or properties.                           |
 | `creates-entries`   | Produces additional entries, such as extracted archive members. |
 | `modifies-artifact` | Changes an existing file.                                       |
+| `consumes-entries`  | Consumes or observes entries.                                   |
 | `creates-artifact`  | Produces an additional file or artifact.                        |
 | `consumes-artifact` | Reads or observes file artifacts, possibly generating output.   |
 | `creates-stream`    | Initializes a stream for processing.                            |

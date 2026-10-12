@@ -69,6 +69,7 @@ Suggested initial vocabulary:
 | `filters-entries`   | Selects or removes entries from processing.                             |
 | `modifies-entries`  | Changes entry metadata or properties.                                   |
 | `creates-entries`   | Creates additional independently processable entries.                   |
+| `consumes-entries`  | Consumes or observes entries.                                           |
 | `modifies-artifact` | Changes an existing file or artifact.                                   |
 | `creates-artifact`  | Generates a new file or persistent artifact.                            |
 | `consumes-artifact` | Consumes or observes and artifact.                                      |

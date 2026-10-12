@@ -35,6 +35,7 @@ class FocusSink(FetchHook):
     meta_stage = "collection"  # post
     meta_category = "pipeline"
     meta_aliases = ["focus_sink"]
+    meta_effects = ["modifies-entries", "modifies-artifact", "filters-entries"]
 
     def __init__(self, target=None, **kwargs):
         super().__init__(**kwargs)

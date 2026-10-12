@@ -29,6 +29,7 @@ class FilenameFilter(FetchHook):
     meta_stage = "file"
     meta_category = "pipeline"
     meta_aliases = ["filename_filter", "fn_filter"]
+    meta_effects = ["filters-entries"]
 
     def __init__(self, match=None, exclude=None, regex=False, **kwargs):
         """
