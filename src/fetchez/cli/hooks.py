@@ -129,6 +129,7 @@ def hook_list(group_by, search, provider, effect, accepts, produces, stage):
 
     grouped = group_registry_by_key(registry, group_key)
     print_grouped_registry(grouped, "Hooks", group_by.title())
+    click.echo("\nRun 'fetchez hooks info <name>' for arguments and recipe examples.\n")
 
 
 @hooks_group.command("info", cls=FetchezMainCommand)

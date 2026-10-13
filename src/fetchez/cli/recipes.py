@@ -19,6 +19,7 @@ from pathlib import Path
 from fetchez.recipe import Recipe, load_recipe_config
 from fetchez.registry import RecipeRegistry
 from fetchez.cli.utils import (
+    filter_registry,
     group_registry_by_key,
     print_grouped_registry,
     FetchezMainGroup,
@@ -62,13 +63,33 @@ def recipes_group():
 
 
 @recipes_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Search by name, description, or tag.")
-def list_recipes(search):
+@click.option(
+    "--group-by",
+    type=click.Choice(["provider", "category"]),
+    default="provider",
+    help="Group results by type.",
+)
+@click.option("--search", help="Filter results by search term.")
+@click.option(
+    "--provider",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def list_recipes(group_by, search, provider):
     """List all available built-in and local recipes."""
 
     registry = search_recipes(search)
-    grouped_hooks = group_registry_by_key(registry, "provider")
-    print_grouped_registry(grouped_hooks, "Recipes", "Provider")
+
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+        },
+    )
+    group_key = "provider" if group_by == "provider" else group_by
+
+    grouped_recipes = group_registry_by_key(registry, group_key)
+    print_grouped_registry(grouped_recipes, "Recipes", group_by.title())
     click.echo(
         "\nRun 'fetchez recipes info <name>' for arguments and recipe examples.\n"
     )

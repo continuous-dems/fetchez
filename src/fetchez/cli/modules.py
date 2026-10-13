@@ -16,6 +16,7 @@ import sys
 from fetchez.api import search_modules
 from fetchez.registry import ModuleRegistry
 from fetchez.cli.utils import (
+    filter_registry,
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
@@ -62,13 +63,44 @@ def module_search(term):
 
 
 @modules_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Search by name, description, agency, or tag.")
-def module_list(search):
+@click.option(
+    "--group-by",
+    type=click.Choice(
+        ["provider", "category", "agency", "region", "resolution", "license"]
+    ),
+    default="provider",
+    help="Group results by type.",
+)
+@click.option("--search", help="Filter results by search term.")
+@click.option(
+    "--provider",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+@click.option("--agency", multiple=True, help="Filter results by agency.")
+@click.option("--region", multiple=True, help="Filter results by region.")
+@click.option("--resolution", multiple=True, help="Filter results by resolution.")
+@click.option("--license", multiple=True, help="Filter results by license.")
+def module_list(group_by, search, provider, agency, region, resolution, license):
     """List all available modules grouped by category."""
 
     registry = search_modules(search)
-    grouped_hooks = group_registry_by_key(registry, "mod")
-    print_grouped_registry(grouped_hooks, "Modules", "Provider")
+
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+            "agency": agency,
+            "region": region,
+            "resolution": resolution,
+            "license": license,
+        },
+    )
+
+    group_key = "provider" if group_by == "provider" else group_by
+
+    grouped_modules = group_registry_by_key(registry, group_key)
+    print_grouped_registry(grouped_modules, "Modules", group_by.title())
     click.echo(
         "\nRun 'fetchez modules info <name>' for arguments and recipe examples.\n"
     )

@@ -18,6 +18,7 @@ from pathlib import Path
 
 from fetchez.registry import DataTypeRegistry
 from fetchez.cli.utils import (
+    filter_registry,
     group_registry_by_key,
     print_grouped_registry,
     FetchezMainGroup,
@@ -44,13 +45,32 @@ def data_types_group():
 
 
 @data_types_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Filter data type by name or keyword.")
-def list_data_types(search):
+@click.option(
+    "--group-by",
+    type=click.Choice(["provider", "category"]),
+    default="provider",
+    help="Group results by type.",
+)
+@click.option("--search", help="Filter bundles by name or keyword.")
+@click.option(
+    "--provider",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def list_data_types(group_by, search, provider):
     """List all available built-in and local data types."""
 
     registry = search_data_types(search)
-    grouped_hooks = group_registry_by_key(registry, "category")
-    print_grouped_registry(grouped_hooks, "Entry Data Types", "Category")
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+        },
+    )
+
+    group_key = "provider" if group_by == "provider" else group_by
+    grouped_data_types = group_registry_by_key(registry, group_key)
+    print_grouped_registry(grouped_data_types, "Entry Data Types", "Category")
     click.echo("\nRun 'fetchez datatypes info <name>' for more information.\n")
 
 

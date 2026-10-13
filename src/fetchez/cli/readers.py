@@ -17,6 +17,7 @@ import click
 from fetchez.api import search_readers
 from fetchez.registry import ReaderRegistry, ProfileRegistry
 from fetchez.cli.utils import (
+    filter_registry,
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
@@ -53,13 +54,34 @@ def readers_group():
 
 
 @readers_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Filter readers by name or keyword.")
-def readers_list(search):
+@click.option(
+    "--group-by",
+    type=click.Choice(["provider", "category", "stage", "effects"]),
+    default="provider",
+    help="Group results by type.",
+)
+@click.option("--search", help="Filter results by search term.")
+@click.option(
+    "--provider",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def readers_list(group_by, search, provider):
     """List all available stream readers grouped by category."""
 
     registry = search_readers(search)
-    grouped_hooks = group_registry_by_key(registry, "mod")
-    print_grouped_registry(grouped_hooks, "Stream Readers", "Provider")
+
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+        },
+    )
+
+    group_key = "provider" if group_by == "provider" else group_by
+
+    grouped_readers = group_registry_by_key(registry, group_key)
+    print_grouped_registry(grouped_readers, "Stream Readers", group_by.title())
     click.echo(
         "\nRun 'fetchez streams readers info <name>' for arguments and recipe examples.\n"
     )

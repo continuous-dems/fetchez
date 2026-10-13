@@ -15,6 +15,7 @@ import click
 
 from fetchez.api import search_streams
 from fetchez.cli.utils import (
+    filter_registry,
     group_registry_by_key,
     print_grouped_registry,
     FetchezMainGroup,
@@ -44,13 +45,34 @@ def streams_group():
 
 
 @streams_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Filter streamss by name or keyword.")
-def stream_list(search):
+@click.option(
+    "--group-by",
+    type=click.Choice(["provider", "category", "stage", "effects"]),
+    default="provider",
+    help="Group results by type.",
+)
+@click.option("--search", help="Filter results by search term.")
+@click.option(
+    "--provider",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def stream_list(group_by, search, provider):
     """List all available streams grouped by provider and category."""
 
     registry = search_streams(search)
-    grouped_hooks = group_registry_by_key(registry, "mod")
-    print_grouped_registry(grouped_hooks, "Streams", "Provider")
+
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+        },
+    )
+
+    group_key = "provider" if group_by == "provider" else group_by
+
+    grouped_streams = group_registry_by_key(registry, group_key)
+    print_grouped_registry(grouped_streams, "Streams", group_by.title())
     click.echo(
         "\nRun 'fetchez streams info <name>' for arguments and recipe examples.\n"
     )

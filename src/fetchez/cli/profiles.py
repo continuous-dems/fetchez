@@ -18,6 +18,7 @@ from pathlib import Path
 
 from fetchez.registry import ProfileRegistry
 from fetchez.cli.utils import (
+    filter_registry,
     group_registry_by_key,
     print_grouped_registry,
     FetchezMainGroup,
@@ -44,13 +45,34 @@ def profiles_group():
 
 
 @profiles_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Filter profiles by name or keyword.")
-def list_profiles(search):
+@click.option(
+    "--group-by",
+    type=click.Choice(["provider", "category"]),
+    default="provider",
+    help="Group results by type.",
+)
+@click.option("--search", help="Filter results by search term.")
+@click.option(
+    "--provider",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def list_profiles(group_by, search, provider):
     """List all available built-in and local profiles."""
 
     registry = search_profiles(search)
-    grouped_hooks = group_registry_by_key(registry, "provider")
-    print_grouped_registry(grouped_hooks, "Stream Profiles", "Provider")
+
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+        },
+    )
+
+    group_key = "provider" if group_by == "provider" else group_by
+
+    grouped_profiles = group_registry_by_key(registry, group_key)
+    print_grouped_registry(grouped_profiles, "Stream Profiles", group_key)
     click.echo(
         "\nRun 'fetchez streams profiles info <name>' for arguments and recipe examples.\n"
     )

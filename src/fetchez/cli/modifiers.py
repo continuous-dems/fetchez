@@ -17,6 +17,7 @@ import click
 from fetchez.api import search_modifiers
 from fetchez.registry import ModifierRegistry
 from fetchez.cli.utils import (
+    filter_registry,
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
@@ -43,13 +44,32 @@ def modifiers_group():
 
 
 @modifiers_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Filter modifiers by name or keyword.")
-def modifiers_list(search):
-    """List all available processing modifiers grouped by category."""
+@click.option(
+    "--group-by",
+    type=click.Choice(["provider", "category"]),
+    default="provider",
+    help="Group results by type.",
+)
+@click.option("--search", help="Filter bundles by name or keyword.")
+@click.option(
+    "--provider",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def list_modifiers(group_by, search, provider):
+    """List all available built-in and local recipe modifiers."""
 
     registry = search_modifiers(search)
-    grouped_hooks = group_registry_by_key(registry, "mod")
-    print_grouped_registry(grouped_hooks, "Modifiers", "Provider")
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+        },
+    )
+
+    group_key = "provider" if group_by == "provider" else group_by
+    grouped_modifiers = group_registry_by_key(registry, group_key)
+    print_grouped_registry(grouped_modifiers, "Modifiers", "Category")
     click.echo(
         "\nRun 'fetchez recipes modifiers info <name>' for arguments and recipe examples.\n"
     )

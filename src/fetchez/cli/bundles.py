@@ -19,6 +19,7 @@ from pathlib import Path
 from fetchez.api import search_bundles
 from fetchez.registry import BundleRegistry
 from fetchez.cli.utils import (
+    filter_registry,
     group_registry_by_key,
     print_grouped_registry,
     FetchezMainGroup,
@@ -49,12 +50,31 @@ def bundles_group():
 
 
 @bundles_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Filter bundles by name or keyword.")
-def list_bundles(search):
+@click.option(
+    "--group-by",
+    type=click.Choice(["provider", "category"]),
+    default="provider",
+    help="Group results by type.",
+)
+@click.option("--search", help="Filter bundles by name or keyword.")
+@click.option(
+    "--provider",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def list_bundles(group_by, search, provider):
     """List all available built-in and local bundles."""
 
     registry = search_bundles(search)
-    grouped_bundles = group_registry_by_key(registry, "provider")
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+        },
+    )
+
+    group_key = "provider" if group_by == "provider" else group_by
+    grouped_bundles = group_registry_by_key(registry, group_key)
     print_grouped_registry(grouped_bundles, "Bundles", "Provider")
     click.echo(
         "\nRun 'fetchez modules bundles info <name>' for arguments and recipe examples.\n"

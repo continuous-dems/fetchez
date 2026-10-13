@@ -16,6 +16,7 @@ import click
 
 from fetchez.registry import DetectorRegistry
 from fetchez.cli.utils import (
+    filter_registry,
     get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
@@ -51,13 +52,32 @@ def detectors_group():
 
 
 @detectors_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Filter detectors by name or keyword.")
-def detectors_list(search):
-    """List all available detectors grouped by category."""
+@click.option(
+    "--group-by",
+    type=click.Choice(["provider", "category"]),
+    default="provider",
+    help="Group results by type.",
+)
+@click.option("--search", help="Filter bundles by name or keyword.")
+@click.option(
+    "--provider",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def list_detectors(group_by, search, provider):
+    """List all available built-in and local detectors."""
 
     registry = search_detectors(search)
-    grouped_hooks = group_registry_by_key(registry, "mod")
-    print_grouped_registry(grouped_hooks, "Category")
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+        },
+    )
+
+    group_key = "provider" if group_by == "provider" else group_by
+    grouped_detectors = group_registry_by_key(registry, group_key)
+    print_grouped_registry(grouped_detectors, "Detectors", "Category")
     click.echo(
         "\nRun 'fetchez detectors info <name>' for arguments and recipe examples.\n"
     )

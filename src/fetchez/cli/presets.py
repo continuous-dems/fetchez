@@ -19,6 +19,7 @@ from pathlib import Path
 from fetchez.api import search_presets
 from fetchez.registry import PresetRegistry
 from fetchez.cli.utils import (
+    filter_registry,
     group_registry_by_key,
     print_grouped_registry,
     FetchezMainGroup,
@@ -73,13 +74,33 @@ def print_grouped_presets(grouped_hooks, key="Provider"):
 
 
 @presets_group.command("list", cls=FetchezMainCommand)
-@click.option("--search", "-s", help="Filter presets by name or keyword.")
-def list_presets(search):
+@click.option(
+    "--group-by",
+    type=click.Choice(["provider", "category"]),
+    default="provider",
+    help="Group results by type.",
+)
+@click.option("--search", help="Filter results by search term.")
+@click.option(
+    "--provider",
+    multiple=True,
+    help="Filter by provider (repeat to include multiple providers).",
+)
+def list_presets(group_by, search, provider):
     """List all available built-in and local presets."""
 
     registry = search_presets(search)
-    grouped_presets = group_registry_by_key(registry, "provider")
-    print_grouped_registry(grouped_presets, "Presets", "Provider")
+    registry = filter_registry(
+        registry,
+        {
+            "provider": provider,
+        },
+    )
+
+    group_key = "provider" if group_by == "provider" else group_by
+
+    grouped_presets = group_registry_by_key(registry, group_key)
+    print_grouped_registry(grouped_presets, "Presets", group_by.title())
     click.echo(
         "\nRun 'fetchez hooks presets info <name>' for arguments and recipe examples.\n"
     )
