@@ -1,4 +1,15 @@
 name: csv-standard
+description: Standard CSV reader profile for delimited tabular datasets.
+category: tabular
+topics:
+  - csv
+  - tabular-data
+  - delimited-text
+use_cases:
+  - reading standard CSV datasets
+relationships:
+  data_type: csv
+  reader: csvreader
 data_type: csv
 reader:
   name: "csvreader"

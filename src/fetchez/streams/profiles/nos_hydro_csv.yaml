@@ -1,5 +1,15 @@
 name: nos_hydro_csv
 description: NOS Hydro data for the csv reader
+category: hydrography
+topics:
+  - csv
+  - hydrography
+  - nautical-charts
+use_cases:
+  - reading NOS Hydro CSV exports
+relationships:
+  data_type: csv
+  reader: csvreader
 stream-type: "list-stream"
 reader:
   name: "csvreader"

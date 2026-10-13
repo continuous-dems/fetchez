@@ -10,6 +10,26 @@ def test_profile_declares_data_type():
     assert profile["data_type"] == "csv"
 
 
+def test_builtin_profiles_include_discovery_metadata():
+    expected = {
+        "csv-standard": ("tabular", "csv", "csvreader"),
+        "nos_hydro_csv": ("hydrography", "csv", "csvreader"),
+        "rasterio": ("raster", "raster", "rasterio"),
+    }
+
+    for name, (category, data_type, reader) in expected.items():
+        profile = ProfileRegistry.get_yaml(name)
+
+        assert profile["category"] == category
+        assert profile["description"]
+        assert profile["topics"]
+        assert profile["use_cases"]
+        assert profile["relationships"] == {
+            "data_type": data_type,
+            "reader": reader,
+        }
+
+
 def test_data_type_resolves_default_profile():
     profile = DataTypeRegistry.get_default_profile("csv")
 

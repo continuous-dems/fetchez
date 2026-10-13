@@ -1,4 +1,15 @@
 name: rasterio
+description: Rasterio reader profile for chunked raster datasets.
+category: raster
+topics:
+  - raster
+  - geospatial
+  - chunked-reading
+use_cases:
+  - reading raster datasets with Rasterio
+relationships:
+  data_type: raster
+  reader: rasterio
 data_type: raster
 reader:
   name: rasterio
