@@ -2,7 +2,7 @@
 
 Instead of running long, complex CLI commands every time you want to build a dataset, `fetchez` allows you to define your entire workflow in a YAML file called a **Recipe**.
 
-By treating your data pipelines as *Infrastructure as Code*, you ensure your data pulls are perfectly reproducible, auditable, sharable..
+By treating your data pipelines as *Infrastructure as Code*, you can make data pulls reproducible, auditable, and shareable.
 
 ## How to Launch a Recipe
 Recipes are written in standard YAML. To execute a recipe and start fetching data, simply pass the YAML file to the `fetchez` CLI:
@@ -17,7 +17,8 @@ Alternatively, you can load and launch recipes directly within a Python driver s
 from fetchez.recipe import Recipe
 
 # Load the engine with your recipe and launch
-Recipe.from_file("recipes/my_archive_project.yaml").run()
+for result in Recipe.from_file("recipes/my_archive_project.yaml").run():
+    print(result[2])  # completed batch name
 ```
 
 ```python
@@ -111,7 +112,7 @@ Hooks are the specialized tools that intercept and process your data. It is crit
 Fetchez provides advanced tools to alter and validate your recipes at runtime without modifying the underlying YAML files.
 
 ### Runtime Context Placeholders
-Fetchez automatically injects runtime variables into your YAML configuration using `%placeholder%` syntax.
+Fetchez expands explicitly requested runtime variables in recipe string values using `%placeholder%` syntax. This also works in Python-created recipes when passing a class and constructor arguments. Existing Python component instances are not modified or interpolated.
 
 **Important YAML Formatting Note:** To ensure your YAML parses correctly, you must enclose any string containing a placeholder in quotes (e.g., `"%shared_cache%"`).
 
@@ -129,10 +130,11 @@ Available placeholders include:
 modules:
   - module: tnm
     args:
-      - outdir: "%tile_dir%"
-    hooks: stream_reproject
-      args:
-        cache_dir: "%shared_cache%"
+      outdir: "%tile_dir%"
+    hooks:
+      - name: stream_reproject
+        args:
+          cache_dir: "%shared_cache%"
 global_hooks:
   - name: multi_stack
     args:
@@ -196,6 +198,68 @@ By specifying schema: `quarter-degree-tile`, the engine intercepts your recipe a
 ```bash
 fetchez recipes run -R -120/-119.75/33/33.25 --schema quarter-degree-tile my_strict_project.yaml
 ```
+
+## Python Runtime Components (Without Registration)
+
+Recipes can also be constructed in Python using custom `FetchModule` and `FetchHook` subclasses **without registering them**. A Python recipe may mix registered component names, Python class references, and already-initialized component instances in its `modules`, `global_hooks`, and module-local `hooks` lists.
+
+### Pass classes with constructor arguments
+
+Use a class reference in a recipe definition when you want Recipe to create a **fresh component for each batch**. Arguments may use the same explicit `%placeholder%` syntax as YAML recipes:
+
+```python
+from fetchez.recipe import Recipe
+from my_project.modules import MyModule       # FetchModule subclass
+from my_project.hooks import MyOutputHook       # FetchHook subclass
+
+recipe = Recipe.from_dict({
+    "project": {"name": "survey"},
+    "region": [-120, -119.75, 33, 33.25],
+    "modules": [
+        {"module": MyModule, "args": {"dataset": "bathymetry"}},
+    ],
+    "global_hooks": [
+        {"name": "audit"},                # registered name
+        {"name": MyOutputHook, "args": {
+            "output": "%name%_%batch_name%.tif",
+        }},
+    ],
+})
+
+# run() is an iterator; iterate it to execute the workflow.
+for batch in recipe.run(outdir="outputs"):
+    print("Completed:", batch[2])
+```
+
+A class is resolved directly; no entry point, user plugin folder, or registry registration is required. Recipe still provides the normal batch region and module-hook context when creating **module classes**, and interpolates requested placeholders before calling constructors. Do not put `%placeholder%` strings into an existing instance expecting Recipe to reconfigure it afterward.
+
+### Pass existing instances unchanged
+
+Preinitialized components can also participate in a recipe. Recipe preserves their **object identity and configured state** (including existing hooks, regions, queues, or connections) rather than cloning, resetting, or modifying them:
+
+```python
+from queue import Queue
+from fetchez.recipe import Recipe
+from my_project.hooks import MyQueueHook
+from my_project.modules import MyModule
+
+queue = Queue(maxsize=8)
+source = MyModule(dataset="bathymetry")
+sink = MyQueueHook(queue=queue)
+
+recipe = Recipe.from_dict({
+    "modules": [source],
+    "global_hooks": [sink],
+})
+
+# The same source and sink objects are used by Recipe.
+for batch in recipe.run():
+    pass
+```
+
+**Batching and state:** class references are instantiated anew for each batch; instances are reused **as-is** across batches. Recipe does not automatically change an instance's `src_region`, output directory, constructor arguments, or internal caches. For a region-dependent module, prefer `{"module": MyModule, "args": {...}}` over a preinitialized instance so each batch receives its own region. Shared, stateful hook instances can be useful (for example, a queue sink), but the caller is responsible for their lifecycle and for draining bounded queues while the producer runs.
+
+Instances should be supplied directly, not with extra `args` or `hooks` intended to reconfigure them. Registered names and YAML recipes retain their existing behavior. Only Python-created recipes can contain live class references or objects; YAML should continue to use registered component names. Recipes containing runtime objects cannot be exported as equivalent CLI commands or serialized to JSON without replacing those references with registered names.
 
 ## Extending Recipes (Plugins and Extensions)
 Fetchez is generic. If you are building a custom tool (like a specialized DEM engine), you can register your own recipes, modifiers and schems either in your project or in the `~/.fetchez` configuration directory and they will be discoverable with the `fetchez.registry`
