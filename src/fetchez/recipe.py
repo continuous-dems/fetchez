@@ -13,7 +13,6 @@ Loads a configuration (The Recipe) and executes it against the target region.
 """
 
 import os
-import copy
 import json
 import yaml
 
@@ -33,6 +32,8 @@ from .registry import (
     BundleRegistry,
     RecipeRegistry,
 )
+from fetchez.hooks import FetchHook
+from fetchez.modules import FetchModule
 from .utils import TqdmLoggingHandler, colorize, CYAN
 from . import __version__ as fetchez_version
 
@@ -86,6 +87,108 @@ def load_recipe_config(target):
     return base_config
 
 
+def _safe_config_copy(value):
+    """Copy configuration containers without cloning runtime objects."""
+
+    if isinstance(value, dict):
+        return {_safe_config_copy(k): _safe_config_copy(v) for k, v in value.items()}
+
+    if isinstance(value, list):
+        return [_safe_config_copy(item) for item in value]
+
+    if isinstance(value, tuple):
+        return tuple(_safe_config_copy(item) for item in value)
+
+    if isinstance(value, (str, int, float, bool, type(None), Path)):
+        return value
+
+    # Preserve arbitrary runtime objects by identity.
+    return value
+
+
+def resolve_component(spec, registry, base_class):
+    """Resolve a component reference without instantiating it."""
+
+    if isinstance(spec, base_class):
+        return spec
+
+    if inspect.isclass(spec):
+        if not issubclass(spec, base_class):
+            raise TypeError(f"{spec} must subclass {base_class.__name__}")
+        return spec
+
+    if isinstance(spec, str):
+        registry.load_all()
+        cls = registry.get_class(spec)
+        if cls is None:
+            raise ValueError(f"Unknown component: {spec}")
+        return cls
+
+    raise TypeError(f"Unsupported component: {spec!r}")
+
+
+def _runtime_definition(value, kind):
+    """Whether a definition contains a Python component that registries cannot expand."""
+    base = FetchHook if kind == "hook" else FetchModule
+    if isinstance(value, base) or inspect.isclass(value):
+        return True
+    if not isinstance(value, dict):
+        return False
+    ref = value.get("name" if kind == "hook" else "module")
+    return (
+        isinstance(ref, base)
+        or inspect.isclass(ref)
+        or (
+            kind == "module"
+            and any(
+                _runtime_definition(hook, "hook") for hook in value.get("hooks", [])
+            )
+        )
+    )
+
+
+def _component_label(value):
+    """Human-readable component name without serializing its live state."""
+    if isinstance(value, str):
+        return value
+    if inspect.isclass(value):
+        return value.__name__
+    return getattr(value, "name", type(value).__name__)
+
+
+def _constructor_kwargs(cls, kwargs):
+    """Validate constructor options without silently dropping misspelled keys."""
+    sig = inspect.signature(cls.__init__)
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+        return kwargs
+    unsupported = set(kwargs) - set(sig.parameters)
+    if unsupported:
+        raise TypeError(
+            f"{cls.__name__} does not accept arguments: {', '.join(sorted(unsupported))}"
+        )
+    return kwargs
+
+
+def _expand_declarative_segments(definitions, registry_expand, kind, **kwargs):
+    """Expand YAML definitions in runs, retaining Python definitions in order."""
+    expanded = []
+    declarative = []
+
+    def flush():
+        if declarative:
+            expanded.extend(registry_expand(declarative, **kwargs))
+            declarative.clear()
+
+    for item in definitions:
+        if _runtime_definition(item, kind):
+            flush()
+            expanded.append(item)
+        else:
+            declarative.append(item)
+    flush()
+    return expanded
+
+
 class Recipe:
     """The Workflow Orchestrator.
 
@@ -108,7 +211,9 @@ class Recipe:
         if isinstance(self.config, dict):
             self.name = self.config.get("project", {}).get("name", "Unnamed_Recipe")
         else:
-            self.from_file(self.config)
+            raise TypeError(
+                "Recipe expects a config dictionary; use Recipe.from_file() for paths."
+            )
 
         setup_logging(verbose)
 
@@ -139,16 +244,36 @@ class Recipe:
 
         return cls(config, base_dir=base_dir)
 
-    from_dict = from_file
+    @classmethod
+    def from_dict(cls, config):
+        """Construct a recipe from Python configuration, including live objects."""
+        if not isinstance(config, dict):
+            raise TypeError("Recipe.from_dict expects a dictionary")
+        return cls(config)
 
     def to_json(self, indent=2) -> str:
         """Serialize the recipe configuration to a JSON string."""
 
-        return json.dumps(self.config, indent=indent)
+        try:
+            return json.dumps(self.config, indent=indent)
+        except (TypeError, ValueError) as exc:
+            raise TypeError(
+                "This recipe contains Python runtime components and cannot be "
+                "serialized to JSON. Register the components and use their names "
+                "for a declarative recipe."
+            ) from exc
 
     def to_cli(self, executable="fetchez build") -> str:
         """Translate the recipe configuration into a runnable CLI command string."""
 
+        if any(
+            _runtime_definition(h, "hook") for h in self.config.get("global_hooks", [])
+        ) or any(
+            _runtime_definition(m, "module") for m in self.config.get("modules", [])
+        ):
+            raise TypeError(
+                "Recipes containing Python runtime components cannot be converted to CLI commands."
+            )
         cmd_parts = [executable]
 
         # Base Pipeline Arguments
@@ -246,9 +371,13 @@ class Recipe:
                 f.write("*None*\n\n")
             else:
                 for i, hook in enumerate(global_hooks, 1):
-                    h_name = hook.get("name", "Unknown")
+                    h_name = _component_label(
+                        hook.get("name", "Unknown") if isinstance(hook, dict) else hook
+                    )
                     f.write(f"{i}. **`{h_name}`**\n")
-                    for k, v in hook.get("args", {}).items():
+                    for k, v in (
+                        hook.get("args", {}) if isinstance(hook, dict) else {}
+                    ).items():
                         f.write(f"    - `{k}`: `{v}`\n")
                 f.write("\n")
 
@@ -261,12 +390,14 @@ class Recipe:
                 f.write("*None*\n\n")
             else:
                 for mod in modules:
-                    m_name = mod.get("module", "Unknown")
+                    m_name = _component_label(
+                        mod.get("module", "Unknown") if isinstance(mod, dict) else mod
+                    )
                     f.write(f"### 🔹 Module: `{m_name}`\n")
 
                     # Print fully resolved arguments
                     f.write("**Resolved Arguments:**\n")
-                    args = mod.get("args", {})
+                    args = mod.get("args", {}) if isinstance(mod, dict) else {}
                     if not args:
                         f.write("- *Defaults only*\n")
                     else:
@@ -274,13 +405,19 @@ class Recipe:
                             f.write(f"- `{k}`: `{v}`\n")
 
                     # Print module-specific hooks
-                    mod_hooks = mod.get("hooks", [])
+                    mod_hooks = mod.get("hooks", []) if isinstance(mod, dict) else []
                     if mod_hooks:
                         f.write("\n**Module Hooks:**\n")
                         for i, hook in enumerate(mod_hooks, 1):
-                            h_name = hook.get("name", "Unknown")
+                            h_name = _component_label(
+                                hook.get("name", "Unknown")
+                                if isinstance(hook, dict)
+                                else hook
+                            )
                             f.write(f"{i}. `{h_name}`\n")
-                            for k, v in hook.get("args", {}).items():
+                            for k, v in (
+                                hook.get("args", {}) if isinstance(hook, dict) else {}
+                            ).items():
                                 f.write(f"    - `{k}`: `{v}`\n")
                     f.write("\n")
 
@@ -314,101 +451,86 @@ class Recipe:
             return path
         return str(Path(Path(base or self.base_dir) / path).resolve())
 
+    def _init_hooks(self, hook_defs, mod=None):
+        """Initialize class/name hooks; pass configured instances through unchanged."""
+        active_hooks = []
+        input_keys = {
+            "file",
+            "mask_fn",
+            "dem",
+            "barrier",
+            "aux_path",
+            "path",
+            "outdir",
+            "cache_dir",
+        }
+        output_keys = {"output", "output_grid"}
+        for definition in hook_defs:
+            if isinstance(definition, dict):
+                ref = definition.get("name")
+                args = definition.get("args", {})
+            else:
+                ref, args = definition, {}
+            resolved = resolve_component(ref, HookRegistry, FetchHook)
+            if not inspect.isclass(resolved):
+                if args:
+                    raise ValueError(
+                        f"Hook instance '{_component_label(resolved)}' is already configured; "
+                        "supply a class with args instead of mutating an instance."
+                    )
+                active_hooks.append(resolved)
+                continue
+            kwargs = {
+                key: self._resolve_path(value, base=self.recipe_dir)
+                if key in input_keys
+                else self._resolve_path(value)
+                if key in output_keys
+                else value
+                for key, value in args.items()
+            }
+            active_hooks.append(resolved(**_constructor_kwargs(resolved, kwargs)))
+        return active_hooks
+
     def _init_modules(
         self, module_defs, target_region=None, global_region_srs="EPSG:4326"
     ):
-        """Takes a flat list of module dictionaries and instantiates the Python classes."""
-
+        """Create modules per batch, preserving supplied instances and their state."""
         modules_to_run = []
+        for definition in module_defs:
+            if isinstance(definition, dict):
+                ref = definition.get("module")
+                args = dict(definition.get("args", {}))
+                hook_defs = definition.get("hooks", [])
+                mod_region_srs = definition.get("region_srs", global_region_srs)
+            else:
+                ref, args, hook_defs = definition, {}, []
+                mod_region_srs = global_region_srs
 
-        for mod_def in module_defs:
-            mod_key = mod_def.get("module")
-            mod_args = mod_def.get("args", {})
-            mod_region_srs = mod_def.get("region_srs", global_region_srs)
-            mod_regions = [target_region] if target_region else [None]
-
-            ModCls = ModuleRegistry.get_class(mod_key)
-            if not ModCls:
-                logger.error(f"Unknown module: {mod_key}")
+            resolved = resolve_component(ref, ModuleRegistry, FetchModule)
+            if not inspect.isclass(resolved):
+                if args or hook_defs:
+                    raise ValueError(
+                        f"Module instance '{_component_label(resolved)}' is already configured; "
+                        "use a module class with args/hooks for batch-specific configuration."
+                    )
+                modules_to_run.append(resolved)
                 continue
 
-            for path_key in ["path", "outdir", "cache_dir"]:
-                if path_key in mod_args:
-                    mod_args[path_key] = self._resolve_path(
-                        mod_args[path_key], base=self.recipe_dir
+            for path_key in ("path", "outdir", "cache_dir"):
+                if path_key in args:
+                    args[path_key] = self._resolve_path(
+                        args[path_key], base=self.recipe_dir
                     )
-
-            sig = inspect.signature(ModCls.__init__)
-            valid_mod_args = {
-                k: v
-                for k, v in mod_args.items()
-                if k in sig.parameters or "kwargs" in str(sig.parameters)
-            }
-
-            # Initialize the hooks attached to this specific module
-            mod_hooks = self._init_hooks(mod_def.get("hooks", []))
-
-            for region in mod_regions:
-                if region is not None and region.valid_p():
-                    region.srs = mod_region_srs
-
-                try:
-                    instance = ModCls(
-                        src_region=region, hook=mod_hooks, **valid_mod_args
-                    )
-                    modules_to_run.append(instance)
-                except Exception as e:
-                    logger.exception(f"Failed to load {mod_key}: {e}")
-
+            mod_hooks = self._init_hooks(hook_defs)
+            region = target_region
+            if region is not None and region.valid_p():
+                # Do not mutate the caller-owned region object in place.
+                region = Region.from_list(region.to_list())
+                region.srs = mod_region_srs
+            kwargs = dict(args)
+            kwargs.update(src_region=region, hook=mod_hooks)
+            modules_to_run.append(resolved(**_constructor_kwargs(resolved, kwargs)))
         return modules_to_run
-
-    def _init_hooks(self, hook_defs, mod=None):
-        """Takes a flat list of expanded hook dictionaries and instantiates the Python classes."""
-
-        HookRegistry.load_all()
-        active_hooks = []
-
-        for h in hook_defs:
-            name = h.get("name")
-            raw_kwargs = h.get("args", {})
-
-            kwargs = {}
-
-            input_keys = [
-                "file",
-                "mask_fn",
-                "dem",
-                "barrier",
-                "aux_path",
-                "path",
-                "outdir",
-                "cache_dir",
-            ]
-            output_keys = ["output", "output_grid"]
-
-            for k, v in raw_kwargs.items():
-                if k in input_keys:
-                    kwargs[k] = self._resolve_path(v, base=self.recipe_dir)
-                elif k in output_keys:
-                    kwargs[k] = self._resolve_path(v)
-                else:
-                    kwargs[k] = v
-
-            HookCls = HookRegistry.get_class(name)
-            if HookCls:
-                sig = inspect.signature(HookCls.__init__)
-
-                valid_kwargs = {
-                    k: v
-                    for k, v in kwargs.items()
-                    if k in sig.parameters or "kwargs" in str(sig.parameters)
-                }
-
-                active_hooks.append(HookCls(**valid_kwargs))
-            else:
-                logger.warning(f"Hook '{name}' missing.")
-
-        return active_hooks
 
     def _init_modifiers(self, modifier_defs):
         """Looks for modifiers in the config and applies their rules."""
@@ -532,12 +654,19 @@ class Recipe:
     def _expand_modules(self, raw_modules, parent_weight=1.0):
         """Delegates module/bundle expansion directly to BundleRegistry."""
 
-        return BundleRegistry.expand_modules(raw_modules, parent_weight=parent_weight)
+        return _expand_declarative_segments(
+            raw_modules,
+            BundleRegistry.expand_modules,
+            "module",
+            parent_weight=parent_weight,
+        )
 
     def _expand_hooks(self, hook_defs, parent_hooks=None):
         """Delegates hook/preset expansion directly to PresetRegistry."""
 
-        return PresetRegistry.expand_hooks(hook_defs, parent_hooks=parent_hooks)
+        return _expand_declarative_segments(
+            hook_defs, PresetRegistry.expand_hooks, "hook", parent_hooks=parent_hooks
+        )
 
     # TODO: break up this function.
     # Yield the config for each iteration, etc.
@@ -613,7 +742,7 @@ class Recipe:
                 )
                 continue
 
-            iteration_config = copy.deepcopy(self.config)
+            iteration_config = _safe_config_copy(self.config)
 
             # Setup the Sub-Folder
             tile_dir = base_outdir  # original_cwd
@@ -648,20 +777,25 @@ class Recipe:
                 )
 
                 for mod in iteration_config["modules"]:
-                    mod["hooks"] = self._expand_hooks(mod.get("hooks", []))
+                    if isinstance(mod, dict):
+                        mod["hooks"] = self._expand_hooks(mod.get("hooks", []))
 
                 # Apply any Modifiers and validate with any Schemas
-                iteration_config_modified = copy.deepcopy(iteration_config)
+                iteration_config_modified = _safe_config_copy(iteration_config)
                 modifiers = self._init_modifiers(iteration_config.pop("modifiers", []))
                 for modifier in modifiers:
                     iteration_config_modified = modifier.apply(
                         iteration_config_modified
                     )
                 iteration_config_modified.pop("modifiers", None)
-                iteration_config = copy.deepcopy(iteration_config_modified)
+                iteration_config = _safe_config_copy(iteration_config_modified)
 
                 # Inject outdir for shared caching
                 for mod in iteration_config.get("modules", []):
+                    if not isinstance(mod, dict):
+                        continue  # A supplied module instance/class owns its own configuration.
+                    if isinstance(mod.get("module"), FetchModule):
+                        continue
                     if refresh:
                         mod.setdefault("args", {})["use_cache"] = False
                     if abs_cache and mod.get("module") not in [
@@ -702,8 +836,6 @@ class Recipe:
                     logger.warning(
                         f"The recipe is invalid based on defined schemas: {errors}"
                     )
-                # else:
-                #     iteration_config = copy.deepcopy(iteration_config_modified)
 
                 iteration_region = iteration_config.get("region", [])
 
