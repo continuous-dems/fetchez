@@ -278,10 +278,6 @@ def get(
         A list of absolute paths to the downloaded files.
     """
 
-    from .recipe import setup_logging
-
-    setup_logging(verbose)
-
     ModuleRegistry.load_all()
     HookRegistry.load_all()
 
