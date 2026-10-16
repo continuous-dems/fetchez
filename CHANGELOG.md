@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1 - 10-16-26]
+### Fixed
+- Fixed recipe-relative path resolution for home-directory paths (`~/...`), ensuring user paths are expanded before resolving against the recipe directory.
+- Improved consistency of local-file source normalization and path resolution across Recipe and streaming workflows.
+
+## [0.11.0 - 10-16-26]
 ### ADDED
 
 - Added Recipe.compile(), RecipeContext, and PipelinePlan for preparing, inspecting, and executing workflows programmatically without invoking the full batch runner.
