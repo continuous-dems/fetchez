@@ -621,6 +621,14 @@ class Recipe:
 
     #     return path.exists()
 
+    def _local_source_path(self, source):
+        path = Path(source).expanduser()
+
+        if not path.is_absolute():
+            path = Path(self.recipe_dir) / path
+
+        return str(path.resolve())
+
     def _normalize_local_sources(self, definitions):
         normalized = []
 
@@ -630,7 +638,7 @@ class Recipe:
                     normalized.append(
                         {
                             "module": "local_fs",
-                            "args": {"path": definition},
+                            "args": {"path": self._local_source_path(definition)},
                         }
                     )
                 else:
@@ -643,7 +651,7 @@ class Recipe:
                     updated = dict(definition)
                     updated["module"] = "local_fs"
                     updated["args"] = {
-                        "path": ref,
+                        "path": self._local_source_path(ref),
                         **definition.get("args", {}),
                     }
                     normalized.append(updated)
