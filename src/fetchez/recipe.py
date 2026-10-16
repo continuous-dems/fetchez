@@ -219,6 +219,47 @@ def _safe_config_copy(value):
     return value
 
 
+def resolve_module_reference(spec, base_dir=None):
+    """Resolve a module class, instance, registered name, or local path."""
+
+    if isinstance(spec, FetchModule):
+        return spec, {}
+
+    if inspect.isclass(spec):
+        if not issubclass(spec, FetchModule):
+            raise TypeError(f"{spec} must subclass FetchModule")
+        return spec, {}
+
+    if not isinstance(spec, str):
+        raise TypeError(f"Unsupported module reference: {spec!r}")
+
+    ModuleRegistry.load_all()
+
+    # Registered names always take precedence.
+    cls = ModuleRegistry.get_class(spec)
+    if cls is not None:
+        return cls, {}
+
+    # Otherwise, interpret existing filesystem paths as local inputs.
+    path = Path(spec).expanduser()
+
+    if not path.is_absolute():
+        path = Path(base_dir or Path.cwd()) / path
+
+    if path.exists():
+        local_cls = ModuleRegistry.get_class("local_fs")
+
+        if local_cls is None:
+            raise RuntimeError("Local filesystem module 'local_fs' is unavailable.")
+
+        return local_cls, {"path": str(path.resolve())}
+
+    raise ValueError(
+        f"Unknown module '{spec}'. "
+        "Expected a registered module or an existing local path."
+    )
+
+
 def resolve_component(spec, registry, base_class):
     """Resolve a component reference without instantiating it."""
 
@@ -550,6 +591,70 @@ class Recipe:
                 )
                 raise RuntimeError("Fetchez version incompatibility.")
 
+    def _is_existing_local_source(self, source):
+        """Check whether a source refers to an existing local file or directory."""
+
+        if not isinstance(source, (str, Path)):
+            return False
+
+        # Registered modules always take precedence.
+        ModuleRegistry.load_all()
+        if ModuleRegistry.get_class(str(source)) is not None:
+            return False
+
+        # Existing local files/directories are treated as local_fs.
+        path = Path(source).expanduser()
+        if not path.is_absolute():
+            path = Path(self.recipe_dir) / path
+
+        return path.exists()
+
+    # def _is_existing_local_source(self, source):
+
+    #     if not isinstance(source, (str, Path)):
+    #         return False
+
+    #     path = Path(source).expanduser()
+
+    #     if not path.is_absolute():
+    #         path = Path(self.recipe_dir) / path
+
+    #     return path.exists()
+
+    def _normalize_local_sources(self, definitions):
+        normalized = []
+
+        for definition in definitions:
+            if isinstance(definition, str):
+                if self._is_existing_local_source(definition):
+                    normalized.append(
+                        {
+                            "module": "local_fs",
+                            "args": {"path": definition},
+                        }
+                    )
+                else:
+                    normalized.append(definition)
+
+            elif isinstance(definition, dict):
+                ref = definition.get("module")
+
+                if isinstance(ref, str) and self._is_existing_local_source(ref):
+                    updated = dict(definition)
+                    updated["module"] = "local_fs"
+                    updated["args"] = {
+                        "path": ref,
+                        **definition.get("args", {}),
+                    }
+                    normalized.append(updated)
+                else:
+                    normalized.append(definition)
+
+            else:
+                normalized.append(definition)
+
+        return normalized
+
     def _resolve_path(self, path, base=None):
         if not isinstance(path, (str, Path)):
             return path
@@ -869,8 +974,10 @@ class Recipe:
         # Expand bundles and presets.
         config["global_hooks"] = self._expand_hooks(config.get("global_hooks", []))
 
-        config["modules"] = self._expand_modules(config.get("modules", []))
-
+        # config["modules"] = self._expand_modules(config.get("modules", []))
+        config["modules"] = self._expand_modules(
+            self._normalize_local_sources(config.get("modules", []))
+        )
         for module in config["modules"]:
             if isinstance(module, dict):
                 module["hooks"] = self._expand_hooks(module.get("hooks", []))
