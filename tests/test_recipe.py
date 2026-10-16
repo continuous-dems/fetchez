@@ -9,7 +9,13 @@ import pytest
 
 from fetchez.hooks import FetchHook
 from fetchez.modules import FetchModule
-from fetchez.recipe import Recipe, _safe_config_copy, resolve_component
+from fetchez.recipe import (
+    Recipe,
+    RecipeContext,
+    PipelinePlan,
+    _safe_config_copy,
+    resolve_component,
+)
 
 
 class RuntimeHook(FetchHook):
@@ -345,8 +351,12 @@ def test_runtime_batch_context_instantiates_classes_but_preserves_instances(
     monkeypatch.setattr(BundleRegistry, "expand_modules", lambda defs, **kw: defs)
     monkeypatch.setattr(PresetRegistry, "expand_hooks", lambda defs, **kw: defs)
     monkeypatch.setattr(recipe_module.Recipe, "to_markdown", lambda *args, **kw: None)
-    monkeypatch.setattr(recipe_module.Recipe, "_init_schemas", lambda self, specs: [])
-    monkeypatch.setattr(recipe_module.Recipe, "_init_modifiers", lambda self, specs: [])
+    monkeypatch.setattr(
+        recipe_module.Recipe, "_init_schemas", lambda self, specs, **kwargs: []
+    )
+    monkeypatch.setattr(
+        recipe_module.Recipe, "_init_modifiers", lambda self, specs, **kwargs: []
+    )
     executed = []
     monkeypatch.setattr(
         recipe_module,
@@ -396,3 +406,352 @@ def test_runtime_batch_context_instantiates_classes_but_preserves_instances(
     assert executed[0][1][0] is not executed[1][1][0]
     assert Path(executed[0][1][0].output).name == "runtime-test_tile_a.txt"
     assert Path(executed[1][1][0].output).name == "runtime-test_tile_b.txt"
+
+
+# ---------------------------------------------------------------------------
+# Recipe.compile() / PipelinePlan regression tests (post-refactor)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def isolated_compiler(monkeypatch, runtime_registry):
+    """Exercise actual compilation without plugin discovery or unrelated schemas."""
+    from fetchez.registry import (
+        BundleRegistry,
+        PresetRegistry,
+        ModifierRegistry,
+        SchemaRegistry,
+    )
+
+    for registry in (BundleRegistry, PresetRegistry, ModifierRegistry, SchemaRegistry):
+        monkeypatch.setattr(registry, "load_all", lambda: None)
+
+    monkeypatch.setattr(BundleRegistry, "expand_modules", lambda specs, **kw: specs)
+    monkeypatch.setattr(PresetRegistry, "expand_hooks", lambda specs, **kw: specs)
+    monkeypatch.setattr(Recipe, "_init_modifiers", lambda self, specs, **kw: [])
+    monkeypatch.setattr(Recipe, "_init_schemas", lambda self, specs: [])
+
+
+class PlanRegion:
+    """Minimal Region double for predictable, network-free compilation tests."""
+
+    def __init__(self, name, srs=None):
+        self.name = name
+        self.srs = srs
+
+    def to_list(self):
+        return [self.name]
+
+    def valid_p(self):
+        return True
+
+    def format(self, fmt):
+        assert fmt == "fn"
+        return self.name
+
+
+@pytest.fixture
+def plan_regions(monkeypatch):
+    import fetchez.recipe as recipe_module
+
+    monkeypatch.setattr(
+        recipe_module.Region,
+        "from_list",
+        lambda values: PlanRegion(values[0]) if values else None,
+    )
+    return PlanRegion
+
+
+def test_recipe_context_placeholders_are_explicit_and_batch_aware(tmp_path):
+    ctx = RecipeContext(
+        region=PlanRegion("n33w120"),
+        region_srs="EPSG:4326",
+        name="coastal",
+        outdir=tmp_path,
+        tile_dir=tmp_path / "tile_a",
+        shared_cache=tmp_path / "cache",
+    )
+    assert ctx.placeholders()["batch_name"] == "n33w120"
+    assert ctx.placeholders()["name"] == "coastal"
+    assert ctx.placeholders()["outdir"] == tmp_path
+    assert ctx.placeholders()["tile_dir"] == tmp_path / "tile_a"
+    assert ctx.placeholders()["cache_dir"] == tmp_path / "cache"
+
+    named = RecipeContext(region=PlanRegion("fallback"), batch_name="actual_tile")
+    assert named.placeholders()["batch_name"] == "actual_tile"
+
+
+def test_compile_is_preparation_only_and_preserves_caller_state(
+    tmp_path, monkeypatch, isolated_compiler, plan_regions
+):
+    """compile() must not execute, change cwd, or create batch/receipt files."""
+    import fetchez.recipe as recipe_module
+
+    monkeypatch.setattr(
+        recipe_module,
+        "run_fetchez",
+        lambda *args, **kwargs: pytest.fail("compile() executed the pipeline"),
+    )
+    RuntimeModule.created.clear()
+    ctx = RecipeContext(
+        region=PlanRegion("tile_a"),
+        name="compiler-test",
+        batch_name="tile_a",
+        tile_dir=tmp_path / "not-created",
+        outdir=tmp_path,
+    )
+    config = {
+        "project": {"name": "compiler-test"},
+        "modules": [{"module": RuntimeModule, "args": {"dataset": "%batch_name%"}}],
+        "global_hooks": [
+            {"name": RuntimeHook, "args": {"output": "%tile_dir%/result.tif"}}
+        ],
+        "execution": {"threads": 3},
+    }
+    recipe = Recipe.from_dict(config)
+    cwd_before = Path.cwd()
+    plan = recipe.compile(ctx)
+
+    assert isinstance(plan, PipelinePlan)
+    assert Path.cwd() == cwd_before
+    assert not ctx.tile_dir.exists()
+    assert not list(tmp_path.glob("**/*receipt.md"))
+    assert plan.threads == 3
+    assert plan.region is ctx.region
+    assert plan.batch_name == "tile_a"
+    assert plan.modules[0].results == []  # module.run() was not called
+    assert plan.modules[0].dataset == "tile_a"
+    assert Path(plan.global_hooks[0].output) == ctx.tile_dir / "result.tif"
+    assert recipe.config == config
+    assert recipe.config["modules"][0]["args"]["dataset"] == "%batch_name%"
+
+
+def test_compile_creates_fresh_classes_and_preserves_supplied_instances(
+    tmp_path, isolated_compiler, plan_regions
+):
+    queue = Queue()
+    instance_hook = RuntimeHook(output="do_not_expand_%batch_name%", queue=queue)
+    instance_module = RuntimeModule(dataset="keep", src_region="untouched")
+    recipe = Recipe.from_dict(
+        {
+            "modules": [
+                {"module": RuntimeModule, "args": {"dataset": "%batch_name%"}},
+                instance_module,
+            ],
+            "global_hooks": [
+                {"name": RuntimeHook, "args": {"output": "result_%batch_name%.tif"}},
+                instance_hook,
+            ],
+        }
+    )
+    first = recipe.compile(
+        RecipeContext(region=PlanRegion("a"), batch_name="a", tile_dir=tmp_path)
+    )
+    second = recipe.compile(
+        RecipeContext(region=PlanRegion("b"), batch_name="b", tile_dir=tmp_path)
+    )
+
+    assert first.modules[0] is not second.modules[0]
+    assert first.modules[0].dataset == "a"
+    assert second.modules[0].dataset == "b"
+    assert first.global_hooks[0] is not second.global_hooks[0]
+    assert Path(first.global_hooks[0].output).name == "result_a.tif"
+    assert Path(second.global_hooks[0].output).name == "result_b.tif"
+    assert first.modules[1] is second.modules[1] is instance_module
+    assert first.global_hooks[1] is second.global_hooks[1] is instance_hook
+    assert instance_module.src_region == "untouched"
+    assert instance_hook.output == "do_not_expand_%batch_name%"
+    assert instance_hook.queue is queue
+
+
+def test_compile_resolves_global_and_module_hook_outputs_relative_to_tile(
+    tmp_path, isolated_compiler, plan_regions
+):
+    recipe_dir = tmp_path / "recipes"
+    tile_dir = tmp_path / "output" / "tile_01"
+    recipe = Recipe(
+        {
+            "modules": [
+                {
+                    "module": RuntimeModule,
+                    "hooks": [{"name": RuntimeHook, "args": {"output": "local.tif"}}],
+                }
+            ],
+            "global_hooks": [{"name": RuntimeHook, "args": {"output": "global.tif"}}],
+        },
+        base_dir=recipe_dir,
+    )
+    plan = recipe.compile(
+        RecipeContext(region=PlanRegion("tile_01"), tile_dir=tile_dir)
+    )
+
+    assert Path(plan.global_hooks[0].output) == tile_dir / "global.tif"
+    assert Path(plan.modules[0].hook[0].output) == tile_dir / "local.tif"
+    assert not tile_dir.exists()  # Path resolution must not mkdir
+
+
+def test_legacy_path_rules_only_touch_known_keys(tmp_path):
+    recipe = Recipe({}, base_dir=tmp_path / "recipe-dir")
+    args = {
+        "file": "input.tif",
+        "output": "output.tif",
+        "custom_path": "untouched.tif",
+        "barrier": 123,
+        "url": "https://example.org/data.tif",
+    }
+    resolved = recipe._resolve_args_paths(
+        args,
+        input_keys={"file", "barrier"},
+        output_keys={"output"},
+        input_dir=tmp_path / "recipe-dir",
+        output_dir=tmp_path / "tile-dir",
+    )
+    assert Path(resolved["file"]) == tmp_path / "recipe-dir" / "input.tif"
+    assert Path(resolved["output"]) == tmp_path / "tile-dir" / "output.tif"
+    assert resolved["custom_path"] == "untouched.tif"
+    assert resolved["barrier"] == 123
+    assert resolved["url"] == args["url"]
+    assert args["file"] == "input.tif"  # Never mutate caller's arguments
+    assert recipe._resolve_path("s3://bucket/data.tif") == "s3://bucket/data.tif"
+
+
+def test_compile_applies_refresh_and_cache_only_to_declarative_classes(
+    tmp_path, isolated_compiler, plan_regions
+):
+    """Existing runtime instances remain untouched by execution overrides."""
+    original = RuntimeModule(dataset="already-configured", outdir="as-provided")
+
+    class CacheAwareModule(RuntimeModule):
+        def __init__(self, src_region=None, hook=None, outdir=None, use_cache=True):
+            super().__init__(src_region=src_region, hook=hook, outdir=outdir)
+            self.use_cache = use_cache
+
+    recipe = Recipe(
+        {
+            "modules": [{"module": CacheAwareModule}, original],
+        }
+    )
+    cache = tmp_path / "cache"
+    plan = recipe.compile(
+        RecipeContext(
+            region=PlanRegion("a"),
+            shared_cache=cache,
+            refresh=True,
+        )
+    )
+    assert plan.modules[0].use_cache is False
+    assert Path(plan.modules[0].outdir) == cache
+    assert plan.modules[1] is original
+    assert original.outdir == "as-provided"
+
+
+def test_plan_execute_runs_each_module_and_engine_once(monkeypatch):
+    import fetchez.recipe as recipe_module
+
+    calls = []
+
+    class RunningModule(RuntimeModule):
+        def run(self):
+            calls.append(("module", self.dataset))
+            return self
+
+    def engine(modules, **kwargs):
+        calls.append(("engine", len(modules)))
+        assert kwargs["threads"] == 5
+        assert kwargs["global_hooks"] == ["existing"]
+        return ["result"]
+
+    monkeypatch.setattr(recipe_module, "run_fetchez", engine)
+    plan = PipelinePlan(
+        config={},
+        modules=[RunningModule(dataset="a"), RunningModule(dataset="b")],
+        global_hooks=["existing"],
+        threads=5,
+    )
+    result = plan.execute()
+    assert calls == [("module", "a"), ("module", "b"), ("engine", 2)]
+    assert result == ["result"]
+
+
+def test_plan_execute_failure_preserves_exception_and_stops_tracing(monkeypatch):
+    import fetchez.recipe as recipe_module
+
+    failure = RuntimeError("engine failed")
+
+    def fail(*args, **kwargs):
+        raise failure
+
+    monkeypatch.setattr(recipe_module, "run_fetchez", fail)
+    plan = PipelinePlan(config={}, modules=[], global_hooks=[])
+    with pytest.raises(RuntimeError, match="engine failed") as caught:
+        plan.execute()
+    assert caught.value is failure
+    assert not recipe_module.tracemalloc.is_tracing()
+
+
+def test_recipe_run_yields_with_restored_cwd_and_resumes(
+    tmp_path, monkeypatch, isolated_compiler, plan_regions
+):
+    import fetchez.recipe as recipe_module
+
+    original = Path.cwd()
+    monkeypatch.setattr(
+        recipe_module,
+        "yield_parsed_regions",
+        lambda raw: iter(
+            [(PlanRegion("tile_a"), "tile_a"), (PlanRegion("tile_b"), "tile_b")]
+        ),
+    )
+    monkeypatch.setattr(recipe_module.Recipe, "to_markdown", lambda *a, **kw: None)
+    monkeypatch.setattr(recipe_module, "run_fetchez", lambda *a, **kw: [])
+
+    recipe = Recipe(
+        {"project": {"name": "test"}, "region": "fake", "modules": [RuntimeModule]}
+    )
+    iterator = recipe.run(outdir=tmp_path)
+    first = next(iterator)
+    assert first[2] == "tile_a"
+    assert Path.cwd() == original  # CWD restored even while generator suspended
+    assert (tmp_path / "tile_a").is_dir()
+    assert json.loads((tmp_path / "fetchez_batch_state.json").read_text()) == ["tile_a"]
+    remaining = list(iterator)
+    assert [batch[2] for batch in remaining] == ["tile_b"]
+    assert Path.cwd() == original
+    assert json.loads((tmp_path / "fetchez_batch_state.json").read_text()) == [
+        "tile_a",
+        "tile_b",
+    ]
+
+    assert list(recipe.run(outdir=tmp_path)) == []
+    assert Path.cwd() == original
+
+
+def test_compile_without_context_uses_unambiguous_recipe_region(
+    monkeypatch, isolated_compiler, plan_regions
+):
+    import fetchez.recipe as recipe_module
+
+    monkeypatch.setattr(
+        recipe_module,
+        "yield_parsed_regions",
+        lambda raw: iter([(PlanRegion("configured"), None)]),
+    )
+    recipe = Recipe({"region": "single", "modules": [RuntimeModule]})
+    plan = recipe.compile()
+    assert plan.region is not None
+    assert plan.modules[0].src_region.name == "configured"
+
+
+def test_compile_without_context_rejects_ambiguous_batches(
+    monkeypatch, isolated_compiler
+):
+    import fetchez.recipe as recipe_module
+
+    monkeypatch.setattr(
+        recipe_module,
+        "yield_parsed_regions",
+        lambda raw: iter([(PlanRegion("a"), "a"), (PlanRegion("b"), "b")]),
+    )
+    recipe = Recipe({"region": "many", "modules": [RuntimeModule]})
+    with pytest.raises(ValueError, match="context|multiple|region|batch"):
+        recipe.compile()

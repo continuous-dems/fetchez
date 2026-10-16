@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ADDED
 
+- Added Recipe.compile(), RecipeContext, and PipelinePlan for preparing, inspecting, and executing workflows programmatically without invoking the full batch runner.
+- Added fetchez.logging to hold the logging configuration.
 - Integrated `DataTypeRegistry` with the existing profile and reader infrastructure, supporting explicit profile selection and optional default profiles for generic data type.
 - Added entry-aware reader resolution through ReaderRegistry.get_reader_from_entry(), preserving legacy reader dtype and file-extension fallbacks.
 - Added support for explicit reader output metadata (meta_produces) with backward-compatible meta_category fallback.
@@ -25,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### CHANGED
 
+- Refactored the Recipe engine to separate workflow compilation, component initialization, execution, and batch orchestration.
+- Improved support for Python-defined modules and hooks, including unregistered classes, preconfigured instances, and mixed declarative/runtime recipes.
+- Simplified Recipe.run() while preserving multi-region execution, shared caching, execution receipts, and batch resumption.
+- Consolidated legacy path argument resolution into shared helpers, with explicit handling of recipe-relative inputs and batch-relative outputs.
+- Expanded Recipe documentation and regression tests, including successful validation against existing Globato DEM-building workflows.
+- **BREAKING** Moved logging setup from cli to fetchez.logging.
 - Update the cli discovery tools to improve discoverablity through metadata.
 - Every dependency now has a minimum version that installs on Python 3.12, fetchez's oldest supported Python: the first release with Python 3.12 wheels for compiled packages, or a release from around Python 3.12's own (fall 2023) for pure-Python ones. `shapely>=2.0.3` and `pyogrio>=0.8.0` are a little past their first Python 3.12 wheels, since the earlier releases install alongside numpy 2 but fail to import. CI now also runs the tests with each dependency at its minimum, and on Python 3.14.
 - Refactored stream-init to separate reader selection, configuration, spatial metadata handling, and stream initialization.

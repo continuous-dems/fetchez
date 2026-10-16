@@ -12,11 +12,11 @@ The main command-line interface for the Fetchez framework.
 """
 
 import click
-import logging
 from typing import Optional
 
-from fetchez.utils import TqdmLoggingHandler, FetchezMainGroup
+from fetchez.logging import configure_logging
 
+from .utils import FetchezMainGroup
 from .pipeline import pipeline_group
 from .run import run_recipe
 from .modules import modules_group
@@ -26,6 +26,9 @@ from .streams import streams_group
 from .data_types import data_types_group
 from .regions import regions_group
 from .cache import cache_group
+
+
+setup_logging = configure_logging
 
 
 # =============================================================================
@@ -45,32 +48,6 @@ def cli_opts(help_text: Optional[str] = None, **arg_help):
         return cls
 
     return decorator
-
-
-def setup_logging(name="fetchez", quiet=False, verbose=False):
-    """Setup logging for the fetchez based clis"""
-
-    if quiet:
-        log_level = logging.WARNING
-    elif verbose:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
-
-    logger = logging.getLogger(name)
-    logger.setLevel(log_level)
-
-    logger.propagate = False
-
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
-    handler = TqdmLoggingHandler()
-
-    formatter = logging.Formatter("[ %(levelname)s ] %(module)s: %(message)s")
-    handler.setFormatter(formatter)
-
-    logger.addHandler(handler)
 
 
 @click.group(
@@ -128,7 +105,7 @@ def cli(verbose, quiet):
     #   $ fetchez run -R loc:hawaii --export my_pipeline.yaml bluetopo
     # """,
 
-    setup_logging(quiet=quiet, verbose=verbose)
+    configure_logging(name="fetchez", quiet=quiet, verbose=verbose, propagate=False)
 
 
 @click.command("la_vache", hidden=True)
