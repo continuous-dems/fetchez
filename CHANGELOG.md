@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### CHANGED
 
+- Refactored api.read to use the refactored recipe.py for workflow compilation.
 - Refactored the Recipe engine to separate workflow compilation, component initialization, execution, and batch orchestration.
 - Improved support for Python-defined modules and hooks, including unregistered classes, preconfigured instances, and mixed declarative/runtime recipes.
 - Simplified Recipe.run() while preserving multi-region execution, shared caching, execution receipts, and batch resumption.

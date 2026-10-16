@@ -32,7 +32,7 @@ from .streams.base import BaseStream
 from .utils import parse_hook_string
 from .core import run_fetchez
 from .spatial import parse_region
-from .recipe import Recipe
+from .recipe import Recipe, RecipeContext
 from .registry import (
     ModuleRegistry,
     BundleRegistry,
@@ -487,9 +487,8 @@ def read(
 ) -> BaseStream:
     """Create a lazy, composable Fetchez data stream.
 
-    Resolve one or more Fetchez sources into modules and return a
-    BaseStream. Modules are discovered and their entries are processed
-    when the stream is iterated, not when read() is called.
+    Return a BaseStream backed by a Recipe. Sources and hooks are expanded,
+    compiled, discovered and executed on iteration, not when read() is called.
 
     Sources
     -------
@@ -571,15 +570,24 @@ def read(
     ...     "stream-init", profile="csv-default"
     ... ).pipe("my-processing-hook")
     """
-    modules = _compile_modules(
-        sources,
-        region=region,
-        shared_cache=shared_cache,
+    # Keep read() lazy. Bundle expansion, local_fs shorthand normalization,
+    # hook resolution and component construction all belong to Recipe.compile().
+    if isinstance(sources, (str, dict)) or not isinstance(sources, list):
+        sources = [sources]
+
+    parsed_region = parse_region(region)[0] if region is not None else None
+    cache_path = Path(shared_cache).resolve() if shared_cache is not None else None
+    recipe = Recipe.from_dict(
+        {
+            "project": {"name": "api_stream"},
+            "modules": sources,
+            "global_hooks": [],
+            "execution": {"threads": 2},  # Preserve read()'s existing default.
+        }
     )
-
-    parsed_region = parse_region(region)[0] if region else None
-
-    return BaseStream(
-        modules=modules,
+    context = RecipeContext(
         region=parsed_region,
+        name="api_stream",
+        shared_cache=cache_path,
     )
+    return BaseStream(recipe=recipe, context=context, region=parsed_region)
