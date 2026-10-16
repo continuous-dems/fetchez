@@ -1,8 +1,10 @@
 # 🗺️ Recipes
 
-Instead of running long, complex CLI commands every time you want to build a dataset, `fetchez` allows you to define your entire workflow in a YAML file called a **Recipe**.
+Fetchez Recipes define reusable geospatial data workflows using YAML configurations or Python objects. Recipes describe the data sources, processing hooks, execution settings, and validation rules needed to build a dataset.
 
-By treating your data pipelines as *Infrastructure as Code*, you can make data pulls reproducible, auditable, and shareable.
+A Recipe can be executed directly from the CLI, run programmatically across one or more geographic regions, or compiled into a prepared pipeline for integration with other Python applications.
+
+This separation between workflow definition, preparation, and execution makes Recipes useful both for reproducible standalone data processing and as building blocks for larger geospatial ETL systems.
 
 ## How to Launch a Recipe
 Recipes are written in standard YAML. To execute a recipe and start fetching data, simply pass the YAML file to the `fetchez` CLI:
@@ -88,7 +90,7 @@ global_hooks:
 ```
 
 #### Understanding Hooks and the Lifecycle
-Hooks are the specialized tools that intercept and process your data. It is critical to understand when they run. `fetchez` processes hooks in three distinct stages:
+Hooks are the specialized tools that intercept and process your data. It is critical to understand when they run. `fetchez` processes hooks in four distinct stages:
 
 * **PRE/MANIFEST Stage:** Runs before downloads begin.
   *Use case:* Filtering the list of URLs based on regex, limiting the maximum number of files to download, or authenticating tokens.
@@ -123,6 +125,7 @@ Available placeholders include:
 * **`%outdir%`**: The base output directory for the execution.
 * **`%tile_dir%`**: The specific working directory for the current batch iteration.
 * **`%region_srs%`**: The spatial reference system (CRS) of the target region.
+* **`%cache_dir%`**: Resolves in the same way as `%shared_cache%`.
 
 **Example Usage:**
 
@@ -199,9 +202,60 @@ By specifying schema: `quarter-degree-tile`, the engine intercepts your recipe a
 fetchez recipes run -R -120/-119.75/33/33.25 --schema quarter-degree-tile my_strict_project.yaml
 ```
 
+## High-level execution: `Recipe.run()`
+
+This is the recommended interface for ordinary YAML workflows and multi-region batch processing.
+
+```python
+from fetchez.recipe import Recipe
+
+recipe = Recipe.from_file("my_recipe.yaml")
+
+for config, region, name, cache, outdir, tile_dir in recipe.run(
+    outdir="outputs",
+    shared_cache="cache",
+):
+    print(f"Completed {name}: {tile_dir}")
+```
+
+## Low-level preparation: `Recipe.compile()`
+
+This prepares a single pipeline without executing it:
+
+```python
+from fetchez.recipe import Recipe, RecipeContext
+from fetchez.spatial import Region
+
+recipe = Recipe.from_dict({
+    "project": {"name": "custom_pipeline"},
+    "modules": [
+        {"module": "tnm"},
+    ],
+    "global_hooks": [
+        {"name": "audit"},
+    ],
+})
+
+context = RecipeContext(
+    region=Region.from_list([-120, -119.75, 33, 33.25]),
+    name="custom_pipeline",
+)
+
+plan = recipe.compile(context)
+
+# Inspect the prepared components.
+print(plan.modules)
+print(plan.global_hooks)
+
+# Execute when ready.
+plan.execute()
+```
+
 ## Python Runtime Components (Without Registration)
 
 Recipes can also be constructed in Python using custom `FetchModule` and `FetchHook` subclasses **without registering them**. A Python recipe may mix registered component names, Python class references, and already-initialized component instances in its `modules`, `global_hooks`, and module-local `hooks` lists.
+
+During compilation, registered component names and Python classes are resolved into new component instances. Each compilation creates fresh objects for class-based definitions, allowing the same Recipe to be compiled independently for different regions or execution contexts. Preinitialized component instances are preserved by identity and retain their original configuration.
 
 ### Pass classes with constructor arguments
 
@@ -243,7 +297,7 @@ from fetchez.recipe import Recipe
 from my_project.hooks import MyQueueHook
 from my_project.modules import MyModule
 
-queue = Queue(maxsize=8)
+queue = Queue()
 source = MyModule(dataset="bathymetry")
 sink = MyQueueHook(queue=queue)
 
@@ -262,7 +316,7 @@ for batch in recipe.run():
 Instances should be supplied directly, not with extra `args` or `hooks` intended to reconfigure them. Registered names and YAML recipes retain their existing behavior. Only Python-created recipes can contain live class references or objects; YAML should continue to use registered component names. Recipes containing runtime objects cannot be exported as equivalent CLI commands or serialized to JSON without replacing those references with registered names.
 
 ## Extending Recipes (Plugins and Extensions)
-Fetchez is generic. If you are building a custom tool (like a specialized DEM engine), you can register your own recipes, modifiers and schems either in your project or in the `~/.fetchez` configuration directory and they will be discoverable with the `fetchez.registry`
+Fetchez is generic. If you are building a custom tool (like a specialized DEM engine), you can register your own recipes, modifiers and schemas either in your project or in the `~/.fetchez` configuration directory and they will be discoverable with the `fetchez.registry`
 
 In your project, make a directory called 'recipes'; add any YAML recipes to that directory, add any python source files in 'recipes/modifiers' or 'recipe/schemas' and register them with `fetchez` in your `pyproject.toml`:
 

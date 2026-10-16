@@ -20,6 +20,7 @@ import inspect
 import logging
 import tracemalloc
 from pathlib import Path
+from dataclasses import dataclass
 
 from .core import run_fetchez
 from .spatial import yield_parsed_regions, Region
@@ -40,6 +41,135 @@ from . import __version__ as fetchez_version
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+
+# Legacy argument-name conventions for relative path resolution.
+# These provide backward compatibility for existing YAML recipes.
+#
+# New components should not depend on these names to describe path semantics.
+
+RECIPE_INPUT_PATH_KEYS = frozenset(
+    {
+        "file",
+        "mask_fn",
+        "dem",
+        "barrier",
+        "aux_path",
+        "path",
+        "outdir",
+        "cache_dir",
+    }
+)
+
+
+RECIPE_OUTPUT_PATH_KEYS = frozenset(
+    {
+        "output",
+        "output_grid",
+    }
+)
+
+
+RECIPE_MODULE_PATH_KEYS = frozenset(
+    {
+        "path",
+        "outdir",
+        "cache_dir",
+    }
+)
+
+
+@dataclass
+class PipelinePlan:
+    """A prepared Fetchez workflow, not yet executed."""
+
+    config: dict
+    modules: list
+    global_hooks: list
+    region: Any = None
+    threads: int = 1
+    ignore_failures: bool = False
+
+    # Optional execution metadata
+    batch_name: str | None = None
+    tile_dir: Path | None = None
+    shared_cache: Path | None = None
+
+    def execute(self):
+        """Execute the prepared workflow."""
+
+        for module in self.modules:
+            try:
+                module.run()
+            except Exception as e:
+                if not self.ignore_failures:
+                    logger.exception(
+                        "Module '%s' failed during discovery",
+                        module.name,
+                    )
+                    raise
+
+                logger.error(
+                    "Module '%s' discovery failed: %s",
+                    module.name,
+                    e,
+                )
+
+        tracing_started = not tracemalloc.is_tracing()
+
+        if tracing_started:
+            tracemalloc.start()
+
+        try:
+            return run_fetchez(
+                self.modules,
+                threads=self.threads,
+                global_hooks=self.global_hooks,
+                ignore_failures=self.ignore_failures,
+            )
+
+        finally:
+            if tracing_started:
+                current, peak = tracemalloc.get_traced_memory()
+
+                logger.info(
+                    "Pipeline Memory Usage - Current: %.2f MB | Peak: %.2f MB",
+                    current / 10**6,
+                    peak / 10**6,
+                )
+
+                tracemalloc.stop()
+
+
+@dataclass(frozen=True)
+class RecipeContext:
+    region: Region | None = None
+    region_srs: str = "EPSG:4326"
+    name: str = "fetchez"
+    batch_name: str | None = None
+
+    outdir: Path | None = None
+    tile_dir: Path | None = None
+    shared_cache: Path | None = None
+
+    refresh: bool = False
+
+    def placeholders(self):
+        working_dir = self.tile_dir or Path.cwd()
+
+        batch_name = self.batch_name
+        if not batch_name and self.region is not None:
+            batch_name = self.region.format("fn")
+
+        return {
+            "name": self.name,
+            "batch_name": batch_name or "",
+            "shared_cache": self.shared_cache or working_dir,
+            "cache_dir": self.shared_cache or working_dir,
+            "outdir": self.outdir or working_dir,
+            "tile_dir": working_dir,
+            "region_srs": self.region_srs,
+        }
 
 
 def _parse_version(v_str):
@@ -420,33 +550,50 @@ class Recipe:
                 )
                 raise RuntimeError("Fetchez version incompatibility.")
 
-    def _resolve_path(
-        self, path: str, base: Optional[str] = None
-    ) -> Optional[str | Any]:
-        """Resolves output paths relative to the recipe file."""
+    def _resolve_path(self, path, base=None):
+        if not isinstance(path, (str, Path)):
+            return path
 
-        if not isinstance(path, str):
+        path = str(path)
+
+        if path.startswith(("http://", "https://", "s3://", "gs://", "ftp://")):
             return path
-        if path.startswith(("http", "s3://", "gs://", "ftp://")):
-            return path
+
         if Path(path).is_absolute():
             return path
-        return str(Path(Path(base or self.base_dir) / path).resolve())
 
-    def _init_hooks(self, hook_defs, mod=None):
+        return str((Path(base or self.recipe_dir) / path).resolve())
+
+    def _resolve_args_paths(
+        self,
+        args,
+        *,
+        input_keys=(),
+        output_keys=(),
+        input_dir=None,
+        output_dir=None,
+    ):
+        """Resolve conventional path arguments, leaving other values untouched."""
+
+        input_dir = input_dir or self.recipe_dir
+        output_dir = output_dir or self.recipe_dir
+
+        resolved = {}
+
+        for key, value in args.items():
+            if key in input_keys:
+                resolved[key] = self._resolve_path(value, base=input_dir)
+            elif key in output_keys:
+                resolved[key] = self._resolve_path(value, base=output_dir)
+            else:
+                resolved[key] = value
+
+        return resolved
+
+    def _init_hooks(self, hook_defs, output_dir=None):
         """Initialize class/name hooks; pass configured instances through unchanged."""
         active_hooks = []
-        input_keys = {
-            "file",
-            "mask_fn",
-            "dem",
-            "barrier",
-            "aux_path",
-            "path",
-            "outdir",
-            "cache_dir",
-        }
-        output_keys = {"output", "output_grid"}
+
         for definition in hook_defs:
             if isinstance(definition, dict):
                 ref = definition.get("name")
@@ -462,19 +609,22 @@ class Recipe:
                     )
                 active_hooks.append(resolved)
                 continue
-            kwargs = {
-                key: self._resolve_path(value, base=self.recipe_dir)
-                if key in input_keys
-                else self._resolve_path(value)
-                if key in output_keys
-                else value
-                for key, value in args.items()
-            }
+            kwargs = self._resolve_args_paths(
+                args,
+                input_keys=RECIPE_INPUT_PATH_KEYS,
+                output_keys=RECIPE_OUTPUT_PATH_KEYS,
+                input_dir=self.recipe_dir,
+                output_dir=output_dir,
+            )
             active_hooks.append(resolved(**_constructor_kwargs(resolved, kwargs)))
         return active_hooks
 
     def _init_modules(
-        self, module_defs, target_region=None, global_region_srs="EPSG:4326"
+        self,
+        module_defs,
+        target_region=None,
+        global_region_srs="EPSG:4326",
+        output_dir=None,
     ):
         """Create modules per batch, preserving supplied instances and their state."""
         modules_to_run = []
@@ -498,12 +648,13 @@ class Recipe:
                 modules_to_run.append(resolved)
                 continue
 
-            for path_key in ("path", "outdir", "cache_dir"):
-                if path_key in args:
-                    args[path_key] = self._resolve_path(
-                        args[path_key], base=self.recipe_dir
-                    )
-            mod_hooks = self._init_hooks(hook_defs)
+            args = self._resolve_args_paths(
+                args,
+                input_keys=RECIPE_MODULE_PATH_KEYS,
+                input_dir=self.recipe_dir,
+            )
+
+            mod_hooks = self._init_hooks(hook_defs, output_dir=output_dir)
             region = target_region
             if region is not None and region.valid_p():
                 # Do not mutate the caller-owned region object in place.
@@ -514,7 +665,7 @@ class Recipe:
             modules_to_run.append(resolved(**_constructor_kwargs(resolved, kwargs)))
         return modules_to_run
 
-    def _init_modifiers(self, modifier_defs):
+    def _init_modifiers(self, modifier_defs, output_dir=None):
         """Looks for modifiers in the config and applies their rules."""
 
         ModifierRegistry.load_all()
@@ -525,26 +676,13 @@ class Recipe:
             raw_kwargs = modifier.get("args", {})
 
             kwargs = {}
-
-            input_keys = [
-                "file",
-                "mask_fn",
-                "dem",
-                "barrier",
-                "aux_path",
-                "path",
-                "outdir",
-                "cache_dir",
-            ]
-            output_keys = ["output", "output_grid"]
-
-            for k, v in raw_kwargs.items():
-                if k in input_keys:
-                    kwargs[k] = self._resolve_path(v, base=self.recipe_dir)
-                elif k in output_keys:
-                    kwargs[k] = self._resolve_path(v)
-                else:
-                    kwargs[k] = v
+            kwargs = self._resolve_args_paths(
+                raw_kwargs,
+                input_keys=RECIPE_INPUT_PATH_KEYS,
+                output_keys=RECIPE_OUTPUT_PATH_KEYS,
+                input_dir=self.recipe_dir,
+                output_dir=output_dir,
+            )
 
             ModifierCls = ModifierRegistry.get_class(name)
             if ModifierCls:
@@ -650,8 +788,175 @@ class Recipe:
             hook_defs, PresetRegistry.expand_hooks, "hook", parent_hooks=parent_hooks
         )
 
-    # TODO: break up this function.
-    # Yield the config for each iteration, etc.
+    def _validate_config(self, config):
+        schemas = self._init_schemas(config.get("schemas", []))
+        errors = []
+        for schema in schemas:
+            logger.info(f"Validating recipe with {schema.name} schema")
+            iteration_valid, iteration_errors = schema.run(config)
+            if not iteration_valid:
+                errors.extend(iteration_errors)
+
+        if len(errors) > 0:
+            logger.warning(f"The recipe is invalid based on defined schemas: {errors}")
+
+    def _apply_execution_options(self, config, context):
+        for mod in config.get("modules", []):
+            if not isinstance(mod, dict):
+                continue  # A supplied module instance/class owns its own configuration.
+            if isinstance(mod.get("module"), FetchModule):
+                continue
+            if context.refresh:
+                mod.setdefault("args", {})["use_cache"] = False
+            if context.shared_cache and mod.get("module") not in [
+                "file",
+                "local_fs",
+                "stdin",
+            ]:
+                mod.setdefault("args", {})["outdir"] = context.shared_cache
+        return config
+
+    def _default_context(self):
+        raw_region = self.config.get("region")
+
+        if raw_region is None:
+            region = None
+        else:
+            regions = list(yield_parsed_regions(raw_region))
+
+            if len(regions) != 1:
+                raise ValueError(
+                    "Recipe.compile() requires an explicit context "
+                    "when the recipe contains multiple regions."
+                )
+
+            region, _ = regions[0]
+
+        return RecipeContext(
+            region=region,
+            region_srs=self.config.get("region_srs", "EPSG:4326"),
+            name=self.name,
+        )
+
+    def compile(
+        self,
+        context: RecipeContext | None = None,
+        *,
+        ignore_failures=False,
+    ) -> PipelinePlan:
+        """Prepare one workflow without executing it."""
+
+        ModuleRegistry.load_all()
+        BundleRegistry.load_all()
+        ModifierRegistry.load_all()
+        SchemaRegistry.load_all()
+
+        self._check_integrity()
+
+        context = context if context is not None else self._default_context()
+
+        config = _safe_config_copy(self.config)
+
+        # Localize this batch's region and project name.
+        if context.region is not None:
+            config["region"] = context.region.to_list()
+
+        if context.batch_name:
+            config.setdefault("project", {})["name"] = (
+                f"{context.name}_{context.batch_name}"
+            )
+
+        # Expand bundles and presets.
+        config["global_hooks"] = self._expand_hooks(config.get("global_hooks", []))
+
+        config["modules"] = self._expand_modules(config.get("modules", []))
+
+        for module in config["modules"]:
+            if isinstance(module, dict):
+                module["hooks"] = self._expand_hooks(module.get("hooks", []))
+
+        # Apply modifiers, preserving runtime components.
+        modifiers = self._init_modifiers(
+            config.pop("modifiers", []),
+            output_dir=context.tile_dir,
+        )
+
+        for modifier in modifiers:
+            config = modifier.apply(config)
+
+        config.pop("modifiers", None)
+
+        # Apply shared-cache and refresh policies.
+        config = self._apply_execution_options(config, context)
+
+        # Resolve explicitly requested placeholders.
+        config = self._inject_batch_context(
+            config,
+            **context.placeholders(),
+        )
+
+        # Validate the prepared definition.
+        self._validate_config(config)
+
+        # Instantiate components.
+        global_hooks = self._init_hooks(
+            config.get("global_hooks", []),
+            output_dir=context.tile_dir,
+        )
+
+        modules = self._init_modules(
+            config.get("modules", []),
+            target_region=context.region,
+            global_region_srs=context.region_srs,
+            output_dir=context.tile_dir,
+        )
+
+        return PipelinePlan(
+            config=config,
+            modules=modules,
+            global_hooks=global_hooks,
+            region=context.region,
+            threads=config.get("execution", {}).get("threads", 1),
+            ignore_failures=ignore_failures,
+            batch_name=context.batch_name,
+            tile_dir=context.tile_dir,
+            shared_cache=context.shared_cache,
+        )
+
+    def _iter_batches(self):
+        raw_region = self.config.get("region")
+
+        for i, (target_region, feat_name) in enumerate(
+            yield_parsed_regions(raw_region)
+        ):
+            if feat_name:
+                batch_name = str(feat_name)
+            elif target_region and i > 0:
+                batch_name = f"batch_{i:03d}"
+            else:
+                batch_name = None
+
+            yield target_region, batch_name
+
+    def _get_tile_dir(self, base_outdir, batch_name):
+        if batch_name:
+            logger.info(
+                colorize(
+                    f"\n--- Running Batch Iteration: {batch_name} ---",
+                    CYAN,
+                )
+            )
+            return Path(base_outdir) / batch_name
+
+        return Path(base_outdir)
+
+    def _mark_completed(self, completed_tiles, state_file, batch_name):
+        if batch_name:
+            completed_tiles.append(batch_name)
+            with open(state_file, "w") as f:
+                json.dump(completed_tiles, f, indent=2)
+        return completed_tiles
+
     def run(
         self,
         outdir: Optional[str] = None,
@@ -660,33 +965,21 @@ class Recipe:
         refresh: bool = False,
         ignore_failures: bool = False,
     ):
-        """Execute the recipe, supporting vector-based batching, caching, and resumption."""
-
-        ModuleRegistry.load_all()
-        BundleRegistry.load_all()
-        ModifierRegistry.load_all()
-        SchemaRegistry.load_all()
-
-        if not self.config:
-            return
-
-        self._check_integrity()
-        # Check for 'domain' to see if we have the proper extension to run the recipe.
-        # Maybe add something like this to _check_integrity
-        # domain = self.config.get("domain")
-
-        # Execution parameters
-        run_opts = self.config.get("execution", {})
-        threads = run_opts.get("threads", 1)
-        raw_region = self.config.get("region")
-        global_region_srs = self.config.get("region_srs", "EPSG:4326")
-        recipe_name = self.config.get("project", {}).get("name", "Unnamed")
 
         original_cwd = Path.cwd()
+
         if outdir is None:
             base_outdir = original_cwd.resolve()
         else:
             base_outdir = Path(outdir).resolve()
+
+        global_region_srs = self.config.get("region_srs", "EPSG:4326")
+        recipe_name = self.config.get("project", {}).get("name", "Unnamed")
+        abs_cache = None
+        if shared_cache:
+            abs_cache = Path(shared_cache).resolve()
+            abs_cache.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Shared cache enabled: {abs_cache}")
 
         # State Tracking
         state_file = Path(base_outdir / "fetchez_batch_state.json")
@@ -698,233 +991,56 @@ class Recipe:
             except Exception:
                 pass
 
-        # Shared Cache
-        abs_cache = None
-        if shared_cache:
-            abs_cache = Path(shared_cache).resolve()
-            abs_cache.mkdir(parents=True, exist_ok=True)
-            logger.info(f"Shared cache enabled: {abs_cache}")
-
-        # Batch Loop
-        for i, (target_region, feat_name) in enumerate(
-            yield_parsed_regions(raw_region)
-        ):
-            # Batch Name
-            if feat_name:
-                batch_name = str(feat_name)
-            elif target_region and i > 0:
-                batch_name = f"batch_{i:03d}"
-            else:
-                batch_name = None
-
-            # Check State
+        for target_region, batch_name in self._iter_batches():
             if batch_name and batch_name in completed_tiles and not overwrite:
                 logger.info(
                     f"Skipping completed tile: {batch_name} (use --overwrite to force)"
                 )
                 continue
 
-            iteration_config = _safe_config_copy(self.config)
-
-            # Setup the Sub-Folder
-            tile_dir = base_outdir  # original_cwd
-            if batch_name:
-                logger.info(
-                    colorize(f"\n--- Running Batch Iteration: {batch_name} ---", CYAN)
-                )
-                orig_name = iteration_config.get("project", {}).get("name", "Unnamed")
-                iteration_config.setdefault("project", {})["name"] = (
-                    f"{orig_name}_{batch_name}"
-                )
-
-                tile_dir = Path(tile_dir / batch_name)
+            tile_dir = self._get_tile_dir(
+                base_outdir,
+                batch_name,
+            )
+            context = RecipeContext(
+                region=target_region,
+                region_srs=global_region_srs,
+                name=recipe_name,
+                batch_name=batch_name,
+                outdir=base_outdir,
+                tile_dir=tile_dir,
+                shared_cache=abs_cache,
+                refresh=refresh,
+            )
 
             tile_dir.mkdir(parents=True, exist_ok=True)
-            os.chdir(tile_dir)
 
             try:
-                # Local Region
-                if target_region:
-                    iteration_config["region"] = target_region.to_list()
-
-                # Initialize & Run Pipeline
-                self.base_dir = tile_dir
-
-                # Expand Hooks and Modules
-                iteration_config["global_hooks"] = self._expand_hooks(
-                    iteration_config.get("global_hooks", [])
-                )
-                iteration_config["modules"] = self._expand_modules(
-                    iteration_config.get("modules", [])
-                )
-
-                for mod in iteration_config["modules"]:
-                    if isinstance(mod, dict):
-                        mod["hooks"] = self._expand_hooks(mod.get("hooks", []))
-
-                # Apply any Modifiers and validate with any Schemas
-                iteration_config_modified = _safe_config_copy(iteration_config)
-                modifiers = self._init_modifiers(iteration_config.pop("modifiers", []))
-                for modifier in modifiers:
-                    iteration_config_modified = modifier.apply(
-                        iteration_config_modified
-                    )
-                iteration_config_modified.pop("modifiers", None)
-                iteration_config = _safe_config_copy(iteration_config_modified)
-
-                # Inject outdir for shared caching
-                for mod in iteration_config.get("modules", []):
-                    if not isinstance(mod, dict):
-                        continue  # A supplied module instance/class owns its own configuration.
-                    if isinstance(mod.get("module"), FetchModule):
-                        continue
-                    if refresh:
-                        mod.setdefault("args", {})["use_cache"] = False
-                    if abs_cache and mod.get("module") not in [
-                        "file",
-                        "local_fs",
-                        "stdin",
-                    ]:
-                        mod.setdefault("args", {})["outdir"] = abs_cache
-                        # for hook in mod.get("hooks", []):
-                        #     if abs_cache or tile_dir:
-                        #         for arg in hook.get("args", {}):
-                        #             if arg in ["cache_dir", "outdir"]:
-                        #                 hook.setdefault("args", {})[arg] = abs_cache or tile_dir
-
-                if batch_name or target_region:
-                    # Inject the %place-holder% context into outputs
-                    iteration_config = self._inject_batch_context(
-                        iteration_config,
-                        name=self.config.get("project", {}).get("name", "fetchez"),
-                        batch_name=batch_name
-                        or (target_region.format("fn") if target_region else ""),
-                        shared_cache=abs_cache or tile_dir,
-                        cache_dir=abs_cache or tile_dir,
-                        outdir=base_outdir,
-                        tile_dir=tile_dir,
-                        region_srs=global_region_srs,
-                    )
-
-                schemas = self._init_schemas(iteration_config.get("schemas", []))
-                errors = []
-                for schema in schemas:
-                    logger.info(f"Validating recipe with {schema.name} schema")
-                    iteration_valid, iteration_errors = schema.run(iteration_config)
-                    if not iteration_valid:
-                        errors.extend(iteration_errors)
-
-                if len(errors) > 0:
-                    logger.warning(
-                        f"The recipe is invalid based on defined schemas: {errors}"
-                    )
-
-                iteration_region = iteration_config.get("region", [])
-
-                # Initialize Hooks and Modules ( to python classes )
+                os.chdir(tile_dir)
                 try:
-                    global_hooks = self._init_hooks(iteration_config["global_hooks"])
-                except Exception as e:
-                    logger.error(f"Could not initialize recipe global hooks: {e}")
-                    if not ignore_failures:
-                        raise
-                    continue
-
-                try:
-                    modules_to_run = self._init_modules(
-                        iteration_config["modules"],
-                        target_region=Region.from_list(iteration_region or []),
-                        global_region_srs=global_region_srs,
-                    )
-                except Exception as e:
-                    logger.error(f"Could not initialize recipe modules: {e}")
-                    if not ignore_failures:
-                        raise
-                    continue
-
-                if not modules_to_run:
-                    continue
-
-                # # Dump the localized recipe for debugging and reproducibility
-                # batch_config_fn = f"{batch_name or recipe_name}_recipe.yaml"
-
-                # batch_dir = Path(batch_config_fn).resolve().parent
-                # if batch_dir:
-                #     batch_dir.mkdir(parents=True, exist_ok=True)
-
-                # with open(batch_config_fn, "w") as f:
-                #     yaml.dump(
-                #         iteration_config,
-                #         f,
-                #         sort_keys=False,
-                #         default_flow_style=False,
-                #     )
-                # logger.debug(f"Saved localized recipe to {batch_config_fn}")
-
-                self.to_markdown(iteration_config, batch_name)
-
-                for mod in modules_to_run:
-                    try:
-                        mod.run()
-                    except Exception as e:
-                        if ignore_failures:
-                            logger.error(f"[{mod.name}] Module execution failed: {e}")
-                            logger.warning(
-                                f"[{mod.name}] 'ignore-failures' is SET. "
-                                "Pipeline will continue, but your final output may be incomplete!"
-                            )
-                        else:
-                            # Default behavior: Fail and abort
-                            logger.critical(
-                                f"[{mod.name}] Fatal error encountered. Aborting pipeline to prevent incomplete data generation. "
-                                "Set 'ignore_failures' if you wish to bypass this."
-                            )
-                            raise
-
-                try:
-                    tracemalloc.start()
-                    run_fetchez(
-                        modules_to_run,
-                        threads=threads,
-                        global_hooks=global_hooks,
+                    plan = self.compile(
+                        context,
                         ignore_failures=ignore_failures,
                     )
-                    current, peak = tracemalloc.get_traced_memory()
-                    logger.info(
-                        f"Pipeline Memory Usage - Current: {current / 10**6:.2f} MB | Peak: {peak / 10**6:.2f} MB"
+                except Exception:
+                    if not ignore_failures:
+                        raise
+
+                    logger.exception(
+                        "Unable to compile batch '%s'; skipping",
+                        batch_name or "run",
                     )
+                    continue
 
-                    tracemalloc.stop()
+                if not plan.modules:
+                    continue
 
-                except Exception as e:
-                    if ignore_failures:
-                        logger.error(f"fetchez execution failed: {e}")
-                        logger.warning(
-                            f"[{mod.name}] 'ignore-failures' is SET. "
-                            "Pipeline will continue, but your final output may be incomplete!"
-                        )
-                    logger.critical(
-                        "Fatal error encountered. Aborting pipeline to prevent incomplete data generation. "
-                        "Set 'ignore_failures' if you wish to bypass this."
-                    )
-                    raise
-
-                # Update State
-                if batch_name:
-                    completed_tiles.append(batch_name)
-                    with open(state_file, "w") as f:
-                        json.dump(completed_tiles, f, indent=2)
-
-                yield (
-                    iteration_config,
-                    target_region,
-                    batch_name
-                    or recipe_name
-                    or (target_region.format("fn") if target_region else ""),
-                    abs_cache or tile_dir,
-                    base_outdir,
-                    tile_dir,
+                self.to_markdown(
+                    plan.config,
+                    batch_name=batch_name,
                 )
+
+                _results = plan.execute()
 
             except Exception as e:
                 logger.exception(f"Batch '{batch_name or 'run'}' failed: {e}")
@@ -934,7 +1050,17 @@ class Recipe:
                 raise
 
             finally:
-                self.base_dir = original_cwd
                 os.chdir(original_cwd)
 
-        logger.debug(f"Batch execution complete for {self.name}")
+            completed_tiles = self._mark_completed(
+                completed_tiles, state_file, batch_name
+            )
+
+            yield (
+                plan.config,
+                target_region,
+                batch_name or recipe_name,
+                abs_cache or tile_dir,
+                base_outdir,
+                tile_dir,
+            )
