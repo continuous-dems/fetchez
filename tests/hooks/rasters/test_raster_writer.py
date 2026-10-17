@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 import rasterio
+from pathlib import Path
 from rasterio.transform import from_origin
 
 from fetchez.hooks.rasters.raster_writer import RasterWrite
@@ -87,7 +88,7 @@ def test_inline_first_chunk_and_chain(components, samples):
     assert len(observed) == 6
     with rasterio.open(dest) as ds:
         np.testing.assert_array_equal(ds.read(), expected + 4)
-    assert item[1]["artifacts"]["raster-write"] == dest
+    assert item[1]["artifacts"]["raster-write"] == Path(dest)
 
 
 def test_multiple_inputs_unique_output(components, samples, tmp_path):

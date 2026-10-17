@@ -74,10 +74,10 @@ class RasterWrite(FetchHook):
                     f"Invalid raster output_path template {template!r}"
                 ) from exc
 
-            return path.resolve()
+            return Path(path).resolve()
 
-        if template.endswith(os.sep) or template.is_dir():
-            return Path(template / f"{stem}{self.suffix}.tif").resolve()
+        if template.endswith(os.sep) or Path(template).is_dir():
+            return Path(Path(template) / f"{stem}{self.suffix}.tif").resolve()
 
         if total > 1:
             raise ValueError(
