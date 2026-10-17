@@ -53,6 +53,13 @@ class FetchHook:
 
         return entry.get("stream") is not None
 
+    def get_stream(self, entry):
+
+        if self.has_stream(entry):
+            return entry.get("stream")
+
+        return None
+
     def get_stream_type(self, entry):
         """Retrieve the stream type."""
 
