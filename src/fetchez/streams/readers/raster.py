@@ -78,8 +78,10 @@ class RasterReader(BaseReader):
         self.src_fn = f"{path_prefix}{path}{path_suffix}"
         if band_mode not in {"single", "stack"}:
             raise ValueError("band_mode must be 'single' or 'stack'")
+
         if not isinstance(buffer, Integral) or isinstance(buffer, bool) or buffer < 0:
             raise ValueError("buffer must be a nonnegative integer")
+
         self.buffer = int(buffer)
         self.chunk_size = self._validate_chunk_size(chunk_size)
         self.bands = tuple(bands) if bands is not None else None
@@ -92,10 +94,13 @@ class RasterReader(BaseReader):
     def _validate_chunk_size(value):
         if value == "full" or value == -1:
             return "full"
+
         if value is None:
             return None
+
         if isinstance(value, Integral) and not isinstance(value, bool) and value > 0:
             return int(value)
+
         if (
             isinstance(value, (tuple, list))
             and len(value) == 2
@@ -113,8 +118,10 @@ class RasterReader(BaseReader):
         """Get source SRS."""
         if self.src_srs:
             return self.src_srs
+
         if getattr(self, "srs", None):
             return self.srs
+
         try:
             with rasterio.Env(CPL_MIN_LOG_LEVEL=rasterio.logging.ERROR):
                 with rasterio.open(self.src_fn) as src:
@@ -128,6 +135,7 @@ class RasterReader(BaseReader):
         if srs:
             if "+" in srs and not srs.startswith("+") and "[" not in srs:
                 srs = srs.split("+")[0]
+
             try:
                 return CRS.from_user_input(srs)
             except CRSError:
@@ -145,6 +153,7 @@ class RasterReader(BaseReader):
         """Yield windows; optionally use a caller-owned open Rasterio dataset."""
         if src is not None:
             yield from self._read_chunks_from_src(src)
+
         else:
             try:
                 with rasterio.Env(CPL_MIN_LOG_LEVEL=rasterio.logging.ERROR):
@@ -161,6 +170,7 @@ class RasterReader(BaseReader):
         region_srs = crop_region.srs or "EPSG:4326"
         if CRS.from_user_input(region_srs) != src_crs:
             crop_region.warp(str(src_crs))
+
         col, row, width, height = crop_region.to_window(
             src.transform,
             width=src.width,
@@ -176,15 +186,19 @@ class RasterReader(BaseReader):
     def _chunk_shape(self, src, selection):
         if self.chunk_size == "full":
             return int(selection.height), int(selection.width)
+
         if isinstance(self.chunk_size, tuple):
             return self.chunk_size
+
         if self.chunk_size is not None:
             return self.chunk_size, self.chunk_size
+
         block_h, block_w = src.block_shapes[0]
         if block_w >= src.width:
             cells_per_strip = block_h * int(selection.width)
             strips = -(-self.STRIP_CHUNK_CELLS // cells_per_strip)
             block_h *= max(1, strips)
+
         return block_h, block_w
 
     def _read_window(self, src, window):
@@ -252,6 +266,7 @@ class RasterReader(BaseReader):
                             src.descriptions[i - 1] for i in bands
                         ),
                     }
+
                     if self.include_mask:
                         chunk["mask"] = src.read_masks(
                             indexes=list(bands), window=read_window
@@ -267,4 +282,5 @@ class RasterReader(BaseReader):
                         }
                         if self.include_mask:
                             chunk["mask"] = src.read_masks(band, window=read_window)
+
                         yield chunk
