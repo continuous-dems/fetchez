@@ -39,7 +39,7 @@ class RasterWrite(FetchHook):
     consumes it immediately and replaces the entry's file reference.
     """
 
-    name = "raster-write"
+    name = "test-raster-write"
     meta_stage = "stream"
     meta_category = "raster"
     meta_desc = "Write raster-stream chunks to GeoTIFF files."

@@ -13,7 +13,7 @@ from fetchez.hooks.rasters import RasterHook
 
 
 class RasterClamp(RasterHook):
-    name = "raster-clamp"
+    name = "test-raster-clamp"
     meta_desc = "Clamp raster values to specified bounds."
 
     def __init__(self, lower=None, upper=None, **kwargs):

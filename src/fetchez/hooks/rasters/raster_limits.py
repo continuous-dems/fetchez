@@ -24,7 +24,7 @@ class RasterLimitsHook(RasterHook):
     Replaces values outside the limits with NoData.
     """
 
-    name = "raster-limits"
+    name = "test-raster-limits"
     meta_stage = "stream"
     meta_category = "raster"
     meta_desc = "Applies limits to a raster stream."
