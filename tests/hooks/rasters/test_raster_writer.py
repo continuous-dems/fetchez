@@ -65,7 +65,7 @@ def test_multiband_buffered_drain(components, samples):
         assert ds.units == ("m", "m", "m")
         assert ds.tags()["dataset"] == "test"
         assert ds.count == 3
-    assert item[1]["artifacts"]["raster-write"] == out
+    assert item[1]["artifacts"]["test-raster-write"] == out
     assert "stream" not in item[1]
 
 
@@ -88,7 +88,7 @@ def test_inline_first_chunk_and_chain(components, samples):
     assert len(observed) == 6
     with rasterio.open(dest) as ds:
         np.testing.assert_array_equal(ds.read(), expected + 4)
-    assert item[1]["artifacts"]["raster-write"] == Path(dest)
+    assert item[1]["artifacts"]["test-raster-write"] == Path(dest)
 
 
 def test_multiple_inputs_unique_output(components, samples, tmp_path):

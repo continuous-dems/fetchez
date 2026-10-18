@@ -6,7 +6,7 @@ In a Fetchez checkout, import RasterHook from fetchez.hooks.raster instead.
 import numpy as np
 import pytest
 
-from fetchez.hooks.rasters.raster_hook import RasterHook
+from fetchez.hooks.rasters.base import RasterHook
 
 
 @pytest.fixture(scope="module")
