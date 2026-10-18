@@ -46,7 +46,7 @@ class RasterWrite(FetchHook):
     meta_accepts = "raster-stream"
     # Drain removes the stream; inline passes through raster-stream.
     meta_produces = "raster-stream"
-    meta_aliases = ["raster-stream-write-raster", "raster_write"]
+    # meta_aliases = ["raster-stream-write-raster", "raster_write"]
 
     def __init__(
         self, output_path=None, suffix="_final", artifact_id=None, drain=False, **kwargs

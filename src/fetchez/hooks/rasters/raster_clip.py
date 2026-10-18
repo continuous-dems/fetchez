@@ -24,7 +24,7 @@ class RasterClipHook(RasterHook):
     name = "test-raster-clip"
     default_suffix = "_clipped"
     meta_desc = "Clip a raster using vector geometries."
-    meta_aliases = ["raster_clip"]
+    # xmeta_aliases = ["raster_clip"]
 
     def __init__(self, invert=False, **kwargs):
         super().__init__(**kwargs)
