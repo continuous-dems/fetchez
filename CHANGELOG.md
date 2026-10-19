@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### ADDED
+- Added Documentation page for the `exec` hook.
 - Added raster hooks, ported from globato; raster-write, raster-clamp, raster-limits.
 - Added raster reader documentation page.
 - Added output utils for atomic file writing and naming.
 
 ### CHANGED
+- Updated `exec` hook to be more functional and record the command output in the entry dict.
 - Updated raster stream reader to inlcude the 'context' of the full raster in each chunk.
 
 ## [0.11.1 - 10-16-26]
