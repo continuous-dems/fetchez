@@ -20,6 +20,21 @@ for chunk in stream:
 
 The `BaseStream` runs its processing pipeline in a background thread and uses a bounded queue to deliver chunks to the caller. Streaming can reduce memory use compared with loading an entire dataset, although individual readers and hooks may have their own buffering requirements.
 
+## Stream Reference
+
+For detailed documentation of individual streams, readers, etc, including configuration,
+examples, and limitations, see the [Stream Reference](streams/index.md).
+
+Not every registered hook has a dedicated documentation page.
+Use the `fetchez streams` CLI commands or the `StreamRegistry` or `ReaderRegistry` to discover
+additional built-in and extension-provided streams and readers.
+
+```{toctree}
+:maxdepth: 2
+
+streams/index
+```
+
 ## Choosing an API
 
 | API | Use it to | Result |
