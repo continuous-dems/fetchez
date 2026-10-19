@@ -34,7 +34,7 @@ class RasterHook(FetchHook):
     """
 
     meta_stage = "stream"
-    meta_category = "raster"
+    meta_category = "raster-stream"
     meta_accepts = "raster-stream"
     meta_produces = "raster-stream"
     meta_desc = "Process raster-stream chunks."
