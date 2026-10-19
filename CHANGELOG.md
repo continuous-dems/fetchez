@@ -15,8 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added conftest.py to tests to reset the fetchez logger for `propagate=True`
 
 ### CHANGED
-- Updated registry to protect existing registry names from external plugins
-- Raise ValueError in yamlregistry when config is non dict.
+- Ensure external aliases don't clobber builtin registry items.
+- Updated registry `_get_class` to protect existing registry names from external plugins
+- Raise `ValueError` in yamlregistry when config is non dict.
 - Updated `exec` hook to be more functional and record the command output in the entry dict.
 - Updated raster stream reader to inlcude the 'context' of the full raster in each chunk.
 - Categorized and re-organized the test suite.
