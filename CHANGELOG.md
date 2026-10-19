@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ADDED
 - Added raster hooks, ported from globato; raster-write, raster-clamp, raster-limits.
 - Added raster reader documentation page.
+- Added output utils for atomic file writing and naming.
 
 ### CHANGED
 - Updated raster stream reader to inlcude the 'context' of the full raster in each chunk.
