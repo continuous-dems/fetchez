@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added raster hooks, ported from globato; raster-write, raster-clamp, raster-limits.
 - Added raster reader documentation page.
 - Added output utils for atomic file writing and naming.
+- Added conftest.py to tests to reset the fetchez logger for `propagate=True`
 
 ### CHANGED
 - Updated `exec` hook to be more functional and record the command output in the entry dict.
 - Updated raster stream reader to inlcude the 'context' of the full raster in each chunk.
+- Categorized and re-organized the test suite.
 
 ## [0.11.1 - 10-16-26]
 ### FIXED
