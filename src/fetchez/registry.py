@@ -277,12 +277,11 @@ class PluginRegistry:
                 #    registry[raw_mod_key] = meta
 
                 for alias in meta["aliases"]:
-                    # registry[alias] = meta
-                    alias_key = alias if is_core else f"{prefix}.{alias}"
-                    registry[alias_key] = meta
-
                     if not is_core and alias not in registry:
                         registry[alias] = meta
+                    else:
+                        alias_key = alias if is_core else f"{prefix}.{alias}"
+                        registry[alias_key] = meta
 
     @classmethod
     def get_info(cls, mod_key: str) -> Dict[str, Any]:
@@ -302,7 +301,6 @@ class PluginRegistry:
 
         if "import_path" in meta:
             mod_path, class_name = meta["import_path"].rsplit(".", 1)
-
             try:
                 # Standard import for pip-installed and built-in modules
                 module = importlib.import_module(mod_path)
@@ -426,13 +424,19 @@ class YamlRegistry:
 
         try:
             config = yaml.safe_load(yaml_content)
-            if not config:
+
+            if not config or config is None:
                 return
 
             config["provider"] = provider
 
             if "name" in config:
                 registry[config["name"]] = config
+
+        # except yaml.parser.ParserError as e:
+        #     raise ValueError(f"PyYAML failed to parse the given YAML: {e}") from e
+        except TypeError:
+            raise
         except Exception as e:
             logger.debug(f"Failed to parse YAML {file_path}: {e}")
 
