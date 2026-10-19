@@ -8,10 +8,6 @@ Fetchez provides generic, windowed raster processing through three complementary
 
 **`RasterPipeline`** composes those components to operate on *files* at the `file` or `collection` stage. It is useful for preprocessing source rasters before a domain-specific reader, and postprocessing completed raster products. An ordinary raster hook does not open files or write them itself.
 
-This page documents the contract implemented by the current raster reader and raster hooks. It is useful both as a user guide and as a reference for contributors writing new hooks.
-
-## Mental model
-
 ```text
 Raster file
     |
@@ -28,7 +24,7 @@ raster-stream: chunk dictionaries + shared RasterContext
     +--> domain-specific stream consumer / adapter
 ```
 
-Each hook receives the **current, already-processed chunk** produced by the previous hook. The stream does **not** reread source pixels between hooks. `RasterContext` holds shared raster-level metadata, not an open Rasterio handle or a second pixel store.
+Each hook receives the **current, already-processed chunk** produced by the previous hook. The stream does **not** reread source pixels between hooks. `RasterContext` holds shared raster-level metadata.
 
 ## Reading rasters
 
@@ -70,7 +66,7 @@ for chunk in reader.yield_chunks():
 | `src_srs=...` | Override the source CRS used by the reader's spatial handling; see implementation for vertical suffix handling. |
 | `path_prefix`, `path_suffix` | Construct the Rasterio input path around `path` (for example GDAL VSI prefixes). |
 
-**Important:** `chunk_size="full"` still reads all selected pixels into NumPy memory; it does not enable deferred access. At present `RasterContext` exposes **metadata only**; deferred reads, write-back, and raw dataset handles are not part of this contract.
+**Important:** `chunk_size="full"` still reads all selected pixels into NumPy memory; it does not enable deferred access. At present `RasterContext` exposes **metadata only**; deferred reads, write-back, and raw dataset handles are not supported.
 
 ## The raster-stream chunk contract
 
@@ -152,7 +148,7 @@ The context is shared, so **do not store per-chunk scratch arrays in `context.me
 
 ## Writing a custom raster hook
 
-Subclass `fetchez.hooks.raster.RasterHook` and implement **only** `process_chunk(chunk, entry)`. The base wraps existing streams lazily, preserves hook ordering, and checks `entry["stream_type"] == "raster-stream"` when a stream is present.
+Subclass `fetchez.hooks.rasters.RasterHook` and implement **only** `process_chunk(chunk, entry)`. The base wraps existing streams lazily, preserves hook ordering, and checks `entry["stream_type"] == "raster-stream"` when a stream is present.
 
 ```python
 import numpy as np
@@ -189,8 +185,6 @@ class RasterClamp(RasterHook):
 
         return {**chunk, "data": data}
 ```
-
-This example illustrates the hook interface rather than supplying a complete production clamp implementation (for example, integer overflow, per-band nodata differences, and range/dtype validation require additional care).
 
 ### Hook authoring rules
 
@@ -362,19 +356,6 @@ The architectural distinction is **composite hook for execution, preset for reus
 7. **Metadata:** the writer preserves dataset tags, band descriptions, and units where provided, but not arbitrary per-band tags. Do not assume all source metadata survives format-changing operations.
 8. **Collision avoidance:** the writer checks duplicate destinations within one call; coordinate output names across separate calls or concurrent pipelines yourself. Its file publication is atomic on the same filesystem, but it is not a cross-process transaction manager.
 9. **Execution-stage semantics:** the composite's **outer** stage determines when it runs; nested hooks run synchronously in the composite's own order. This behavior is distinct from placing those nested hooks directly in the outer `run_fetchez()` hook list.
-
-## Suggested tests for new raster hooks
-
-- Exact output values for one window and multiple windows, including non-divisible image edges.
-- Zero buffer and nonzero buffer (including source-boundary halos).
-- Two chained hooks: the second must see the first's modified pixels.
-- Single and stacked multiband inputs, band descriptions, units, nodata and validity masks.
-- Cropped-region output: transform, shape and source-to-output window offsets.
-- Writer `drain=True` and `drain=False` (including early termination and absence of premature artifact registration).
-- File-stage and collection-stage `RasterPipeline` execution, including non-raster entries and output filenames.
-- Clear errors for incompatible stream types, malformed chunks and invalid output profiles.
-
-For contributors, prefer a tiny synthetic Rasterio fixture with known pixel values and an affine transform over a large external dataset. Add end-to-end recipe tests after the standalone reader/hook/writer behavior is established.
 
 ## Code locations
 

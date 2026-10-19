@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Generic, windowed raster reading for Fetchez.
+"""
+fetchez.streams.readers.raster
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Generic, windowed raster reading for Fetchez.
 
 A raster-stream yields eager NumPy arrays. ``window`` is the non-overlapping
 output window; ``read_window`` is the potentially buffered input window.
@@ -8,6 +12,9 @@ output window; ``read_window`` is the potentially buffered input window.
 
 The same RasterContext instance is attached to every chunk from a dataset.
 It contains metadata, not a live Rasterio handle or a second pixel store.
+
+:copyright: (c) 2016 - 2026 Regents of the University of Colorado
+:license: MIT, see LICENSE for more details.
 """
 
 import logging
