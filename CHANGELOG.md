@@ -6,9 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### ADDED
+- Added raster hooks, ported from globato; raster-write, raster-clamp, raster-limits.
+- Added raster reader documentation page.
+
+### CHANGED
+- Updated raster stream reader to inlcude the 'context' of the full raster in each chunk.
 
 ## [0.11.1 - 10-16-26]
-### Fixed
+### FIXED
 - Fixed recipe-relative path resolution for home-directory paths (`~/...`), ensuring user paths are expanded before resolving against the recipe directory.
 - Improved consistency of local-file source normalization and path resolution across Recipe and streaming workflows.
 
