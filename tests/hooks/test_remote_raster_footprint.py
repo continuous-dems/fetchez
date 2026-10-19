@@ -13,6 +13,9 @@ np = pytest.importorskip("numpy")
 Affine = rasterio.Affine
 
 
+multiprocessing.set_start_method("spawn", force=True)
+
+
 def _serve(payload, ready, requests_pipe):
     """Serve ``payload`` at /example.tif with range reads, in a child process.
 

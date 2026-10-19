@@ -6,7 +6,7 @@ import pytest
 
 from pathlib import Path
 
-MODULES_DIR = Path(__file__).parent / ".." / "src" / "fetchez" / "modules"
+MODULES_DIR = Path(__file__).parent / ".." / ".." / "src" / "fetchez" / "modules"
 
 
 def get_module_files():
