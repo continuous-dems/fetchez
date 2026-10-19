@@ -137,20 +137,33 @@ class PluginRegistry:
         try:
             eps = importlib.metadata.entry_points(group=cls.entry_point_group)
             for ep in eps:
-                plugin_module = ep.load()
-                # Scan the loaded extension for submodules
-                for _, modname, ispkg in pkgutil.walk_packages(
-                    path=plugin_module.__path__,
-                    prefix=plugin_module.__name__ + ".",
-                ):
-                    if not ispkg:
+                try:
+                    plugin_module = ep.load()
+                    # Load single plugin or scan the loaded extension for submodules
+                    if not hasattr(plugin_module, "__path__"):
                         try:
-                            mod = importlib.import_module(modname)
-                            cls._register_from_module(mod)
+                            cls._register_from_module(plugin_module)
                         except Exception as e:
-                            logger.exception(
-                                f"Failed to load external plugin {modname}: {e}"
+                            logger.error(
+                                f"Failed to load external plugin {plugin_module.__name__}: {e}"
                             )
+                    else:
+                        for _, modname, ispkg in pkgutil.walk_packages(
+                            path=plugin_module.__path__,
+                            prefix=plugin_module.__name__ + ".",
+                        ):
+                            if not ispkg:
+                                try:
+                                    mod = importlib.import_module(modname)
+                                    cls._register_from_module(mod)
+                                except Exception as e:
+                                    logger.error(
+                                        f"Failed to load external plugin {modname}: {e}"
+                                    )
+                except Exception:
+                    logger.exception(f"Failed to load entry point: {ep}")
+                    continue
+
         except Exception as e:
             logger.error(
                 f"Error checking entry points for {cls.entry_point_group}: {e}"
@@ -227,16 +240,22 @@ class PluginRegistry:
                     #     f"🧩 Loaded external plugin: '{mod_key}' from {prefix}"
                     # )
 
-                    # Maybe check `cls.builtin_pkg` here too instead of hard-coding the
-                    # `fetchez` namespace, to make this more generic.
-                    if raw_mod_key in registry and registry[raw_mod_key].get(
-                        "import_path", ""
-                    ).startswith("fetchez."):
+                    if raw_mod_key in registry:
                         mod_key = f"{prefix}.{raw_mod_key}"
                         logger.debug(
-                            f"⚠️ Blocked plugin '{prefix}' from hijacking core module '{raw_mod_key}'. "
+                            f"⚠️ Blocked plugin '{prefix}' from clobbering module '{raw_mod_key}'. "
                             f"It has been safely sandboxed as '{mod_key}'."
                         )
+                    # Maybe check `cls.builtin_pkg` here too instead of hard-coding the
+                    # `fetchez` namespace, to make this more generic.
+                    # if raw_mod_key in registry and registry[raw_mod_key].get(
+                    #     "import_path", ""
+                    # ).startswith("fetchez."):
+                    #     mod_key = f"{prefix}.{raw_mod_key}"
+                    #     logger.debug(
+                    #         f"⚠️ Blocked plugin '{prefix}' from hijacking core module '{raw_mod_key}'. "
+                    #         f"It has been safely sandboxed as '{mod_key}'."
+                    #     )
 
                 meta = {
                     "mod": module.__name__,
@@ -277,11 +296,11 @@ class PluginRegistry:
                 #    registry[raw_mod_key] = meta
 
                 for alias in meta["aliases"]:
+                    alias_key = alias if is_core else f"{prefix}.{alias}"
+                    registry[alias_key] = meta
+
                     if not is_core and alias not in registry:
                         registry[alias] = meta
-                    else:
-                        alias_key = alias if is_core else f"{prefix}.{alias}"
-                        registry[alias_key] = meta
 
     @classmethod
     def get_info(cls, mod_key: str) -> Dict[str, Any]:
@@ -424,18 +443,19 @@ class YamlRegistry:
 
         try:
             config = yaml.safe_load(yaml_content)
-
             if not config or config is None:
                 return
+
+            if not isinstance(config, dict):
+                raise ValueError(
+                    f"Invalid YAML definition in {file_path}: expected a mapping."
+                )
 
             config["provider"] = provider
 
             if "name" in config:
                 registry[config["name"]] = config
-
-        # except yaml.parser.ParserError as e:
-        #     raise ValueError(f"PyYAML failed to parse the given YAML: {e}") from e
-        except TypeError:
+        except ValueError:
             raise
         except Exception as e:
             logger.debug(f"Failed to parse YAML {file_path}: {e}")
@@ -1265,193 +1285,3 @@ class DetectorRegistry(PluginRegistry):
             results,
             key=lambda item: (-item[0], item[1], item[2]),
         )[0][3]
-
-
-# =============================================================================
-# Old YAML Registries (recipe & preset)
-# =============================================================================
-class _RecipeRegistry:
-    """A registry for discovering and loading YAML recipes."""
-
-    _registry: Dict[str, Any]
-
-    entry_point_group = "fetchez.recipes"
-    user_folder = "recipes"
-
-    @classmethod
-    def get_registry(cls) -> Dict[str, Any]:
-        """Initialization of the class-level registry dictionary."""
-
-        if not hasattr(cls, "_registry"):
-            cls._registry = {}
-
-        return cls._registry
-
-    # @classmethod
-    # def get_registry(cls) -> Dict[str, Any]:
-    #     return cls._registry
-
-    @classmethod
-    def load_all(cls):
-
-        cls.get_registry()
-        # if cls._registry:
-        #     return
-
-        try:
-            eps = importlib.metadata.entry_points(group=cls.entry_point_group)
-        except TypeError:
-            eps = importlib.metadata.entry_points().get(cls.entry_point_group, [])
-
-        for ep in eps:
-            pkg_name = ep.value
-            try:
-                for file_path in importlib.resources.files(pkg_name).iterdir():
-                    if file_path.name.endswith((".yaml", ".yml")):
-                        cls._register_yaml(
-                            file_path.read_text(encoding="utf-8"), str(file_path)
-                        )
-            except Exception as e:
-                logger.warning(f"Failed to load recipes from package {pkg_name}: {e}")
-
-        home_dir = Path(f"~/.fetchez/{cls.user_folder}").expanduser()
-        if home_dir.exists():
-            for fn in os.listdir(home_dir):
-                if fn.endswith((".yaml", ".yml")):
-                    try:
-                        home_fn = home_dir / fn
-                        with open(home_fn, "r", encoding="utf-8") as f:
-                            cls._register_yaml(f.read(), home_fn)
-                    except Exception as e:
-                        logger.warning(f"Failed to load local recipe {fn}: {e}")
-
-    @classmethod
-    def _register_yaml(cls, yaml_content: str, file_path: str):
-        registry = cls.get_registry()
-
-        try:
-            config = yaml.safe_load(yaml_content)
-            if not config or "project" not in config:
-                return
-
-            # Use the project name from the YAML, fallback to the filename
-            name = config["project"].get(
-                "name", Path(file_path).name.replace(".yaml", "")
-            )
-            desc = config["project"].get("description", "No description available.")
-
-            registry[name] = {
-                "name": name,
-                "desc": desc,
-                "config": config,
-                "path": file_path,
-            }
-        except Exception as e:
-            logger.debug(f"Failed to parse recipe YAML {file_path}: {e}")
-
-    @classmethod
-    def get_recipe(cls, name: str) -> Optional[Dict[str, Any]]:
-        registry = cls.get_registry()
-        return registry.get(name)
-
-
-class _PresetRegistry:
-    """A registry for discovering and loading hook Presets (Macros)."""
-
-    _registry: Dict[str, Any]
-
-    builtin_pkg = "fetchez.presets"
-    entry_point_group = "fetchez.presets"
-    user_folder = "presets"
-
-    @classmethod
-    def get_registry(cls) -> Dict[str, Any]:
-
-        if not hasattr(cls, "_registry"):
-            cls._registry = {}
-        return cls._registry
-
-    @classmethod
-    def load_all(cls):
-        cls.get_registry()
-
-        try:
-            eps = importlib.metadata.entry_points(group=cls.entry_point_group)
-        except TypeError:
-            eps = importlib.metadata.entry_points().get(cls.entry_point_group, [])
-
-        for ep in eps:
-            pkg_name = ep.value
-            try:
-                for file_path in importlib.resources.files(pkg_name).iterdir():
-                    if file_path.name.endswith((".yaml", ".yml")):
-                        cls._register_yaml(
-                            file_path.read_text(encoding="utf-8"), str(file_path)
-                        )
-            except Exception as e:
-                logger.warning(f"Failed to load presets from package {pkg_name}: {e}")
-
-        builtin_module = importlib.import_module(cls.builtin_pkg)
-        builtin_path = builtin_module.__path__
-        home_dir = Path(f"~/.fetchez/{cls.user_folder}").expanduser()
-        builtin_path.append(home_dir)
-        for fdir in builtin_path:
-            if Path(fdir).exists():
-                for fn in os.listdir(fdir):
-                    if fn.endswith((".yaml", ".yml")):
-                        try:
-                            f_fn = Path(fdir) / fn
-                            with open(f_fn, "r", encoding="utf-8") as f:
-                                cls._register_yaml(f.read(), f_fn)
-                        except Exception as e:
-                            logger.warning(f"Failed to load preset {fn}: {e}")
-
-        legacy_file = Path("~/.fetchez/presets.yaml").expanduser()
-        if legacy_file.exists():
-            try:
-                with open(legacy_file, "r", encoding="utf-8") as f:
-                    cls._register_yaml(f.read(), legacy_file, is_legacy=True)
-            except Exception:
-                pass
-
-    @classmethod
-    def _register_yaml(cls, yaml_content: str, file_path: str, is_legacy=False):
-        registry = cls.get_registry()
-
-        try:
-            config = yaml.safe_load(yaml_content)
-            if not config:
-                return
-
-            if is_legacy or "presets" in config:
-                for p_name, p_def in config.get("presets", {}).items():
-                    registry[p_name] = p_def
-            else:
-                if "name" in config and "hooks" in config:
-                    registry[config["name"]] = config
-        except Exception as e:
-            logger.debug(f"Failed to parse preset YAML {file_path}: {e}")
-
-    @classmethod
-    def get_preset(cls, name: str) -> Optional[Dict[str, Any]]:
-        return cls.get_registry().get(name)
-
-    @classmethod
-    def hook_list_from_preset(cls, preset_def):
-        """Convert yaml definition to list of Hook Objects."""
-
-        hooks = []
-        for h_def in preset_def.get("hooks", []):
-            name = h_def.get("name")
-            kwargs = h_def.get("args", {})
-
-            hook_cls = HookRegistry.get_class(name)
-            if hook_cls:
-                try:
-                    hooks.append(hook_cls(**kwargs))
-                except Exception as exception:
-                    logger.error(f"Failed to init preset hook '{name}': {exception}")
-            else:
-                logger.warning(f"Preset hook '{name}' not found.")
-
-        return hooks

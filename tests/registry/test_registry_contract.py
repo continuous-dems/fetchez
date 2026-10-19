@@ -160,7 +160,6 @@ def test_external_alias_keeps_namespaced_identity():
     )
 
     assert DummyRegistry.get_class("example_ext.external-hook") is plugin_cls
-
     assert DummyRegistry.get_class("example_ext.old-hook") is plugin_cls
 
 
