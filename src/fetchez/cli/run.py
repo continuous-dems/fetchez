@@ -59,9 +59,18 @@ Bounding box (W/E/S/N)
     "--refresh", is_flag=True, help="Force fresh API fetch, bypassing local cache."
 )
 @click.option(
+    "--ignore-failures",
+    is_flag=True,
+    default=False,
+    help="Continue processing after recoverable failures. "
+    "Failed entries are reported instead of aborting the pipeline.",
+)
+@click.option(
     "--fail-fast",
     is_flag=True,
-    help="Raise an exception on the first failure, otherwise continue processing through failures.",
+    default=False,
+    hidden=True,
+    help="Deprecated: strict failure handling is now the default.",
 )
 @click.argument("name")
 def run_recipe(
@@ -73,6 +82,7 @@ def run_recipe(
     modifier,
     schema,
     refresh,
+    ignore_failures,
     fail_fast,
 ):
     """Execute a Fetchez recipe.
@@ -114,6 +124,19 @@ def run_recipe(
     Use `fetchez recipes list` to discover registered recipes and
     `fetchez recipes info <name>` to inspect one before running it.
     """
+
+    if fail_fast and ignore_failures:
+        raise click.UsageError(
+            "--fail-fast and --ignore-failures cannot be used together."
+        )
+
+    if fail_fast:
+        click.secho(
+            "Warning: --fail-fast is deprecated; "
+            "strict failure handling is now the default.",
+            fg="yellow",
+            err=True,
+        )
 
     RecipeRegistry.load_all()
 
@@ -170,7 +193,7 @@ def run_recipe(
                 outdir=outdir,
                 shared_cache=shared_cache,
                 refresh=refresh,
-                ignore_failures=not fail_fast,
+                ignore_failures=ignore_failures,
             )
         ]
 

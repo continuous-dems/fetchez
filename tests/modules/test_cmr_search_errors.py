@@ -88,11 +88,19 @@ def test_a_search_that_finds_nothing_is_not_an_error(tmp_path, monkeypatch):
     assert _search(tmp_path).results == []
 
 
-def test_fetchez_get_still_returns_nothing_for_a_failed_search(tmp_path, monkeypatch):
-    """fetchez's own entry points catch it, as before: logged, and no results."""
+def test_fetchez_get_propagates_failed_search_by_default(tmp_path, monkeypatch):
+    """Strict API execution must propagate search errors.
+
+    Historically fetchez.get() caught discovery exceptions and returned
+    [], conflating failed searches with successful empty searches.
+
+    Since ignore_failures now defaults to False throughout Fetchez,
+    discovery failures are propagated unless tolerance is requested.
+    """
+
     _answer(monkeypatch, None)
 
-    assert (
+    with pytest.raises(RuntimeError, match="Query failed"):
         fetchez.get(
             "icesat2",
             outdir=str(tmp_path),
@@ -100,8 +108,26 @@ def test_fetchez_get_still_returns_nothing_for_a_failed_search(tmp_path, monkeyp
             filename_filter="20241107234251_08052501_007",
             version="",
         )
-        == []
-    )
+
+
+def test_fetchez_get_ignores_failed_search_when_requested(
+    tmp_path, monkeypatch, caplog
+):
+    """Tolerant API execution preserves the former empty-result behavior."""
+    _answer(monkeypatch, None)
+
+    with caplog.at_level(logging.WARNING, logger="fetchez.api"):
+        results = fetchez.get(
+            "icesat2",
+            outdir=str(tmp_path),
+            short_name="ATL08",
+            filename_filter="20241107234251_08052501_007",
+            version="",
+            ignore_failures=True,
+        )
+
+    assert results == []
+    assert "Query failed" in caplog.text
 
 
 @pytest.mark.parametrize(
