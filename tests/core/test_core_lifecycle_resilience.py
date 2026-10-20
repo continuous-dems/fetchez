@@ -136,24 +136,6 @@ def test_empty_manifest_returns_empty_collection():
     assert core.run_fetchez([mod], threads=1, ignore_failures=False) == []
 
 
-def test_collection_hook_runs_before_teardown_A():
-    events = []
-
-    class OrderedHook(FakeHook):
-        def run(self, entries):
-            events.append("collection")
-            return super().run(entries)
-
-        def teardown(self):
-            events.append("teardown")
-            super().teardown()
-
-    hook = OrderedHook("collection")
-    mod = FakeModule(results=[entry()], hooks=[hook])
-    core.run_fetchez([mod], threads=1, ignore_failures=False)
-    assert events == ["collection", "teardown"]
-
-
 def test_collection_failure_still_tears_down_only_after_hook_runs():
     events = []
 
@@ -189,14 +171,6 @@ def test_collection_hook_runs_before_teardown():
     core.run_fetchez([mod], threads=1, ignore_failures=False)
 
     assert events == ["run", "teardown"]
-
-
-def test_manifest_failure_still_tears_down_hooks_A():
-    hook = FakeHook("manifest", fail=True)
-    mod = FakeModule(results=[entry()], hooks=[hook])
-    with pytest.raises(RuntimeError):
-        core.run_fetchez([mod], threads=1, ignore_failures=False)
-    assert hook.teardowns == 1
 
 
 def test_manifest_failure_still_tears_down_hooks():
