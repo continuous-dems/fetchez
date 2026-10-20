@@ -1083,6 +1083,36 @@ def _fetch_worker(module, entry, verbose=True):
     #     return -1
 
 
+def _teardown_hooks(hooks, *, ignore_failures=False, seen=None):
+    """Teardown hooks once, preserving the failure policy."""
+    if seen is None:
+        seen = set()
+
+    first_error = None
+
+    for hook in hooks:
+        if id(hook) in seen:
+            continue
+        seen.add(id(hook))
+
+        teardown = getattr(hook, "teardown", None)
+        if not callable(teardown):
+            continue
+
+        try:
+            teardown()
+        except Exception as exc:
+            logger.exception(
+                "Teardown failed for hook '%s'",
+                getattr(hook, "name", type(hook).__name__),
+            )
+            if first_error is None:
+                first_error = exc
+
+    if first_error is not None and not ignore_failures:
+        raise RuntimeError("One or more hooks failed during teardown") from first_error
+
+
 # List[FetchModule]
 def run_fetchez(
     modules: List[Any],
@@ -1101,6 +1131,8 @@ def run_fetchez(
     """
 
     STOP_EVENT.clear()
+    seen = set()
+
     if global_hooks is None:
         global_hooks = []
 
@@ -1114,20 +1146,28 @@ def run_fetchez(
 
         local_entries = [(mod, e) for e in mod.results]
 
-        for hook in mod_pre:
-            try:
-                local_entries = hook.run(local_entries)
-                if local_entries is None:
-                    local_entries = []
+        try:
+            for hook in mod_pre:
+                try:
+                    local_entries = hook.run(local_entries)
+                    if local_entries is None:
+                        local_entries = []
 
-                utils._log_hook_history(local_entries, hook)
-            except Exception as e:
-                err_msg = f'Module "{mod.name}" manifest-hook "{hook.name}" failed: {e}'
-                if not ignore_failures:
-                    logger.critical(f"CRITICAL: {err_msg}")
-                    raise RuntimeError(err_msg) from e
-                logger.error(f"{err_msg} (Skipping due to ignore_failures=True)")
-
+                    utils._log_hook_history(local_entries, hook)
+                except Exception as e:
+                    err_msg = (
+                        f'Module "{mod.name}" manifest-hook "{hook.name}" failed: {e}'
+                    )
+                    if not ignore_failures:
+                        logger.critical(f"CRITICAL: {err_msg}")
+                        raise RuntimeError(err_msg) from e
+                    logger.error(f"{err_msg} (Skipping due to ignore_failures=True)")
+        finally:
+            _teardown_hooks(
+                [*mod_pre],
+                ignore_failures=ignore_failures,
+                seen=seen,
+            )
         # Update the mod.results
         mod.results = [e for m, e in local_entries]
 
@@ -1149,19 +1189,26 @@ def run_fetchez(
 
     # --- Global Pre-Hooks ---
     global_pre = [h for h in global_hooks if h.stage == "manifest"]
-    for hook in global_pre:
-        try:
-            result = hook.run(all_entries)
-            if isinstance(result, list):
-                all_entries = result
+    try:
+        for hook in global_pre:
+            try:
+                result = hook.run(all_entries)
+                if isinstance(result, list):
+                    all_entries = result
 
-            utils._log_hook_history(all_entries, hook)
-        except Exception as e:
-            err_msg = f'Global manifest-hook "{hook.name}" failed: {e}'
-            if not ignore_failures:
-                logger.critical(f"CRITICAL: {err_msg}")
-                raise RuntimeError(err_msg) from e
-            logger.error(f"{err_msg} (Skipping due to ignore_failures=True)")
+                utils._log_hook_history(all_entries, hook)
+            except Exception as e:
+                err_msg = f'Global manifest-hook "{hook.name}" failed: {e}'
+                if not ignore_failures:
+                    logger.critical(f"CRITICAL: {err_msg}")
+                    raise RuntimeError(err_msg) from e
+                logger.error(f"{err_msg} (Skipping due to ignore_failures=True)")
+    finally:
+        _teardown_hooks(
+            [*global_pre],
+            ignore_failures=ignore_failures,
+            seen=seen,
+        )
 
     total_files = len(all_entries)
     if total_files == 0:
@@ -1173,6 +1220,16 @@ def run_fetchez(
     )
     final_results_with_owner = []
     runtime_hooks = []
+    all_hooks = [
+        *global_hooks,
+        *(hook for module in modules for hook in module.hooks),
+    ]
+
+    pre_collection_hooks = [
+        hook
+        for hook in all_hooks
+        if hook.stage != "collection" and hook.stage != "manifest"
+    ]
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         try:
@@ -1362,31 +1419,14 @@ def run_fetchez(
             raise
 
         finally:
-            # --- Teardown The Hook(s) ---
-            logger.debug("Running teardown for all hooks...")
+            _teardown_hooks(
+                [*runtime_hooks, *pre_collection_hooks],
+                ignore_failures=ignore_failures,
+                seen=seen,
+            )
 
-            all_hooks = [*runtime_hooks, *global_hooks]
-
-            for module in modules:
-                all_hooks.extend(module.hooks)
-
-            seen = set()
-
-            for hook in all_hooks:
-                hook_id = id(hook)
-                if hook_id in seen:
-                    continue
-
-                seen.add(hook_id)
-
-                if hasattr(hook, "teardown"):
-                    try:
-                        hook.teardown()
-                    except Exception as e:
-                        logger.error(f"Teardown failed for hook '{hook.name}': {e}")
-
-    # --- Post Hooks ---
-    # Module-level Post-Hooks
+    # --- Collection Hooks (post) ---
+    # Module-level Collection-Hooks (post)
     results_by_mod: Dict[Any, Any] = {m: [] for m in modules}
     for r_tuple in final_results_with_owner:
         owner_mod, entry = r_tuple
@@ -1397,20 +1437,25 @@ def run_fetchez(
         mod_post = [h for h in mod.hooks if h.stage == "collection"]
         if mod_post and results_by_mod[mod]:
             current_mod_entries = results_by_mod[mod]
-            for hook in mod_post:
-                try:
-                    current_mod_entries = hook.run(current_mod_entries)
-                    if current_mod_entries is None:
-                        current_mod_entries = []
-                    utils._log_hook_history(current_mod_entries, hook)
-                except Exception as e:
-                    err_msg = (
-                        f'Module "{mod.name}" collection-hook "{hook.name}" failed: {e}'
-                    )
-                    if not ignore_failures:
-                        logger.critical(f"CRITICAL: {err_msg}")
-                        raise RuntimeError(err_msg) from e
-                    logger.error(f"{err_msg} (Skipping...)")
+            try:
+                for hook in mod_post:
+                    try:
+                        current_mod_entries = hook.run(current_mod_entries)
+                        if current_mod_entries is None:
+                            current_mod_entries = []
+                        utils._log_hook_history(current_mod_entries, hook)
+                    except Exception as e:
+                        err_msg = f'Module "{mod.name}" collection-hook "{hook.name}" failed: {e}'
+                        if not ignore_failures:
+                            logger.critical(f"CRITICAL: {err_msg}")
+                            raise RuntimeError(err_msg) from e
+                        logger.error(f"{err_msg} (Skipping...)")
+            finally:
+                _teardown_hooks(
+                    [*mod_post],
+                    ignore_failures=ignore_failures,
+                    seen=seen,
+                )
 
             results_by_mod[mod] = current_mod_entries
 
@@ -1421,18 +1466,24 @@ def run_fetchez(
 
     # Global-level Post-Hooks
     global_post = [h for h in global_hooks if h.stage == "collection"]
-    for hook in global_post:
-        try:
-            flat_results = hook.run(flat_results)
-            if flat_results is None:
-                flat_results = []
-            utils._log_hook_history(flat_results, hook)
-        except Exception as e:
-            err_msg = f'Global collection-hook "{hook.name}" failed: {e}'
-            flat_results = []
-            if not ignore_failures:
-                logger.critical(f"CRITICAL: {err_msg}")
-                raise RuntimeError(err_msg) from e
-            logger.error(f"{err_msg} (Skipping...)")
+    try:
+        for hook in global_post:
+            try:
+                flat_results = hook.run(flat_results)
+                if flat_results is None:
+                    flat_results = []
+                utils._log_hook_history(flat_results, hook)
+            except Exception as e:
+                err_msg = f'Global collection-hook "{hook.name}" failed: {e}'
+                if not ignore_failures:
+                    logger.critical(f"CRITICAL: {err_msg}")
+                    raise RuntimeError(err_msg) from e
+                logger.error(f"{err_msg} (Skipping...)")
+    finally:
+        _teardown_hooks(
+            [*global_post],
+            ignore_failures=ignore_failures,
+            seen=seen,
+        )
 
     return flat_results

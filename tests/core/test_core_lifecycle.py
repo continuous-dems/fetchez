@@ -130,17 +130,15 @@ def test_run_fetchez_hook_lifecycle_order():
 
     assert events == [
         "manifest",
+        "manifest:teardown",
         "fetch",
         "file",
         "stream-producer",
         "stream:consume",
-        # Current run_fetchez semantics:
-        # teardown occurs when the executor exits, before collection hooks.
-        "manifest:teardown",
         "file:teardown",
         "stream-producer:teardown",
-        "collection:teardown",
         "collection",
+        "collection:teardown",
     ]
 
 
@@ -203,15 +201,11 @@ def test_module_collection_runs_before_global_collection():
     assert events.index("module-collection") < events.index("global-collection")
 
 
-def test_stream_is_exhausted_before_collection():
+def test_stream_is_finalized_before_collection():
     events = []
 
     stream_hook = StreamProducerHook(events)
-    collection = RecordingHook(
-        "collection",
-        "collection",
-        events,
-    )
+    collection = RecordingHook("collection", "collection", events)
 
     module = DummyModule(
         events,
@@ -225,7 +219,34 @@ def test_stream_is_exhausted_before_collection():
     )
 
     assert events.index("stream-producer") < events.index("stream:consume")
-    assert events.index("stream:consume") < events.index("collection")
+    assert events.index("stream:consume") < events.index("stream-producer:teardown")
+    assert events.index("stream-producer:teardown") < events.index("collection")
+    assert events.index("collection") < events.index("collection:teardown")
+
+
+# def test_stream_is_exhausted_before_collection():
+#     events = []
+
+#     stream_hook = StreamProducerHook(events)
+#     collection = RecordingHook(
+#         "collection",
+#         "collection",
+#         events,
+#     )
+
+#     module = DummyModule(
+#         events,
+#         hooks=[stream_hook, collection],
+#     )
+
+#     run_fetchez(
+#         [module],
+#         threads=1,
+#         ignore_failures=False,
+#     )
+
+#     assert events.index("stream-producer") < events.index("stream:consume")
+#     assert events.index("stream:consume") < events.index("collection")
 
 
 def test_stream_init_is_auto_injected_before_other_stream_hooks(monkeypatch):
