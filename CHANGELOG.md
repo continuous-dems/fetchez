@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Categorized and re-organized the test suite.
 
 ### FIXED
+- `run_fetchez` now returns [] on empty results, instead of None.
+- Raise on malformed dict in `run_fetchez` when `ignore_failures` is False
+- Fix api.get to raise on errors instead of logging when `ignore_failures` is False.
 - Modidier init in recipe now uses the constructor_kwargs
 - Schema failure in recipe compile now correctly honors the ignore_failures flag and raises when False
 

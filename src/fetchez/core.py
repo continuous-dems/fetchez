@@ -1166,7 +1166,7 @@ def run_fetchez(
     total_files = len(all_entries)
     if total_files == 0:
         logger.debug("No files to fetch.")
-        return
+        return []
 
     logger.debug(
         f"Starting parallel fetch: {total_files} files with {threads} threads."
@@ -1429,6 +1429,7 @@ def run_fetchez(
             utils._log_hook_history(flat_results, hook)
         except Exception as e:
             err_msg = f'Global collection-hook "{hook.name}" failed: {e}'
+            flat_results = []
             if not ignore_failures:
                 logger.critical(f"CRITICAL: {err_msg}")
                 raise RuntimeError(err_msg) from e
