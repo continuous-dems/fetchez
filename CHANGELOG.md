@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Categorized and re-organized the test suite.
 
 ### FIXED
-- Modidier init in recipe now uses the constructor_kwargsx
+- Modidier init in recipe now uses the constructor_kwargs
 - Schema failure in recipe compile now correctly honors the ignore_failures flag and raises when False
 
 ## [0.11.1 - 10-16-26]
