@@ -689,6 +689,9 @@ class Fetch:
                         stream=True,  # Always stream to support large files
                     )
 
+                    if req is None:
+                        raise ConnectionError
+
                     if req.status_code == 416:
                         req.close()
 
@@ -706,6 +709,9 @@ class Fetch:
                             f"HTTP 416 from {self.url} without a Range header"
                         )
                     break
+
+                if req is None:
+                    raise ConnectionError
 
                 # Check status codes
                 if req.status_code == 504:  # Gateway Timeout
@@ -1244,7 +1250,7 @@ def run_fetchez(
     for module in modules:
         module._execution_context = context
 
-    seen = set()
+    seen: set[Any] = set()
 
     if global_hooks is None:
         global_hooks = []
