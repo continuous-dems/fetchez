@@ -21,6 +21,7 @@ import logging
 import tracemalloc
 from pathlib import Path
 from dataclasses import dataclass
+from itertools import groupby
 
 from .core import run_fetchez
 from .spatial import yield_parsed_regions, Region
@@ -173,14 +174,18 @@ class RecipeContext:
 
 
 def _parse_version(v_str):
-    """Dependency-free semantic version parser.
-    Converts '2.1.0-beta' into (2, 1, 0).
+    """Version parser.
+
+    Converts '2.1.0-beta' into (2, 1, 0), or
+    '1.2.3rc4'int (1, 2, 3, 4).
     """
 
-    parts = []
-    for p in v_str.split("."):
-        num = "".join(filter(str.isdigit, p))
-        parts.append(int(num) if num else 0)
+    parts = [
+        int("".join(group))
+        for is_digit, group in groupby(v_str, str.isdigit)
+        if is_digit
+    ]
+
     return tuple(parts)
 
 
@@ -799,15 +804,10 @@ class Recipe:
 
             ModifierCls = ModifierRegistry.get_class(name)
             if ModifierCls:
-                sig = inspect.signature(ModifierCls.__init__)
-
-                valid_kwargs = {
-                    k: v
-                    for k, v in kwargs.items()
-                    if k in sig.parameters or "kwargs" in str(sig.parameters)
-                }
-
-                active_modifiers.append(ModifierCls(**valid_kwargs))
+                # sig = inspect.signature(ModifierCls.__init__)
+                active_modifiers.append(
+                    ModifierCls(**_constructor_kwargs(ModifierCls, kwargs))
+                )
             else:
                 logger.warning(f"Modifier '{name}' missing.")
 
@@ -910,8 +910,7 @@ class Recipe:
             if not iteration_valid:
                 errors.extend(iteration_errors)
 
-        if len(errors) > 0:
-            logger.warning(f"The recipe is invalid based on defined schemas: {errors}")
+        return errors
 
     def _apply_execution_options(self, config, context):
         for mod in config.get("modules", []):
@@ -1011,7 +1010,13 @@ class Recipe:
         )
 
         # Validate the prepared definition.
-        self._validate_config(config)
+        errors = self._validate_config(config)
+        if len(errors) > 0:
+            err_msg = f"The recipe is invalid based on defined schemas: {errors}"
+            if ignore_failures:
+                logger.warning(err_msg)
+            else:
+                raise ValueError(err_msg)
 
         # Instantiate components.
         global_hooks = self._init_hooks(
