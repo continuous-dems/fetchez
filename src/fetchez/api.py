@@ -283,7 +283,12 @@ def get(
 
     ModCls = ModuleRegistry.get_class(module)
     if not ModCls:
-        raise ValueError(f"Unknown module: {module}")
+        err_msg = f"Unknown module: {module}"
+        if ignore_failures:
+            logger.error(err_msg)
+            return []
+        else:
+            raise ValueError(err_msg)
 
     src_region = None
     if region:
@@ -315,22 +320,34 @@ def get(
             if HookCls:
                 active_hooks.append(HookCls(**hook_config.get("args", {})))
             else:
-                logger.warning(f"Hook {hook_config.get('name')} not found. Skipping.")
+                err_msg = f"Hook {hook_config.get('name')} not found."
+                if ignore_failures:
+                    logger.warning(err_msg)
+                else:
+                    raise RuntimeError(err_msg)
 
     try:
         mod_instance = ModCls(
             src_region=src_region, hook=active_hooks, outdir=outdir, **kwargs
         )
     except Exception as e:
-        logger.error(f"Failed to initialize {module}: {e}")
-        return []
+        err_msg = f"Failed to initialize {module}: {e}"
+        if ignore_failures:
+            logger.error(err_msg)
+            return []
+        else:
+            raise RuntimeError(err_msg) from e
 
     logger.debug(f"Querying {module}...")
     try:
         mod_instance.run()
     except Exception as e:
-        logger.exception(f"Query failed on {mod_instance}: {e}")
-        return []
+        err_msg = f"Query failed on {mod_instance}: {e}"
+        if ignore_failures:
+            logger.warning(err_msg)
+            return []
+        else:
+            raise RuntimeError(err_msg) from e
 
     if not mod_instance.results:
         logger.debug(f"No results found for {module} with given parameters.")
