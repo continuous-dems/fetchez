@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### ADDED
+- Added core tests
 - Added recipe tests
 - Added registry tests
 - Added Documentation page for the `exec` hook.
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added conftest.py to tests to reset the fetchez logger for `propagate=True`
 
 ### CHANGED
+- Pipeline execution now defaults to strict failure handling. Processing errors abort execution unless `--ignore-failures` is explicitly specified. The former `--fail-fast` option is deprecated but remains accepted for compatibility.
 - Ensure external aliases don't clobber builtin registry items.
 - Updated registry `_get_class` to protect existing registry names from external plugins
 - Raise `ValueError` in yamlregistry when config is non dict.
@@ -24,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Categorized and re-organized the test suite.
 
 ### FIXED
+- `run_fetchez` lifecycle is fixed to perform teardowns at the right stage.
 - `run_fetchez` now returns [] on empty results, instead of None.
 - Raise on malformed dict in `run_fetchez` when `ignore_failures` is False
 - Fix api.get to raise on errors instead of logging when `ignore_failures` is False.
