@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### ADDED
-- Added core tests
+- Added execution-scoped cancellation contexts for independent and concurrent Fetchez workflows.
+- Added FetchModule.make_fetch() to create cancellation-aware fetchers from module implementations.
+- Added --ignore-failures to recipe and pipeline CLI commands to explicitly enable tolerant execution.
+- Expanded core and API regression tests covering failure propagation, hook lifecycle management, stream processing, and execution-context cleanup.
 - Added recipe tests
 - Added registry tests
 - Added Documentation page for the `exec` hook.
@@ -17,10 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added conftest.py to tests to reset the fetchez logger for `propagate=True`
 
 ### CHANGED
-- Replace STOP_EVENT with context.cancel in core/module base.
-- Pipeline execution now defaults to strict failure handling. Processing errors abort execution unless `--ignore-failures` is explicitly specified. The former `--fail-fast` option is deprecated but remains accepted for compatibility.
+- Breaking change: Pipeline execution now defaults to strict failure handling across the core, API, and CLI. Use ignore_failures=True or --ignore-failures to continue processing after recoverable errors.
+- fetchez.get() now propagates module initialization and discovery failures by default instead of returning an empty result. Explicit tolerant mode preserves the previous behavior.
+- Deprecated the CLI --fail-fast option, retaining it temporarily for backward compatibility.
+- Replaced the global STOP_EVENT with per-execution cancellation contexts to prevent unrelated pipelines from interfering with one another.
+- Updated HTTP Range recovery to retry HTTP 416 responses without the invalid range while preserving the original request headers.
 - Ensure external aliases don't clobber builtin registry items.
-- `fetchez.get` now propagates module initialization and discovery failures by default, rather than returning an empty result. Set `ignore_failures=True` to retain the previous tolerant behavior.
 - Updated registry `_get_class` to protect existing registry names from external plugins
 - Raise `ValueError` in yamlregistry when config is non dict.
 - Updated `exec` hook to be more functional and record the command output in the entry dict.
@@ -28,7 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Categorized and re-organized the test suite.
 
 ### FIXED
-- `run_fetchez` lifecycle is fixed to perform teardowns at the right stage.
+- Corrected hook lifecycle ordering and cleanup across manifest, file, stream, and collection stages, including failure paths and shared hooks.
+- Ensured active download workers complete or stop before file/stream hook teardown, and processing streams are exhausted before finalization.
+- Fixed inconsistent error handling for malformed manifest entries, missing hooks, and empty pipeline results.
+- Improved HTTP/FTP transfer error reporting, resource cleanup, cancellation handling, and FTP overwrite protection.
+- Fixed local file source/destination comparison and prevented XML retrieval failures from silently producing empty documents.
 - `run_fetchez` now returns [] on empty results, instead of None.
 - Raise on malformed dict in `run_fetchez` when `ignore_failures` is False
 - Fix api.get to raise on errors instead of logging when `ignore_failures` is False.
