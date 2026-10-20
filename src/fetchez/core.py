@@ -1118,7 +1118,7 @@ def run_fetchez(
     modules: List[Any],
     threads: int = 3,
     global_hooks: Optional[List[Any]] = None,
-    ignore_failures: bool = True,
+    ignore_failures: bool = False,
 ):
     """Run Fetchez in parallel with hooks.
 

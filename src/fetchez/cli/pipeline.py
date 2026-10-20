@@ -401,9 +401,18 @@ Bounding box (W/E/S/N)
     "--refresh", is_flag=True, help="Force fresh API fetch, bypassing local cache."
 )
 @click.option(
+    "--ignore-failures",
+    is_flag=True,
+    default=False,
+    help="Continue processing after recoverable failures. "
+    "Failed entries are reported instead of aborting the pipeline.",
+)
+@click.option(
     "--fail-fast",
     is_flag=True,
-    help="Raise an exception on the first failure, otherwise continue processing through failures.",
+    default=False,
+    hidden=True,
+    help="Deprecated: strict failure handling is now the default.",
 )
 @click.pass_context
 # """Initializes the context before the chained subcommands run."""
@@ -418,6 +427,7 @@ def pipeline_group(
     threads,
     shared_cache,
     refresh,
+    ignore_failures,
     fail_fast,
 ):
     """Build and optionally execute an ad-hoc Fetchez pipeline.
@@ -465,9 +475,23 @@ def process_pipeline(
     threads,
     shared_cache,
     refresh,
+    ignore_failures,
     fail_fast,
 ):
     """Executes after all chained commands have returned their dictionaries."""
+
+    if fail_fast and ignore_failures:
+        raise click.UsageError(
+            "--fail-fast and --ignore-failures cannot be used together."
+        )
+
+    if fail_fast:
+        click.secho(
+            "Warning: --fail-fast is deprecated; "
+            "strict failure handling is now the default.",
+            fg="yellow",
+            err=True,
+        )
 
     HookRegistry.load_all()
     PresetRegistry.load_all()
@@ -480,7 +504,7 @@ def process_pipeline(
         if parsed_h.get("name") in PresetRegistry.get_registry().keys():
             parsed_h["preset"] = parsed_h.pop("name")
         elif parsed_h.get("name") not in HookRegistry.get_registry().keys():
-            if not fail_fast:
+            if ignore_failures:
                 click.secho(
                     f"Warning: Hook or Preset '{h}' not found in registry!",
                     fg="yellow",
@@ -519,6 +543,6 @@ def process_pipeline(
             for r in Recipe.from_dict(config).run(
                 shared_cache=shared_cache,
                 refresh=refresh,
-                ignore_failures=not fail_fast,
+                ignore_failures=ignore_failures,
             )
         ]
