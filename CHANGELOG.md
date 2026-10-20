@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### ADDED
+- Added recipe tests
 - Added registry tests
 - Added Documentation page for the `exec` hook.
 - Added raster hooks, ported from globato; raster-write, raster-clamp, raster-limits.
@@ -21,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `exec` hook to be more functional and record the command output in the entry dict.
 - Updated raster stream reader to inlcude the 'context' of the full raster in each chunk.
 - Categorized and re-organized the test suite.
+
+### FIXED
+- Modidier init in recipe now uses the constructor_kwargsx
+- Schema failure in recipe compile now correctly honors the ignore_failures flag and raises when False
 
 ## [0.11.1 - 10-16-26]
 ### FIXED
