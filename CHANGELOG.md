@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### CHANGED
 - Pipeline execution now defaults to strict failure handling. Processing errors abort execution unless `--ignore-failures` is explicitly specified. The former `--fail-fast` option is deprecated but remains accepted for compatibility.
 - Ensure external aliases don't clobber builtin registry items.
+- `fetchez.get` now propagates module initialization and discovery failures by default, rather than returning an empty result. Set `ignore_failures=True` to retain the previous tolerant behavior.
 - Updated registry `_get_class` to protect existing registry names from external plugins
 - Raise `ValueError` in yamlregistry when config is non dict.
 - Updated `exec` hook to be more functional and record the command output in the entry dict.

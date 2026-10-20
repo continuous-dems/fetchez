@@ -89,7 +89,15 @@ def test_a_search_that_finds_nothing_is_not_an_error(tmp_path, monkeypatch):
 
 
 def test_fetchez_get_propagates_failed_search_by_default(tmp_path, monkeypatch):
-    """API search failures must not be mistaken for empty results."""
+    """Strict API execution must propagate search errors.
+
+    Historically fetchez.get() caught discovery exceptions and returned
+    [], conflating failed searches with successful empty searches.
+
+    Since ignore_failures now defaults to False throughout Fetchez,
+    discovery failures are propagated unless tolerance is requested.
+    """
+
     _answer(monkeypatch, None)
 
     with pytest.raises(RuntimeError, match="Query failed"):
