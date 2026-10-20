@@ -62,6 +62,7 @@ class FetchModule:
     ):
         self.region = src_region.copy() if src_region else None
         self.wgs_region = None
+        self._execution_context = None
 
         if self.region is not None and self.region.valid_p():
             # Generate the WGS region for fetching
@@ -547,37 +548,41 @@ class FetchModule:
 
         return self
 
-    def fetch_entry(self, entry, check_size=True, retries=5, verbose=True):
-        """Standardized method for fetching a single result entry."""
+    def make_fetch(self, url, **kwargs):
+        context = self._execution_context
+        return Fetch(
+            url,
+            cancel_event=context.cancel_event if context else None,
+            **kwargs,
+        )
 
+    def fetch_entry(self, entry, check_size=True, retries=5, verbose=True):
         try:
             parsed_url = urllib.parse.urlparse(entry["url"])
-            module_auth = getattr(self, "auth", None)
+
+            fetch = self.make_fetch(
+                entry["url"],
+                headers=self.headers,
+                auth=getattr(self, "auth", None),
+            )
+
             if parsed_url.scheme == "ftp":
-                status = Fetch(
-                    url=entry["url"],
-                    headers=self.headers,
-                    auth=module_auth,
-                ).fetch_ftp_file(entry["dst_fn"])
+                status = fetch.fetch_ftp_file(entry["dst_fn"])
             else:
-                status = Fetch(
-                    url=entry["url"],
-                    headers=self.headers,
-                    auth=module_auth,
-                ).fetch_file(
+                status = fetch.fetch_file(
                     entry["dst_fn"],
                     check_size=check_size,
                     tries=retries,
                     verbose=verbose,
                 )
+
             entry["status"] = status
 
-        except Exception as e:
-            logger.error(f"Fetch failed for {entry['url']}: {e}")
-            status = -1
-            entry["status"] = status
+        except Exception as exc:
+            logger.error("Fetch failed for %s: %s", entry["url"], exc)
+            entry["status"] = -1
 
-        return status
+        return entry["status"]
 
     def add_entry_to_results(self, url: str, dst_fn: str, data_type: Any, **kwargs):
         """Add fetch entries to `results`.
