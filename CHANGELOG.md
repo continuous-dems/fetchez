@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added conftest.py to tests to reset the fetchez logger for `propagate=True`
 
 ### CHANGED
+- Replace STOP_EVENT with context.cancel in core/module base.
 - Pipeline execution now defaults to strict failure handling. Processing errors abort execution unless `--ignore-failures` is explicitly specified. The former `--fail-fast` option is deprecated but remains accepted for compatibility.
 - Ensure external aliases don't clobber builtin registry items.
 - `fetchez.get` now propagates module initialization and discovery failures by default, rather than returning an empty result. Set `ignore_failures=True` to retain the previous tolerant behavior.
