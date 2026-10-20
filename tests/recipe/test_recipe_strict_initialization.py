@@ -31,7 +31,7 @@ def test_recipe_init_error_honors_ignore_failures(
     monkeypatch.setattr(recipe, "_expand_hooks", lambda values, **kwargs: values)
     monkeypatch.setattr(recipe, "_expand_modules", lambda values, **kwargs: values)
     monkeypatch.setattr(recipe, "_init_modifiers", lambda values, **kwargs: [])
-    monkeypatch.setattr(recipe, "_validate_config", lambda config: None)
+    monkeypatch.setattr(recipe, "_validate_config", lambda config: {})
 
     def failed(*args, **kwargs):
         raise RuntimeError(f"injected {failed_stage} initialization failure")
