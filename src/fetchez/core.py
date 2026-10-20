@@ -1131,20 +1131,19 @@ def run_fetchez(
         # Update the mod.results
         mod.results = [e for m, e in local_entries]
 
-    # all_entries = []
-    # for mod in modules:
-    #     for entry in mod.results:
-    #         all_entries.append((mod, entry))
-
     all_entries = []
     for mod in modules:
         for entry in mod.results:
             if not isinstance(entry, dict):
-                logger.warning(
+                err_msg = (
                     f"Skipping malformed entry in module '{mod.name}': "
                     f"Expected dict, got {type(entry).__name__} -> {entry}"
                 )
-                continue
+                if ignore_failures:
+                    logger.warning(err_msg)
+                    continue
+                else:
+                    raise ValueError(err_msg)
 
             all_entries.append((mod, entry))
 
