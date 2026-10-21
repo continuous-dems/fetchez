@@ -733,7 +733,7 @@ def region_from_place(query: str, centered: bool = True) -> Optional[Region]:
     return None
 
 
-def parse_region(input_r: Union[str, List]) -> List[Region]:
+def parse_region(input_r: Union[str, List, None]) -> List[Region]:
     """Main function to parse region input into a list of Region objects."""
 
     def _parse_crs(r_string: str) -> tuple[str, str | None]:

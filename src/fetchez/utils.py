@@ -24,7 +24,7 @@ import re
 import inspect
 import click
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, overload
 import filelock
 
 from contextlib import contextmanager
@@ -249,6 +249,12 @@ def float_or(val: Any, or_val: Optional[float] = None) -> Optional[float]:
         return or_val
 
 
+@overload
+def str_or(instr: Any, or_val: str, replace_quote: bool = True) -> str: ...
+@overload
+def str_or(
+    instr: Any, or_val: None = None, replace_quote: bool = True
+) -> Optional[str]: ...
 def str_or(
     instr: Any, or_val: Optional[str] = None, replace_quote: bool = True
 ) -> Optional[str]:

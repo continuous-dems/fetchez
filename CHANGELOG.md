@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### ADDED
+- Added a `py.typed` marker, so type checkers read fetchez's type annotations in code that uses it.
 - Added execution-scoped cancellation contexts for independent and concurrent Fetchez workflows.
 - Added FetchModule.make_fetch() to create cancellation-aware fetchers from module implementations.
 - Added --ignore-failures to recipe and pipeline CLI commands to explicitly enable tolerant execution.
