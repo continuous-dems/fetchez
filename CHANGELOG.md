@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### ADDED
+- Added standardized contribution identity support through the contribution_id entry field, allowing hooks to distinguish processed variants of the same dataset.
+- Added `set_contribution_id()` and support for consumer-specific keyword arguments in `dataset_id()` to generate deterministic contribution identifiers.
+- Added a Pipeline Entries user guide documenting entry structure, lifecycle, validation, streams, artifacts, and identity management.
 - Added a `py.typed` marker, so type checkers read fetchez's type annotations in code that uses it.
 - Added execution-scoped cancellation contexts for independent and concurrent Fetchez workflows.
 - Added FetchModule.make_fetch() to create cancellation-aware fetchers from module implementations.
@@ -21,7 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added conftest.py to tests to reset the fetchez logger for `propagate=True`
 
 ### CHANGED
-- Breaking change: Pipeline execution now defaults to strict failure handling across the core, API, and CLI. Use ignore_failures=True or --ignore-failures to continue processing after recoverable errors.
+- Extended the Fetchez entry vocabulary to formalize contribution identity while preserving the existing dictionary-based entry interface.
+- Improved dataset identity handling to support multiple independent processing contributions without requiring consumer-specific identifier logic.
+- **Breaking change**: Pipeline execution now defaults to strict failure handling across the core, API, and CLI. Use ignore_failures=True or --ignore-failures to continue processing after recoverable errors.
 - fetchez.get() now propagates module initialization and discovery failures by default instead of returning an empty result. Explicit tolerant mode preserves the previous behavior.
 - Deprecated the CLI --fail-fast option, retaining it temporarily for backward compatibility.
 - Replaced the global STOP_EVENT with per-execution cancellation contexts to prevent unrelated pipelines from interfering with one another.
@@ -34,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Categorized and re-organized the test suite.
 
 ### FIXED
+- Prevented unsupported contribution identity values from silently producing ambiguous identifiers.
 - Corrected hook lifecycle ordering and cleanup across manifest, file, stream, and collection stages, including failure paths and shared hooks.
 - Ensured active download workers complete or stop before file/stream hook teardown, and processing streams are exhausted before finalization.
 - Fixed inconsistent error handling for malformed manifest entries, missing hooks, and empty pipeline results.
