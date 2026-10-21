@@ -11,6 +11,7 @@ modules_and_bundles
 hooks_and_presets
 streams
 recipes
+entry
 plugins_and_extensions
 data_persistence
 ```
