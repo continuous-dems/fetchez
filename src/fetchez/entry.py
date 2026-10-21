@@ -44,6 +44,7 @@ ENTRY_KEYS = frozenset(
         "metadata",
         "artifacts",
         "status",
+        "contribution_id",
     }
 )
 
@@ -222,7 +223,16 @@ def source_id(entry: Mapping[str, Any]) -> str:
     return str(url)
 
 
-def dataset_id(entry: Mapping[str, Any]) -> str:
+def _get_all_keys(nested_dict):
+    keys = []
+    for key, value in nested_dict.items():
+        keys.append(key)
+        if isinstance(value, dict):
+            keys.extend(_get_all_keys(value))
+    return keys
+
+
+def _base_dataset_id(entry: Mapping[str, Any]) -> str:
     """Return the best available stable identity for the underlying dataset."""
     validate_entry(entry, require=False)
 
@@ -241,3 +251,40 @@ def dataset_id(entry: Mapping[str, Any]) -> str:
             return f"{path.name}|{path.stat().st_size}B"
 
     return source_id(entry)
+
+
+def dataset_id(entry, **kwargs):
+    base = _base_dataset_id(entry)
+
+    contribution = entry.get("contribution_id") or {}
+
+    if not contribution and not kwargs:
+        return base
+
+    modifiers = {
+        "contribution": contribution,
+        "kwargs": kwargs,
+    }
+
+    cannonical_modifiers = _canonicalize(modifiers)
+    if "__type__" in _get_all_keys(cannonical_modifiers):
+        raise TypeError(f"Cannot serialize {modifiers} in the dataset_id")
+
+    payload = json.dumps(
+        cannonical_modifiers,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+    return f"{base}|{digest}"
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+
+def set_contribution_id(entry, name, value):
+    entry.setdefault("contribution_id", {})[name] = value
