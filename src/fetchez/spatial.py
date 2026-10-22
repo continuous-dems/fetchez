@@ -109,10 +109,6 @@ def parse_increments(value, crs="EPSG:4326", *, at=None, axis="x"):
     Angular-to-projected conversion requires ``at``. For linear-to-geographic
     conversion, the default reference is (0, 0), where the result approximates
     the displacement at the equator. ``axis`` specifies X/east or Y/north.
-
-    This is a scalar parser; use ``parse_increment_pair`` for X/Y pairs.
-    Returns None for invalid/nonpositive input; raises ValueError for an
-    unsupported CRS, axis, or missing required projected reference point.
     """
     parsed = _parse_increment_value(value)
     if parsed is None:
