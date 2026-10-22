@@ -21,7 +21,8 @@ from typing import Union, List, Tuple, Optional
 
 from shapely.geometry import shape, box
 from shapely import from_wkb
-from pyproj import Transformer
+from pyproj import CRS, Transformer
+from pyproj.exceptions import CRSError
 from pyogrio.raw import read
 from pyogrio import read_info
 
@@ -50,8 +51,170 @@ def _snap_pixel_boundary(value, tol=1e-9):
 
 
 # =============================================================================
+# Increment parsing and CRS-aware conversion
+# =============================================================================
+
+_INCREMENT_NUMBER = r"(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?"
+_LINEAR_METERS = {
+    "e": 1.0,  # meters
+    "f": 0.3048,  # international feet
+    "k": 1000.0,  # kilometers
+    "M": 1609.344,  # statute miles
+    "n": 1852.0,  # nautical miles
+    "u": 1200.0 / 3937.0,  # US survey feet
+    "t": 1.0,  # legacy approximate meter unit
+}
+
+
+def _parse_increment_value(value):
+    """Return (positive magnitude, unit) or None for an invalid increment."""
+    if value is None:
+        return None
+
+    text = str(value).strip()
+    if not text or text.lower() == "none":
+        return None
+
+    try:
+        number = float(text)
+    except ValueError:
+        number = None
+
+    if number is not None:
+        return (number, None) if math.isfinite(number) and number > 0 else None
+
+    if len(text) < 2 or text[-1] not in "dmscefkMnut":
+        return None
+
+    try:
+        number = float(text[:-1])
+    except ValueError:
+        return None
+
+    if not math.isfinite(number) or number <= 0:
+        return None
+
+    return number, text[-1]
+
+
+def parse_increments(value, crs="EPSG:4326", *, at=None, axis="x"):
+    """Parse one positive GMT-style increment into coordinate units of *crs*.
+
+    Unsuffixed values are already in target CRS coordinate units. Geographic
+    suffixes d/m/s/c denote degrees, minutes, and seconds; linear suffixes
+    e/f/k/M/n/u denote meters, feet, km, miles, nautical miles, survey feet.
+    Legacy ``t`` also denotes meters.
+
+    ``at`` is a (longitude, latitude) tuple in degrees, NOT target CRS units.
+    Angular-to-projected conversion requires ``at``. For linear-to-geographic
+    conversion, the default reference is (0, 0), where the result approximates
+    the displacement at the equator. ``axis`` specifies X/east or Y/north.
+
+    This is a scalar parser; use ``parse_increment_pair`` for X/Y pairs.
+    Returns None for invalid/nonpositive input; raises ValueError for an
+    unsupported CRS, axis, or missing required projected reference point.
+    """
+    parsed = _parse_increment_value(value)
+    if parsed is None:
+        return None
+
+    number, unit = parsed
+    if axis not in ("x", "y"):
+        raise ValueError("axis must be 'x' or 'y'")
+
+    try:
+        target = CRS.from_user_input(crs)
+    except CRSError as exc:
+        raise ValueError(f"Invalid increment CRS: {crs!r}") from exc
+
+    if not (target.is_geographic or target.is_projected):
+        raise ValueError("Increment CRS must be geographic or projected")
+
+    if unit is None:
+        return number
+
+    if at is not None:
+        if len(at) != 2 or not all(math.isfinite(float(v)) for v in at):
+            raise ValueError("at must be a finite (longitude, latitude) pair")
+
+        lon, lat = map(float, at)
+        if not (-90 <= lat <= 90):
+            raise ValueError("reference latitude must be between -90 and 90")
+    else:
+        lon, lat = 0.0, 0.0
+
+    if unit in "dmsc":
+        degrees = number / (60.0 if unit == "m" else 3600.0 if unit in "sc" else 1.0)
+        if target.is_geographic:
+            # CRS angular axis coordinate units might not be degrees.
+            units_to_radians = target.axis_info[
+                0 if axis == "x" else 1
+            ].unit_conversion_factor
+            return math.radians(degrees) / units_to_radians
+
+        if at is None:
+            raise ValueError(
+                "at=(longitude, latitude) required for angular-to-projected increments"
+            )
+
+        transformer = Transformer.from_crs("EPSG:4326", target, always_xy=True)
+        x0, y0 = transformer.transform(lon, lat)
+        x1, y1 = transformer.transform(
+            lon + degrees if axis == "x" else lon,
+            lat + degrees if axis == "y" else lat,
+        )
+        result = abs((x1 - x0) if axis == "x" else (y1 - y0))
+        if not math.isfinite(result) or result <= 0:
+            raise ValueError(
+                "Cannot calculate a positive projected increment at this location"
+            )
+
+        return result
+
+    meters = number * _LINEAR_METERS[unit]
+    if target.is_projected:
+        # Coordinate increments.
+        unit_factor = target.axis_info[0 if axis == "x" else 1].unit_conversion_factor
+        return meters / unit_factor
+
+    geod = target.get_geod()
+    azimuth = 90 if axis == "x" else 0
+    lon2, lat2, _ = geod.fwd(lon, lat, azimuth, meters)
+    delta = abs((lon2 - lon) if axis == "x" else (lat2 - lat))
+    unit_factor = target.axis_info[0 if axis == "x" else 1].unit_conversion_factor
+
+    return math.radians(delta) / unit_factor
+
+
+def parse_increment_pair(value, crs="EPSG:4326", *, at=None):
+    """Return (x_increment, y_increment) from a scalar or ``x/y`` string.
+
+    A single value applies to both axes.
+    """
+    if isinstance(value, (tuple, list)):
+        if len(value) != 2:
+            raise ValueError("Increment pair must have two elements")
+        x, y = value
+    elif isinstance(value, str) and "/" in value:
+        parts = value.split("/")
+        if len(parts) != 2:
+            raise ValueError("Expected x/y increment pair")
+
+        x, y = parts
+    else:
+        x = y = value
+
+    return (
+        parse_increments(x, crs=crs, at=at, axis="x"),
+        parse_increments(y, crs=crs, at=at, axis="y"),
+    )
+
+
+# =============================================================================
 # The Region Class
 # =============================================================================
+
+
 class Region:
     """A geospatial bounding box object.
 

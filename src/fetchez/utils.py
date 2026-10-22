@@ -365,47 +365,11 @@ def inc2str(inc: float) -> str:
     )
 
 
-def str2inc(inc_str: Optional[str]) -> Optional[float]:
-    """Convert a GMT-style inc_str (e.g. 6s) to geographic units.
+def str2inc(value, crs="EPSG:4326", *, at=None, axis="x"):
+    """Compatibility wrapper for `fetchez.spatial.parse_increments`."""
+    from fetchez.spatial import parse_increments
 
-    c/s - arc-seconds
-    m - arc-minutes
-    t - meters
-    """
-
-    if inc_str is None or str(inc_str).lower() == "none" or len(str(inc_str)) == 0:
-        return None
-
-    inc_str = str_or(inc_str)
-    if not inc_str:
-        return None
-
-    units = inc_str[-1]
-    if float_or(units):
-        return float_or(inc_str)
-
-    inc_val = float_or(inc_str[:-1])
-    if not inc_val:
-        return None
-
-    try:
-        if units:
-            if units == "c" or units == "s":
-                return inc_val / 3600.0
-            elif units == "m":
-                return inc_val / 360.0
-            elif units == "t":
-                return inc_val / 111320.0  # Approx meters at equator
-            else:
-                logger.warning(
-                    f"Unknown unit string: {units}, returning raw parsed value."
-                )
-                return float_or(inc_val)
-        else:
-            return float_or(inc_str)
-    except ValueError as e:
-        logger.error(f"Could not parse increment {inc_str}: {e}")
-        return None
+    return parse_increments(value, crs=crs, at=at, axis=axis)
 
 
 def remove_glob2(*args: str) -> int:
