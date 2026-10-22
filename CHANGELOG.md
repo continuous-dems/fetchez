@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added conftest.py to tests to reset the fetchez logger for `propagate=True`
 
 ### CHANGED
+- `utils.str2inc` is replaced by `spatial.parse_increments` and now points there. This gives us better unit coverage and CRS awareness for increment parsing.
 - Extended the Fetchez entry vocabulary to formalize contribution identity while preserving the existing dictionary-based entry interface.
 - Improved dataset identity handling to support multiple independent processing contributions without requiring consumer-specific identifier logic.
 - **Breaking change**: Pipeline execution now defaults to strict failure handling across the core, API, and CLI. Use ignore_failures=True or --ignore-failures to continue processing after recoverable errors.
