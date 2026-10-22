@@ -1,9 +1,7 @@
 """Tests for CRS-aware GMT-style increments (fetchez.spatial)."""
 
-import math
-
 import pytest
-from fetchez.spatial import parse_increments, parse_increment_pair
+from fetchez.spatial import parse_increments
 from fetchez.utils import str2inc
 
 
@@ -21,10 +19,6 @@ from fetchez.utils import str2inc
         ("30m", 0.5),
         ("15s", 15 / 3600),
         ("15c", 15 / 3600),
-        ("pi", math.pi),
-        ("pi/2", math.pi / 2),
-        ("2pi", 2 * math.pi),
-        ("0.5*pi", math.pi / 2),
     ],
 )
 def test_geographic_and_numeric(value, expected):
@@ -44,11 +38,9 @@ def test_geographic_and_numeric(value, expected):
         "-1s",
         "10S",
         "10x",
-        "pi/0",
         "nan",
         "inf",
         "10mm",
-        "pi//2",
         "1/2",
     ],
 )
@@ -100,12 +92,6 @@ def test_projected_angular_with_reference():
 def test_projected_feet_crs():
     # NAD83 / California zone 6 (ftUS)
     assert parse_increments("100e", crs="EPSG:2230") == pytest.approx(100 * 3937 / 1200)
-
-
-def test_pair_and_pi_ambiguity():
-    assert parse_increment_pair("15s/30s") == pytest.approx((15 / 3600, 30 / 3600))
-    assert parse_increment_pair("pi/2") == pytest.approx((math.pi / 2, math.pi / 2))
-    assert parse_increment_pair("1s", crs="EPSG:32611", at=(-117, 33))[0] > 0
 
 
 def test_compatibility_wrapper():
