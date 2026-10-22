@@ -135,9 +135,15 @@ def parse_increments(value, crs="EPSG:4326", *, at=None, axis="x"):
 
     if at is not None:
         if len(at) != 2 or not all(math.isfinite(float(v)) for v in at):
-            raise ValueError("at must be a finite (longitude, latitude) pair")
+            if str(at).lower().startswith(("loc:", "place:")):
+                lon, lat = point_from_place(at)
+            else:
+                raise ValueError(
+                    "at must be a finite (longitude, latitude) pair or a 'loc:' place name."
+                )
+        else:
+            lon, lat = map(float, at)
 
-        lon, lat = map(float, at)
         if not (-90 <= lat <= 90):
             raise ValueError("reference latitude must be between -90 and 90")
     else:
@@ -867,6 +873,23 @@ def region_from_geojson(fn: str) -> Optional[List[Region]]:
         return regions
     except Exception as e:
         logger.warning(f"Failed to parse GeoJSON {fn}: {e}")
+    return None
+
+
+def point_from_place(query: str) -> Optional[tuple]:
+    from .modules.nominatim import Nominatim
+
+    clean_q = query.split(":", 1)[1] if ":" in query else query
+    nom = Nominatim(query=clean_q)
+    nom.run()
+
+    if nom.results:
+        res = nom.results[0]
+        x, y = res.get("x"), res.get("y")
+        if x is None or y is None:
+            return None
+
+        return (x, y)
     return None
 
 
