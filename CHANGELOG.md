@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Categorized and re-organized the test suite.
 
 ### FIXED
+- `Recipe.compile()` now builds the modules and pipeline plan on the region the recipe modifiers leave in `config["region"]` (e.g. the buffered tile from globato's `buffer-and-cut`), instead of the unmodified batch region; batch naming still uses the batch region.
 - Prevented unsupported contribution identity values from silently producing ambiguous identifiers.
 - Corrected hook lifecycle ordering and cleanup across manifest, file, stream, and collection stages, including failure paths and shared hooks.
 - Ensured active download workers complete or stop before file/stream hook teardown, and processing streams are exhausted before finalization.
