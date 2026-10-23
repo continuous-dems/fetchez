@@ -87,14 +87,30 @@ class PipelinePlan:
     config: dict
     modules: list
     global_hooks: list
-    region: Any = None
-    threads: int = 1
     ignore_failures: bool = False
 
     # Optional execution metadata
     batch_name: str | None = None
     tile_dir: Path | None = None
     shared_cache: Path | None = None
+
+    @property
+    def region(self):
+        value = self.config.get("region")
+        if value is None:
+            return None
+
+        regions = list(yield_parsed_regions(value))
+        if len(regions) != 1:
+            raise ValueError("A compiled pipeline must contain exactly one region.")
+
+        region, _ = regions[0]
+        region.srs = self.config.get("region_srs", "EPSG:4326")
+        return region
+
+    @property
+    def threads(self):
+        return self.config.get("execution", {}).get("threads", 1)
 
     def execute(self):
         """Execute the prepared workflow."""
@@ -677,10 +693,12 @@ class Recipe:
         if path.startswith(("http://", "https://", "s3://", "gs://", "ftp://")):
             return path
 
-        if Path(path).is_absolute():
-            return path
+        path = Path(path).expanduser()
 
-        return str((Path(base or self.recipe_dir) / path).resolve())
+        if not path.is_absolute():
+            path = Path(base or self.recipe_dir) / path
+
+        return str(path.resolve())
 
     def _resolve_args_paths(
         self,
@@ -950,26 +968,27 @@ class Recipe:
             name=self.name,
         )
 
-    @staticmethod
-    def _build_region(config, context):
-        """The region to build on: the batch region, or the one a modifier set.
+    def _effective_region(self, config):
+        """Resolve the final region from the modified configuration."""
 
-        Modifiers such as globato's buffer-and-cut change ``config["region"]``;
-        the batch context (and so its naming) keeps the original region.
-        """
-        region = context.region
-        raw = config.get("region")
-        if region is None or not isinstance(raw, (list, tuple)) or len(raw) < 4:
-            return region
-        try:
-            bounds = [float(v) for v in raw[:4]]
-        except (TypeError, ValueError):
-            return region
-        if bounds == region.to_list():
-            return region
-        modified = Region.from_list(bounds)
-        modified.srs = region.srs
-        return modified
+        value = config.get("region")
+
+        if value is None:
+            return None
+
+        if isinstance(value, Region):
+            region = Region.from_list(value.to_list())
+        else:
+            regions = list(yield_parsed_regions(value))
+
+            if len(regions) != 1:
+                raise ValueError("Compiled recipes must resolve to exactly one region.")
+
+            region, _ = regions[0]
+
+        region.srs = config.get("region_srs", "EPSG:4326")
+
+        return region
 
     def compile(
         self,
@@ -993,6 +1012,7 @@ class Recipe:
         # Localize this batch's region and project name.
         if context.region is not None:
             config["region"] = context.region.to_list()
+            config["region_srs"] = context.region_srs
 
         if context.batch_name:
             config.setdefault("project", {})["name"] = (
@@ -1021,9 +1041,6 @@ class Recipe:
 
         config.pop("modifiers", None)
 
-        # Build on the region the modifiers left (e.g. a buffered tile).
-        region = self._build_region(config, context)
-
         # Apply shared-cache and refresh policies.
         config = self._apply_execution_options(config, context)
 
@@ -1042,6 +1059,9 @@ class Recipe:
             else:
                 raise ValueError(err_msg)
 
+        # All modifiers and placeholder expansion have completed.
+        effective_region = self._effective_region(config)
+
         # Instantiate components.
         global_hooks = self._init_hooks(
             config.get("global_hooks", []),
@@ -1050,8 +1070,8 @@ class Recipe:
 
         modules = self._init_modules(
             config.get("modules", []),
-            target_region=region,
-            global_region_srs=context.region_srs,
+            target_region=effective_region,
+            global_region_srs=config.get("region_srs", context.region_srs),
             output_dir=context.tile_dir,
         )
 
@@ -1059,8 +1079,6 @@ class Recipe:
             config=config,
             modules=modules,
             global_hooks=global_hooks,
-            region=region,
-            threads=config.get("execution", {}).get("threads", 1),
             ignore_failures=ignore_failures,
             batch_name=context.batch_name,
             tile_dir=context.tile_dir,
@@ -1202,7 +1220,7 @@ class Recipe:
 
             yield (
                 plan.config,
-                target_region,
+                plan.region,
                 batch_name or recipe_name,
                 abs_cache or tile_dir,
                 base_outdir,
