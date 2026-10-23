@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [UNRELEASED]
+
+## [0.12.1 - 10-22-26]
 ### ADDED
 - Added standardized contribution identity support through the contribution_id entry field, allowing hooks to distinguish processed variants of the same dataset.
 - Added `set_contribution_id()` and support for consumer-specific keyword arguments in `dataset_id()` to generate deterministic contribution identifiers.
