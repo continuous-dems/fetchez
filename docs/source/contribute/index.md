@@ -7,6 +7,7 @@ Whether you're fixing a bug, adding a new data module, or improving documentatio
 ```{toctree}
 :maxdepth: 2
 
+architecture
 dev_setup
 bugs
 docs
