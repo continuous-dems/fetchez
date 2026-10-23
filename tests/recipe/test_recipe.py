@@ -9,6 +9,7 @@ import pytest
 
 from fetchez.hooks import FetchHook
 from fetchez.modules import FetchModule
+from fetchez.spatial import Region
 from fetchez.recipe import (
     Recipe,
     RecipeContext,
@@ -322,32 +323,19 @@ def test_runtime_batch_context_instantiates_classes_but_preserves_instances(
     import fetchez.recipe as recipe_module
     from fetchez.registry import BundleRegistry, PresetRegistry
 
-    class FakeRegion:
-        def __init__(self, name):
-            self.name = name
-            self.srs = None
+    # Only stub batch enumeration. Region parsing inside compile() stays real.
+    original_parser = recipe_module.yield_parsed_regions
+    batches = [
+        (Region(-120.0, -119.75, 33.0, 33.25, srs="EPSG:4326"), "tile_a"),
+        (Region(-119.75, -119.5, 33.0, 33.25, srs="EPSG:4326"), "tile_b"),
+    ]
 
-        def to_list(self):
-            return [self.name]
+    def parsed_regions(value):
+        if value == "ignored-by-mock":
+            return iter(batches)
+        return original_parser(value)
 
-        def valid_p(self):
-            return True
-
-        def format(self, fmt):
-            return self.name
-
-    monkeypatch.setattr(
-        recipe_module,
-        "yield_parsed_regions",
-        lambda region: iter(
-            [(FakeRegion("tile_a"), "tile_a"), (FakeRegion("tile_b"), "tile_b")]
-        ),
-    )
-    monkeypatch.setattr(
-        recipe_module.Region,
-        "from_list",
-        lambda values: FakeRegion(values[0]) if values else None,
-    )
+    monkeypatch.setattr(recipe_module, "yield_parsed_regions", parsed_regions)
     monkeypatch.setattr(BundleRegistry, "expand_modules", lambda defs, **kw: defs)
     monkeypatch.setattr(PresetRegistry, "expand_hooks", lambda defs, **kw: defs)
     monkeypatch.setattr(recipe_module.Recipe, "to_markdown", lambda *args, **kw: None)
@@ -395,7 +383,7 @@ def test_runtime_batch_context_instantiates_classes_but_preserves_instances(
     assert len(fresh) == 2
     assert fresh[0] is not fresh[1]
     assert [m.dataset for m in fresh] == ["tile_a", "tile_b"]
-    assert [m.src_region.name for m in fresh] == ["tile_a", "tile_b"]
+    assert [m.src_region.to_list() for m in fresh] == [r.to_list() for r, _ in batches]
     assert live_module.src_region == "original"
     assert live_module.results == ["persistent", "persistent"]
     assert live_hook.output == "unchanged_%batch_name%.txt"
@@ -451,15 +439,15 @@ class PlanRegion:
 
 
 @pytest.fixture
-def plan_regions(monkeypatch):
-    import fetchez.recipe as recipe_module
+def plan_regions():
+    """Compatibility fixture: compilation now uses real, parseable regions."""
+    return Region
 
-    monkeypatch.setattr(
-        recipe_module.Region,
-        "from_list",
-        lambda values: PlanRegion(values[0]) if values else None,
-    )
-    return PlanRegion
+
+def sample_region(index=0):
+    """Valid bounds, varying per batch without relying on fake parsers."""
+    west = -120.0 + 0.25 * index
+    return Region(west, west + 0.25, 33.0, 33.25, srs="EPSG:4326")
 
 
 def test_recipe_context_placeholders_are_explicit_and_batch_aware(tmp_path):
@@ -494,7 +482,7 @@ def test_compile_is_preparation_only_and_preserves_caller_state(
     )
     RuntimeModule.created.clear()
     ctx = RecipeContext(
-        region=PlanRegion("tile_a"),
+        region=sample_region(),
         name="compiler-test",
         batch_name="tile_a",
         tile_dir=tmp_path / "not-created",
@@ -517,7 +505,10 @@ def test_compile_is_preparation_only_and_preserves_caller_state(
     assert not ctx.tile_dir.exists()
     assert not list(tmp_path.glob("**/*receipt.md"))
     assert plan.threads == 3
-    assert plan.region is ctx.region
+    assert plan.region is not ctx.region
+    assert plan.region.to_list() == ctx.region.to_list()
+    assert plan.region.srs == ctx.region_srs
+    assert plan.modules[0].src_region.to_list() == ctx.region.to_list()
     assert plan.batch_name == "tile_a"
     assert plan.modules[0].results == []  # module.run() was not called
     assert plan.modules[0].dataset == "tile_a"
@@ -569,6 +560,7 @@ def test_compile_builds_on_the_region_a_modifier_sets(
     ctx, plan = _region_modifier_plan(tmp_path, monkeypatch, by=0.05)
 
     widened = [-123.55, -123.2, 35.95, 36.3]
+    assert plan.config["region"] == pytest.approx(widened)
     assert plan.region.to_list() == pytest.approx(widened)
     assert plan.region.srs == "EPSG:4326"
     assert plan.modules[0].src_region.to_list() == pytest.approx(widened)
@@ -583,7 +575,10 @@ def test_compile_keeps_the_batch_region_when_no_modifier_changes_it(
 ):
     ctx, plan = _region_modifier_plan(tmp_path, monkeypatch, by=0.0)
 
-    assert plan.region is ctx.region
+    assert plan.region is not ctx.region
+    assert plan.region.to_list() == ctx.region.to_list()
+    assert plan.region.srs == ctx.region_srs
+    assert plan.modules[0].src_region.to_list() == ctx.region.to_list()
 
 
 def test_compile_creates_fresh_classes_and_preserves_supplied_instances(
@@ -605,10 +600,10 @@ def test_compile_creates_fresh_classes_and_preserves_supplied_instances(
         }
     )
     first = recipe.compile(
-        RecipeContext(region=PlanRegion("a"), batch_name="a", tile_dir=tmp_path)
+        RecipeContext(region=sample_region(0), batch_name="a", tile_dir=tmp_path)
     )
     second = recipe.compile(
-        RecipeContext(region=PlanRegion("b"), batch_name="b", tile_dir=tmp_path)
+        RecipeContext(region=sample_region(1), batch_name="b", tile_dir=tmp_path)
     )
 
     assert first.modules[0] is not second.modules[0]
@@ -641,9 +636,7 @@ def test_compile_resolves_global_and_module_hook_outputs_relative_to_tile(
         },
         base_dir=recipe_dir,
     )
-    plan = recipe.compile(
-        RecipeContext(region=PlanRegion("tile_01"), tile_dir=tile_dir)
-    )
+    plan = recipe.compile(RecipeContext(region=sample_region(), tile_dir=tile_dir))
 
     assert Path(plan.global_hooks[0].output) == tile_dir / "global.tif"
     assert Path(plan.modules[0].hook[0].output) == tile_dir / "local.tif"
@@ -694,7 +687,7 @@ def test_compile_applies_refresh_and_cache_only_to_declarative_classes(
     cache = tmp_path / "cache"
     plan = recipe.compile(
         RecipeContext(
-            region=PlanRegion("a"),
+            region=sample_region(),
             shared_cache=cache,
             refresh=True,
         )
@@ -723,10 +716,9 @@ def test_plan_execute_runs_each_module_and_engine_once(monkeypatch):
 
     monkeypatch.setattr(recipe_module, "run_fetchez", engine)
     plan = PipelinePlan(
-        config={},
+        config={"execution": {"threads": 5}},
         modules=[RunningModule(dataset="a"), RunningModule(dataset="b")],
         global_hooks=["existing"],
-        threads=5,
     )
     result = plan.execute()
     assert calls == [("module", "a"), ("module", "b"), ("engine", 2)]
@@ -755,13 +747,15 @@ def test_recipe_run_yields_with_restored_cwd_and_resumes(
     import fetchez.recipe as recipe_module
 
     original = Path.cwd()
-    monkeypatch.setattr(
-        recipe_module,
-        "yield_parsed_regions",
-        lambda raw: iter(
-            [(PlanRegion("tile_a"), "tile_a"), (PlanRegion("tile_b"), "tile_b")]
-        ),
-    )
+    original_parser = recipe_module.yield_parsed_regions
+    batches = [(sample_region(0), "tile_a"), (sample_region(1), "tile_b")]
+
+    def parsed_regions(raw):
+        if raw == "fake":
+            return iter(batches)
+        return original_parser(raw)
+
+    monkeypatch.setattr(recipe_module, "yield_parsed_regions", parsed_regions)
     monkeypatch.setattr(recipe_module.Recipe, "to_markdown", lambda *a, **kw: None)
     monkeypatch.setattr(recipe_module, "run_fetchez", lambda *a, **kw: [])
 
@@ -771,6 +765,7 @@ def test_recipe_run_yields_with_restored_cwd_and_resumes(
     iterator = recipe.run(outdir=tmp_path)
     first = next(iterator)
     assert first[2] == "tile_a"
+    assert first[1].to_list() == batches[0][0].to_list()
     assert Path.cwd() == original  # CWD restored even while generator suspended
     assert (tmp_path / "tile_a").is_dir()
     assert json.loads((tmp_path / "fetchez_batch_state.json").read_text()) == ["tile_a"]
@@ -789,17 +784,12 @@ def test_recipe_run_yields_with_restored_cwd_and_resumes(
 def test_compile_without_context_uses_unambiguous_recipe_region(
     monkeypatch, isolated_compiler, plan_regions
 ):
-    import fetchez.recipe as recipe_module
 
-    monkeypatch.setattr(
-        recipe_module,
-        "yield_parsed_regions",
-        lambda raw: iter([(PlanRegion("configured"), None)]),
-    )
-    recipe = Recipe({"region": "single", "modules": [RuntimeModule]})
+    recipe = Recipe({"region": sample_region().to_list(), "modules": [RuntimeModule]})
     plan = recipe.compile()
     assert plan.region is not None
-    assert plan.modules[0].src_region.name == "configured"
+    assert plan.region.to_list() == sample_region().to_list()
+    assert plan.modules[0].src_region.to_list() == sample_region().to_list()
 
 
 def test_compile_without_context_rejects_ambiguous_batches(
@@ -815,3 +805,37 @@ def test_compile_without_context_rejects_ambiguous_batches(
     recipe = Recipe({"region": "many", "modules": [RuntimeModule]})
     with pytest.raises(ValueError, match="context|multiple|region|batch"):
         recipe.compile()
+
+
+def test_compile_without_region_keeps_global_scope(isolated_compiler):
+    """A recipe without a region must remain a valid global workflow."""
+    recipe = Recipe({"modules": [RuntimeModule]})
+    plan = recipe.compile()
+    assert plan.region is None
+    assert plan.modules[0].src_region is None
+
+
+def test_modifier_execution_threads_are_taken_from_final_config(
+    tmp_path, monkeypatch, isolated_compiler
+):
+    """Modifiers must be able to change execution options consumed by the plan."""
+
+    class ChangeThreads:
+        def apply(self, config):
+            config.setdefault("execution", {})["threads"] = 7
+            return config
+
+    monkeypatch.setattr(
+        Recipe, "_init_modifiers", lambda self, specs, **kw: [ChangeThreads()]
+    )
+    recipe = Recipe(
+        {
+            "modules": [RuntimeModule],
+            "execution": {"threads": 2},
+            "modifiers": [{"name": "change-threads"}],
+        }
+    )
+    plan = recipe.compile(RecipeContext(region=sample_region(), tile_dir=tmp_path))
+    assert plan.config["execution"]["threads"] == 7
+    assert plan.threads == 7
+    assert recipe.config["execution"]["threads"] == 2
