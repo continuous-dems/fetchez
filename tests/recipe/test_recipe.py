@@ -526,6 +526,66 @@ def test_compile_is_preparation_only_and_preserves_caller_state(
     assert recipe.config["modules"][0]["args"]["dataset"] == "%batch_name%"
 
 
+class WidenRegion:
+    """Modifier double that widens config["region"], like globato's buffer-and-cut."""
+
+    def __init__(self, by):
+        self.by = by
+
+    def apply(self, config):
+        w, e, s, n = config["region"]
+        config["region"] = [w - self.by, e + self.by, s - self.by, n + self.by]
+        return config
+
+
+def _region_modifier_plan(tmp_path, monkeypatch, by):
+    from fetchez.spatial import Region
+
+    monkeypatch.setattr(
+        Recipe, "_init_modifiers", lambda self, specs, **kw: [WidenRegion(by)]
+    )
+    ctx = RecipeContext(
+        region=Region(-123.5, -123.25, 36.0, 36.25, srs="EPSG:4326"),
+        name="buffered",
+        batch_name="tile_a",
+        tile_dir=tmp_path / "tile_a",
+        outdir=tmp_path,
+    )
+    config = {
+        "project": {"name": "buffered"},
+        "modifiers": [{"name": "widen"}],
+        "modules": [{"module": RuntimeModule, "args": {"dataset": "%batch_name%"}}],
+        "global_hooks": [
+            {"name": RuntimeHook, "args": {"output": "%name%_%batch_name%.tif"}}
+        ],
+    }
+    return ctx, Recipe.from_dict(config).compile(ctx)
+
+
+def test_compile_builds_on_the_region_a_modifier_sets(
+    tmp_path, monkeypatch, isolated_compiler
+):
+    """A modifier's region change reaches the modules and plan; naming keeps the batch."""
+    ctx, plan = _region_modifier_plan(tmp_path, monkeypatch, by=0.05)
+
+    widened = [-123.55, -123.2, 35.95, 36.3]
+    assert plan.region.to_list() == pytest.approx(widened)
+    assert plan.region.srs == "EPSG:4326"
+    assert plan.modules[0].src_region.to_list() == pytest.approx(widened)
+    assert ctx.region.to_list() == [-123.5, -123.25, 36.0, 36.25]
+    assert plan.batch_name == "tile_a"
+    assert plan.modules[0].dataset == "tile_a"
+    assert plan.global_hooks[0].output.endswith("buffered_tile_a.tif")
+
+
+def test_compile_keeps_the_batch_region_when_no_modifier_changes_it(
+    tmp_path, monkeypatch, isolated_compiler
+):
+    ctx, plan = _region_modifier_plan(tmp_path, monkeypatch, by=0.0)
+
+    assert plan.region is ctx.region
+
+
 def test_compile_creates_fresh_classes_and_preserves_supplied_instances(
     tmp_path, isolated_compiler, plan_regions
 ):

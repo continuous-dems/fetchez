@@ -950,6 +950,27 @@ class Recipe:
             name=self.name,
         )
 
+    @staticmethod
+    def _build_region(config, context):
+        """The region to build on: the batch region, or the one a modifier set.
+
+        Modifiers such as globato's buffer-and-cut change ``config["region"]``;
+        the batch context (and so its naming) keeps the original region.
+        """
+        region = context.region
+        raw = config.get("region")
+        if region is None or not isinstance(raw, (list, tuple)) or len(raw) < 4:
+            return region
+        try:
+            bounds = [float(v) for v in raw[:4]]
+        except (TypeError, ValueError):
+            return region
+        if bounds == region.to_list():
+            return region
+        modified = Region.from_list(bounds)
+        modified.srs = region.srs
+        return modified
+
     def compile(
         self,
         context: RecipeContext | None = None,
@@ -1000,6 +1021,9 @@ class Recipe:
 
         config.pop("modifiers", None)
 
+        # Build on the region the modifiers left (e.g. a buffered tile).
+        region = self._build_region(config, context)
+
         # Apply shared-cache and refresh policies.
         config = self._apply_execution_options(config, context)
 
@@ -1026,7 +1050,7 @@ class Recipe:
 
         modules = self._init_modules(
             config.get("modules", []),
-            target_region=context.region,
+            target_region=region,
             global_region_srs=context.region_srs,
             output_dir=context.tile_dir,
         )
@@ -1035,7 +1059,7 @@ class Recipe:
             config=config,
             modules=modules,
             global_hooks=global_hooks,
-            region=context.region,
+            region=region,
             threads=config.get("execution", {}).get("threads", 1),
             ignore_failures=ignore_failures,
             batch_name=context.batch_name,
