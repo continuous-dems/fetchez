@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2 - 10-23-26]
 ### FIXED
 - Fixed regression bug in recipe regarding config and context differing if modifiers get applied.
 
