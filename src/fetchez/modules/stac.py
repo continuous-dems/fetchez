@@ -82,7 +82,90 @@ class STACModule(FetchModule):
         self.cloud_cover = float(cloud_cover) if cloud_cover is not None else None
         self.limit = int(limit) if limit else 500
 
+    def _open_catalog(self):
+        """Open STAC catalog and configure authentication."""
+        return pystac_client.Client.open(self.api_url)
+
+    def _build_search(self):
+        """Construct search using region and query settings."""
+        w, e, s, n = self.wgs_region
+        bbox = (w, s, e, n)
+        search_params = {
+            "bbox": bbox,  # self.wgs_region,
+            "max_items": self.limit,
+        }
+
+        if self.collections:
+            search_params["collections"] = self.collections
+
+        if self.datetime:
+            search_params["datetime"] = self.datetime
+
+        if self.cloud_cover is not None:
+            search_params["query"] = {"eo:cloud_cover": {"lt": self.cloud_cover}}
+
+        return search_params
+
+    def _select_assets(self, item):
+        """Choose matching assets from an item."""
+        keys_to_fetch = self.asset_keys
+
+        if not keys_to_fetch:
+            available = item.assets.keys()
+            if "visual" in available:
+                keys_to_fetch = ["visual"]
+            elif "data" in available:
+                keys_to_fetch = ["data"]
+            elif "analytic" in available:
+                keys_to_fetch = ["analytic"]
+            else:
+                keys_to_fetch = list(available)
+
+        for key in keys_to_fetch:
+            if key not in item.assets:
+                continue
+
+            asset = item.assets[key]
+
+            yield key, asset
+
+    def _resolve_asset_url(self, asset):
+        """Resolve or sign asset URLs as required."""
+
+        href = asset.href
+        if "planetarycomputer" in self.api_url:
+            if HAS_PC:
+                href = planetary_computer.sign(href)
+            else:
+                logger.warning(
+                    "Planetary Computer URL detected, but 'planetary-computer' "
+                    "library is missing. Download may fail with 403 Forbidden."
+                )
+        return href
+
+    def _asset_to_entry(self, item, key, asset):
+        """Convert an asset into a Fetchez entry."""
+
+        href = self._resolve_asset_url(asset)
+
+        date_str = item.datetime.strftime("%Y%m%d") if item.datetime else "nodate"
+
+        ext = os.path.splitext(href)[1]
+        if not ext:
+            ext = ".tif"
+
+        dst_fn = f"{item.collection_id}_{date_str}_{item.id}_{key}{ext}"
+
+        self.add_entry_to_results(
+            url=href,
+            dst_fn=dst_fn,
+            data_type="raster",
+            stac_id=item.id,
+            stac_date=date_str,
+        )
+
     def run(self):
+        """Discover matching items and register their assets."""
         if not HAS_STAC:
             logger.error(
                 "STACModule requires 'pystac-client'. Install it with: pip install pystac-client"
@@ -96,89 +179,18 @@ class STACModule(FetchModule):
         logger.info(f"Querying STAC API: {self.api_url}")
 
         try:
-            client = pystac_client.Client.open(self.api_url)
-            w, e, s, n = self.wgs_region
-            bbox = (w, s, e, n)
-            search_params = {
-                "bbox": bbox,  # self.wgs_region,
-                "max_items": self.limit,
-            }
+            client = self._open_catalog()
+            search = client.search(**self._build_search())
 
-            if self.collections:
-                search_params["collections"] = self.collections
+            for item in search.items():
+                for key, asset in self._select_assets(item):
+                    self._asset_to_entry(item, key, asset)
 
-            if self.datetime:
-                search_params["datetime"] = self.datetime
+        except Exception:
+            self._discovery_failed = True
+            logger.exception("STAC discovery failed")
 
-            if self.cloud_cover is not None:
-                search_params["query"] = {"eo:cloud_cover": {"lt": self.cloud_cover}}
-
-            search = client.search(**search_params)
-            items = list(search.items())
-
-            if not items:
-                logger.warning("No items found matching criteria.")
-                return
-
-            logger.info(f"Found {len(items)} STAC items.")
-
-            count = 0
-            for item in items:
-                keys_to_fetch = self.asset_keys
-
-                if not keys_to_fetch:
-                    available = item.assets.keys()
-                    if "visual" in available:
-                        keys_to_fetch = ["visual"]
-                    elif "data" in available:
-                        keys_to_fetch = ["data"]
-                    elif "analytic" in available:
-                        keys_to_fetch = ["analytic"]
-                    else:
-                        keys_to_fetch = list(available)
-
-                for key in keys_to_fetch:
-                    if key not in item.assets:
-                        continue
-
-                    asset = item.assets[key]
-                    href = asset.href
-
-                    if "planetarycomputer" in self.api_url:
-                        if HAS_PC:
-                            href = planetary_computer.sign(href)
-                        else:
-                            logger.warning(
-                                "Planetary Computer URL detected, but 'planetary-computer' "
-                                "library is missing. Download may fail with 403 Forbidden."
-                            )
-
-                    date_str = (
-                        item.datetime.strftime("%Y%m%d") if item.datetime else "nodate"
-                    )
-
-                    date_str = (
-                        item.datetime.strftime("%Y%m%d") if item.datetime else "nodate"
-                    )
-                    ext = os.path.splitext(href)[1]
-                    if not ext:
-                        ext = ".tif"
-
-                    dst_fn = f"{item.collection_id}_{date_str}_{item.id}_{key}{ext}"
-
-                    self.add_entry_to_results(
-                        url=href,
-                        dst_fn=dst_fn,
-                        data_type="raster",
-                        stac_id=item.id,
-                        stac_date=date_str,
-                    )
-                    count += 1
-
-            logger.info(f"Queued {count} assets for download.")
-
-        except Exception as e:
-            logger.error(f"STAC Query failed: {e}", exc_info=True)
+        return self
 
 
 @cli.cli_opts(
