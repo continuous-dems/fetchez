@@ -9,6 +9,7 @@ For an introduction to modules, see [Modules and Bundles](../modules_and_bundles
 ```{toctree}
 :maxdepth: 2
 
+rest_api
 ```
 
 ## Discovering available modules
