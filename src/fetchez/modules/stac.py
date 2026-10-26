@@ -34,6 +34,14 @@ try:
 except ImportError:
     HAS_PC = False
 
+try:
+    import boto3
+    from botocore.exceptions import NoCredentialsError, BotoCoreError
+
+    HAS_BOTO3 = True
+except ImportError:
+    HAS_BOTO3 = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -131,7 +139,6 @@ class STACModule(FetchModule):
 
     def _resolve_asset_url(self, asset):
         """Resolve or sign asset URLs as required."""
-
         href = asset.href
         if "planetarycomputer" in self.api_url:
             if HAS_PC:
@@ -141,6 +148,40 @@ class STACModule(FetchModule):
                     "Planetary Computer URL detected, but 'planetary-computer' "
                     "library is missing. Download may fail with 403 Forbidden."
                 )
+        elif href.startswith("s3://"):
+            if HAS_BOTO3:
+                try:
+                    import urllib.parse
+
+                    parsed = urllib.parse.urlparse(href)
+                    bucket_name = parsed.netloc
+                    object_key = parsed.path.lstrip("/")
+
+                    s3_client = boto3.client("s3")
+                    # Generate a presigned URL valid for 1 hour (3600 seconds)
+                    href = s3_client.generate_presigned_url(
+                        "get_object",
+                        Params={"Bucket": bucket_name, "Key": object_key},
+                        ExpiresIn=3600,
+                    )
+                except (NoCredentialsError, BotoCoreError) as e:
+                    logger.warning(
+                        f"Could not presign S3 URL {href}: {e}. Falling back to unsigned HTTPS."
+                    )
+                    path_parts = href.replace("s3://", "").split("/", 1)
+                    if len(path_parts) == 2:
+                        href = (
+                            f"https://{path_parts[0]}.s3.amazonaws.com/{path_parts[1]}"
+                        )
+            else:
+                logger.warning(
+                    "boto3 is missing. Cannot presign S3 URL. Falling back to unsigned HTTPS."
+                )
+                path_parts = href.replace("s3://", "").split("/", 1)
+                if len(path_parts) == 2:
+                    # Fallback to a valid virtual-hosted style AWS URL
+                    href = f"https://{path_parts[0]}.s3.amazonaws.com/{path_parts[1]}"
+
         return href
 
     def _asset_to_entry(self, item, key, asset):
