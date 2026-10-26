@@ -435,21 +435,68 @@ class Region:
     # --- Export Formats ---
     def to_bbox(self):
         """Export as standard (w, s, e, n) bbox used by many GIS tools."""
-
+        if not self.valid_p():
+            raise ValueError(f"Cannot export invalid region geometry: {self}")
         return (self.xmin, self.ymin, self.xmax, self.ymax)
 
     def to_list(self):
         """Export as [w, e, s, n] list."""
-
         return [self.xmin, self.xmax, self.ymin, self.ymax]
+
+    def to_shapely(self):
+        if not self.valid_p():
+            raise ValueError(f"Cannot export invalid region geometry: {self}")
+        return box(self.xmin, self.ymin, self.xmax, self.ymax)
+
+    def to_wkt(self):
+        return self.to_shapely().wkt
+
+    def to_geojson_geometry(self):
+        return self.to_shapely().__geo_interface__
+
+    # def to_geojson_geometry(self):
+    #     return {
+    #         "type": "Polygon",
+    #         "coordinates": [
+    #             [
+    #                 [self.xmin, self.ymin],
+    #                 [self.xmin, self.ymax],
+    #                 [self.xmax, self.ymax],
+    #                 [self.xmax, self.ymin],
+    #                 [self.xmin, self.ymin],
+    #             ]
+    #         ],
+    #     }
+
+    def to_arcgis_envelope(self):
+        """Return an ArcGIS REST envelope geometry."""
+        if not self.valid_p():
+            raise ValueError(f"Cannot export invalid region geometry: {self}")
+        wkid = None
+
+        if self.srs:
+            wkid = CRS.from_user_input(self.srs).to_epsg()
+
+        envelope = {
+            "xmin": self.w,
+            "ymin": self.s,
+            "xmax": self.e,
+            "ymax": self.n,
+        }
+
+        if wkid is not None:
+            envelope["spatialReference"] = {"wkid": wkid}
+
+        return envelope
 
     def format(self, style="gmt"):
         """String representation."""
-
         if style == "gmt":
             return f"-R{self.xmin}/{self.xmax}/{self.ymin}/{self.ymax}"
         elif style == "bbox":
             return f"{self.xmin},{self.ymin},{self.xmax},{self.ymax}"
+        elif style == "bbox_wesn":
+            return f"{self.xmin},{self.xmax},{self.ymin},{self.ymax}"
         elif style == "region":
             return f"{self.xmin},{self.xmax},{self.ymin},{self.ymax}"
         elif style == "fn":
@@ -476,52 +523,16 @@ class Region:
                 f"{ew}{abs(int(self.xmin)):03d}x{abs(int(self.xmin * 100)) % 100:02d}"
             )
             return f"{coord_str}_{year}_v1"
-        elif format == "geojson":
-            geom = {
-                "type": "Polygon",
-                "coordinates": [
-                    [
-                        [self.xmin, self.ymin],
-                        [self.xmin, self.ymax],
-                        [self.xmax, self.ymax],
-                        [self.xmax, self.ymin],
-                        [self.xmin, self.ymin],
-                    ]
-                ],
-            }
-            return json.dumps(geom)
-        elif format == "wkt":
-            return f"POLYGON (({self.xmin} {self.ymin}, {self.xmin} {self.ymax}, {self.xmax} {self.ymax}, {self.xmax} {self.ymin}, {self.xmin} {self.ymin}))"
+        elif style == "wkt":
+            return self.to_wkt()
+
+        elif style == "geojson":
+            return json.dumps(self.to_geojson_geometry())
+
+        elif style == "arcgis":
+            return json.dumps(self.to_arcgis_envelope())
 
         return str(self)
-
-    def to_shapely(self):
-        return box(self.xmin, self.ymin, self.xmax, self.ymax)
-
-    def to_wkt(self):
-        try:
-            return self.to_shapely().wkt
-        except Exception:
-            # Simple fallback WKT
-            return (
-                f"POLYGON (({self.xmin} {self.ymin}, {self.xmin} {self.ymax}, "
-                f"{self.xmax} {self.ymax}, {self.xmax} {self.ymin}, "
-                f"{self.xmin} {self.ymin}))"
-            )
-
-    def to_geojson_geometry(self):
-        return {
-            "type": "Polygon",
-            "coordinates": [
-                [
-                    [self.xmin, self.ymin],
-                    [self.xmin, self.ymax],
-                    [self.xmax, self.ymax],
-                    [self.xmax, self.ymin],
-                    [self.xmin, self.ymin],
-                ]
-            ],
-        }
 
     def srcwin(self, geo_transform, x_count, y_count, node="grid"):
         """Output the appropriate GDAL srcwin (xoff, yoff, xsize, ysize)."""
