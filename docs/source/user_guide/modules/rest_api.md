@@ -20,7 +20,6 @@ the standard fetcher handle the assets.
 A query returning *no* matches is valid and different from a failed request.
 The module sets `_discovery_failed` for errors caught by its main `run()`
 handler so the base discovery cache does not treat them as successful results.
-See **Current limitations** for partial detail-request failures.
 
 ## Quick start: JSON discovery
 
