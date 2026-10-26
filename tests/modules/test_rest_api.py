@@ -10,6 +10,9 @@ from urllib.error import URLError
 
 import pytest
 
+from fetchez.modules.rest import RestAPIModule
+from fetchez.spatial import Region
+
 
 @pytest.fixture
 def rest_module(monkeypatch, tmp_path):
@@ -645,3 +648,27 @@ def test_detail_cross_origin_does_not_forward_auth(rest_module, monkeypatch):
     assert len(headers) == 1 or not any(
         k.lower() == "authorization" for k in headers[1]
     )
+
+
+def test_rest_region_uses_wgs_region():
+    module = RestAPIModule(
+        url="https://example.org/search",
+        region=Region(
+            -120,
+            -119,
+            33,
+            34,
+            srs="EPSG:4326",
+        ),
+        parameters={
+            "bbox": "{region:bbox}",
+        },
+    )
+
+    original = module.wgs_region.copy()
+
+    result = module._region()
+
+    assert result is not module.wgs_region
+    assert result.to_bbox() == original.to_bbox()
+    assert module.wgs_region.to_bbox() == original.to_bbox()
