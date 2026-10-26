@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ADDED
+- Added `to_arcgis_envelope` in spatial.Region to support arcgis rest apis.
+- Added ValueError to `to_*` sptaial.Region functions to raise on invalid geometries.
+
+### CHANGED
+- Updated the generic `stac` module to be more robust and ready for expansion
+
 ## [0.12.2 - 10-23-26]
 ### FIXED
 - Fixed regression bug in recipe regarding config and context differing if modifiers get applied.
