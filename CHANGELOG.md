@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Added module `thredds` as a generic thredds fetch module.
+- Added module `http_index` as a generic http fetch module.
 - Added module `rest.py` as a generic REST API fetch module.
 - Added `to_arcgis_envelope` in spatial.Region to support arcgis rest apis.
 - Added ValueError to `to_*` sptaial.Region functions to raise on invalid geometries.

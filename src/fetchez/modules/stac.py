@@ -1,13 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-<<<<<<< Updated upstream
-globato.modules.stac
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-=======
 fetchez.modules.stac
 ~~~~~~~~~~~~~~~~~~~~~
->>>>>>> Stashed changes
 
 Generic STAC API discovery for Fetchez.
 

@@ -1,6 +1,5 @@
 """Offline regression tests for fetchez.modules.stac.
 
-Run in the Fetchez checkout with: pytest -q tests/modules/test_stac.py
 Uses normal package imports; no external catalog or network traffic.
 """
 
@@ -36,6 +35,7 @@ class FakeItem:
 
 def make_module(**kwargs):
     # The module base accepts region as a normal option; these tests avoid live services.
+    kwargs.setdefault("use_cache", False)
     return STACModule(**kwargs)
 
 
