@@ -95,6 +95,8 @@ class HTTPIndex(FetchModule):
     meta_desc = "Discover downloadable files from HTTP directories and HTML pages"
     meta_tags = ["http", "html", "index", "catalog", "scraper"]
     meta_provides = ["file", "raster", "vector", "archive"]
+    meta_resolution = "varies"
+    meta_license = "varies"
 
     def __init__(
         self,

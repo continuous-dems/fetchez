@@ -210,6 +210,8 @@ class THREDDS(FetchModule):
     meta_desc = "THREDDS XML catalog discovery and NCSS/WCS data access"
     meta_tags = ["thredds", "netcdf", "opendap", "oceanography", "catalog", "ncss"]
     meta_provides = ["file", "netcdf", "raster", "timeseries"]
+    meta_resolution = "varies"
+    meta_license = "varies"
 
     SERVICE_ALIASES = {
         "HTTP": "HTTPSERVER",
