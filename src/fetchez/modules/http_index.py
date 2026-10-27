@@ -78,7 +78,7 @@ def _origin(url):
 @cli_opts(
     help_text="Discover files from HTTP listings or project pages, optionally using a FRED index.",
     url="Starting HTTP(S) page or directory URL.",
-    pattern="Glob filename patterns for downloadable assets (e.g. *.zip).",
+    pattern="Glob filename patterns for downloadable assets (e.g. <star>.zip).",
     exclude="Optional glob patterns to skip.",
     follow_pattern="Glob patterns for catalog pages to follow.",
     recursive="Enable crawling linked pages.",
