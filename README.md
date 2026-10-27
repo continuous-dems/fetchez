@@ -15,9 +15,11 @@
   <a href="https://doi.org/10.5281/zenodo.22130386"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22130386.svg" alt="DOI"></a>
 </p>
 
-**Fetchez** is a modular and extensible geospatial data engineering framework for discovering, retrieving, caching, transforming, and composing spatial data workflows.
+**Fetchez** is an open-source Python framework for finding, retrieving, and processing geospatial data from local files, public repositories, web APIs, and cloud-based catalogs.
 
-Originally developed as the core fetching engine for the [CUDEM](https://github.com/ciresdem/cudem) project, Fetchez has evolved into a standalone geospatial ETL and workflow platform. Registered data Modules, Bundles, processing Hooks, Presets, recipe Modifiers, and Schemas can be composed through Python, YAML recipes, or the registry-driven command-line interface.
+Use built-in providers to access common datasets, or connect your own sources through configurable interfaces for REST APIs, STAC, THREDDS, HTTP directories, and local files—**no custom Python module required**.
+
+Combine data sources with processing hooks, caching, and reusable YAML recipes to build reproducible workflows from the command line or Python. Extend the framework with custom modules, readers, hooks, and plugins whenever your application needs something more specialized.
 
 ---
 
