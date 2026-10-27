@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ValueError to `to_*` sptaial.Region functions to raise on invalid geometries.
 
 ### CHANGED
+- Updated options and features in the `stac` module and added tests and docs.
 - Updated the generic `stac` module to be more robust and ready for expansion
 
 ## [0.12.2 - 10-23-26]

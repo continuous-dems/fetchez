@@ -10,6 +10,7 @@ For an introduction to modules, see [Modules and Bundles](../modules_and_bundles
 :maxdepth: 2
 
 rest_api
+stac
 ```
 
 ## Discovering available modules
