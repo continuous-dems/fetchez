@@ -72,7 +72,7 @@ def _origin(url):
 
 def _catalog_url(url):
     if url.endswith("/catalog.html"):
-        return url[:-5] + "xml"
+        return url[:-4] + "xml"
     if url.endswith("/catalog"):
         return url + ".xml"
     return url
