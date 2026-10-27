@@ -58,19 +58,31 @@ class FRED:
         "Info",
     ]
 
-    def __init__(self, name: str = "FRED", local: bool = False):
+    def __init__(self, name: str = "FRED", local: bool = False, path=None):
+        """Load an index from an explicit path or known data directories.
+
+        Search priority: explicit path, local cwd (if requested), cwd, user data,
+        existing config indices, then packaged data. New indexes are created in
+        ~/.fetchez/data unless ``local`` or ``path`` is specified.
+        """
         self.name = name
         self.filename = f"{name}.geojson"
-
-        # Default to local directory if not found in data dir
-        if local:
-            self.path = Path(self.filename)
-        elif Path(FETCH_DATA_DIR / self.filename).exists():
-            self.path = Path(FETCH_DATA_DIR / self.filename)
-        elif Path(config.CONFIG_PATH / "indices" / self.filename).exists():
-            self.path = Path(config.CONFIG_PATH / "indices" / self.filename)
+        user_dir = Path.home() / ".fetchez" / "data"
+        legacy_config_dir = Path(config.CONFIG_PATH) / "indices"
+        candidates = [
+            Path.cwd() / self.filename,
+            user_dir / self.filename,
+            legacy_config_dir / self.filename,
+            FETCH_DATA_DIR / self.filename,
+        ]
+        if path is not None:
+            self.path = Path(path).expanduser().resolve()
+        elif local:
+            self.path = Path.cwd() / self.filename
         else:
-            self.path = Path(self.filename)
+            self.path = next(
+                (p for p in candidates if p.is_file()), user_dir / self.filename
+            )
 
         self.features: List[Any] = []
         self._load()
