@@ -195,7 +195,7 @@ def _make_subset(service, url, params, region):
     url="THREDDS catalog.xml URL, or direct NCSS/WCS dataset endpoint.",
     catalog_url="Alias for url (catalog XML).",
     service="HTTPServer (default), OPENDAP, NCSS, or WCS.",
-    pattern="Dataset name glob(s), e.g. *.nc, or substring(s).",
+    pattern="Dataset name glob(s), e.g. `*.nc`, or substring(s).",
     recursive="Follow THREDDS catalogRef links (default true).",
     max_depth="Maximum catalogRef traversal depth.",
     max_catalogs="Maximum number of catalog XML requests.",
