@@ -119,6 +119,7 @@ def test_unsupported_crs_and_axis():
         ("(1/3)s", 1 / (3 * 3600)),
         ("(.1)s", 0.1 / 3600),
         ("(.1/36000)s", 0.1 / (36000 * 3600)),
+        ("( .1 / 36000 ) s", 0.1 / (36000 * 3600)),
     ],
 )
 def test_parenthesized_increments(value, expected):

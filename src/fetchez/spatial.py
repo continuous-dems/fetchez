@@ -100,10 +100,15 @@ def _parse_increment_value(value):
         number = _parse_fraction(text)
         return (number, None) if number is not None else None
 
-    if len(text) > 2 and text[:-1].endswith(")") and text[:-1].startswith("("):
+    number_text = text[:-1].strip()
+    if (
+        len(number_text) > 2
+        and number_text.endswith(")")
+        and number_text.startswith("(")
+    ):
         unit = text[-1]
         if unit in "dmscefkMnut":
-            number = _parse_fraction(text[:-1])
+            number = _parse_fraction(number_text)
             if number is not None:
                 return (number, unit)
 
