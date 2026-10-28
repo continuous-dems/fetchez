@@ -68,11 +68,14 @@ _LINEAR_METERS = {
 
 
 def _parse_fraction(text):
+    """Parse a parenthesized positive number or ratio."""
+    text = text.strip()
+
     if not (text.startswith("(") and text.endswith(")")):
         return None
 
     try:
-        parts = text[1:-1].split("/")
+        parts = [part.strip() for part in text[1:-1].split("/")]
 
         if len(parts) == 1:
             result = Fraction(parts[0])
@@ -93,43 +96,34 @@ def _parse_increment_value(value):
         return None
 
     if isinstance(value, Fraction):
-        number = float(value)
+        try:
+            number = float(value)
+        except OverflowError:
+            return None
         return (number, None) if math.isfinite(number) and number > 0 else None
 
     text = str(value).strip()
     if not text or text.lower() == "none":
         return None
 
-    if text.startswith("(") and text.endswith(")"):
-        number = _parse_fraction(text)
-        return (number, None) if number is not None else None
+    unit = None
 
-    number_text = text[:-1].strip()
-    if (
-        len(number_text) > 2
-        and number_text.endswith(")")
-        and number_text.startswith("(")
-    ):
+    if text[-1] in "dmscefkMnut":
         unit = text[-1]
-        if unit in "dmscefkMnut":
-            number = _parse_fraction(number_text)
-            if number is not None:
-                return (number, unit)
+        text = text[:-1].strip()
 
     try:
-        number = float(text)
-        return (number, None) if math.isfinite(number) and number > 0 else None
-    except ValueError:
-        pass
-
-    if len(text) < 2 or text[-1] not in "dmscefkMnut":
+        if text.startswith("("):
+            number = _parse_fraction(text)
+        else:
+            number = float(text)
+    except (ValueError, OverflowError):
         return None
 
-    try:
-        number = float(text[:-1])
-        return (number, text[-1]) if math.isfinite(number) and number > 0 else None
-    except ValueError:
+    if number is None or not math.isfinite(number) or number <= 0:
         return None
+
+    return number, unit
 
 
 def parse_increments(value, crs="EPSG:4326", *, at=None, axis="x"):
