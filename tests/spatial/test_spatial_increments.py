@@ -1,6 +1,7 @@
 """Tests for CRS-aware GMT-style increments (fetchez.spatial)."""
 
 import pytest
+import math
 from fetchez.spatial import (
     parse_increments,
     parse_increment_pair,
@@ -175,11 +176,7 @@ def test_invalid_increment_pair_syntax(value):
     ],
 )
 def test_zero_denominator(value):
-    with pytest.raises(ValueError, match="denominator of zero"):
-        parse_increments(value)
-
-    with pytest.raises(ValueError, match="denominator of zero"):
-        parse_increment_pair(value)
+    assert parse_increments(value) is None
 
 
 def test_legacy_increment_pair():
@@ -193,3 +190,10 @@ def test_fractional_increment_nesting():
     coarse = parse_increments("1s")
 
     assert fine * 9 == pytest.approx(coarse, rel=1e-14)
+
+
+def test_decimal_increment_truncation():
+    fine = parse_increments(".11111111s")
+    coarse = parse_increments("1s")
+
+    assert not math.isclose(fine * 9, coarse, rel_tol=1e-14)

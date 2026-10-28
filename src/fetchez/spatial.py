@@ -83,11 +83,7 @@ def _parse_fraction(text):
 
         number = float(result)
         return number if math.isfinite(number) and number > 0 else None
-    except ZeroDivisionError as exc:
-        raise ValueError(
-            f"Increment fraction cannot have a denominator of zero: {text}"
-        ) from exc
-    except (ValueError, OverflowError):
+    except (ValueError, OverflowError, ZeroDivisionError):
         return None
 
 
