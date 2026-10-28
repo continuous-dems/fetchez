@@ -92,6 +92,10 @@ def _parse_increment_value(value):
     if value is None:
         return None
 
+    if isinstance(value, Fraction):
+        number = float(value)
+        return (number, None) if math.isfinite(number) and number > 0 else None
+
     text = str(value).strip()
     if not text or text.lower() == "none":
         return None
