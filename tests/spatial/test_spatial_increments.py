@@ -1,7 +1,11 @@
 """Tests for CRS-aware GMT-style increments (fetchez.spatial)."""
 
 import pytest
-from fetchez.spatial import parse_increments
+from fetchez.spatial import (
+    parse_increments,
+    parse_increment_pair,
+    _split_increment_pair,
+)
 from fetchez.utils import str2inc
 
 
@@ -104,3 +108,88 @@ def test_unsupported_crs_and_axis():
         parse_increments("1s", crs="not-a-crs")
     with pytest.raises(ValueError):
         parse_increments("1s", axis="z")
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("(1)s", 1 / 3600),
+        ("(1/9)s", 1 / (9 * 3600)),
+        ("(1/3)s", 1 / (3 * 3600)),
+        ("(.1)s", 0.1 / 3600),
+        ("(.1/36000)s", 0.1 / (36000 * 3600)),
+    ],
+)
+def test_parenthesized_increments(value, expected):
+    assert parse_increments(value) == pytest.approx(expected)
+
+
+def test_fractional_increment_pair():
+    x, y = parse_increment_pair("(1/9)s/(1/3)s")
+
+    assert x == pytest.approx(1 / (9 * 3600))
+    assert y == pytest.approx(1 / (3 * 3600))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "(1/9)s",
+        "(1)s",
+        "(.1)s",
+        "(1/9)s/(1/3)s",
+        "(1/9)s/3s",
+        "1s/(1/3)s",
+        "1s/3s",
+        "1/2",
+        "(1/9)",
+    ],
+)
+def test_increment_pair_syntax(value):
+    x, y = parse_increment_pair(value)
+    assert x is not None
+    assert y is not None
+    assert x > 0
+    assert y > 0
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "(1/9s",
+        "1/9)s",
+        "((1/9))s",
+        "(1/9)s/3s/1s",
+    ],
+)
+def test_invalid_increment_pair_syntax(value):
+    with pytest.raises(ValueError):
+        _split_increment_pair(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "(1/0)",
+        "(1/0)s",
+    ],
+)
+def test_zero_denominator(value):
+    with pytest.raises(ValueError, match="denominator of zero"):
+        parse_increments(value)
+
+    with pytest.raises(ValueError, match="denominator of zero"):
+        parse_increment_pair(value)
+
+
+def test_legacy_increment_pair():
+    assert parse_increment_pair("1/2") == (1.0, 2.0)
+
+    assert parse_increments("1/2") is None
+
+
+def test_fractional_increment_nesting():
+    fine = parse_increments("(1/9)s")
+    coarse = parse_increments("1s")
+
+    assert fine * 9 == pytest.approx(coarse, rel=1e-14)

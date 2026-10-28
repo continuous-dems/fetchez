@@ -18,6 +18,7 @@ import logging
 import warnings
 from pathlib import Path
 from typing import Union, List, Tuple, Optional
+from fractions import Fraction
 
 from shapely.geometry import shape, box
 from shapely import from_wkb
@@ -66,6 +67,30 @@ _LINEAR_METERS = {
 }
 
 
+def _parse_fraction(text):
+    if not (text.startswith("(") and text.endswith(")")):
+        return None
+
+    try:
+        parts = text[1:-1].split("/")
+
+        if len(parts) == 1:
+            result = Fraction(parts[0])
+        elif len(parts) == 2:
+            result = Fraction(parts[0]) / Fraction(parts[1])
+        else:
+            return None
+
+        number = float(result)
+        return number if math.isfinite(number) and number > 0 else None
+    except ZeroDivisionError as exc:
+        raise ValueError(
+            f"Increment fraction cannot have a denominator of zero: {text}"
+        ) from exc
+    except (ValueError, OverflowError):
+        return None
+
+
 def _parse_increment_value(value):
     """Return (positive magnitude, unit) or None for an invalid increment."""
     if value is None:
@@ -75,30 +100,40 @@ def _parse_increment_value(value):
     if not text or text.lower() == "none":
         return None
 
+    if text.startswith("(") and text.endswith(")"):
+        number = _parse_fraction(text)
+        return (number, None) if number is not None else None
+
+    if len(text) > 2 and text[:-1].endswith(")") and text[:-1].startswith("("):
+        unit = text[-1]
+        if unit in "dmscefkMnut":
+            number = _parse_fraction(text[:-1])
+            if number is not None:
+                return (number, unit)
+
     try:
         number = float(text)
-    except ValueError:
-        number = None
-
-    if number is not None:
         return (number, None) if math.isfinite(number) and number > 0 else None
+    except ValueError:
+        pass
 
     if len(text) < 2 or text[-1] not in "dmscefkMnut":
         return None
 
     try:
         number = float(text[:-1])
+        return (number, text[-1]) if math.isfinite(number) and number > 0 else None
     except ValueError:
         return None
-
-    if not math.isfinite(number) or number <= 0:
-        return None
-
-    return number, text[-1]
 
 
 def parse_increments(value, crs="EPSG:4326", *, at=None, axis="x"):
     """Parse one positive GMT-style increment into coordinate units of *crs*.
+
+    Supports ordinary numeric increments (``1s``, ``0.5m``) and
+    parenthesized numbers or fractions (``(1)s``, ``(1/9)s``,
+    ``(1/3)m``). Parentheses distinguish fractions from the
+    ``x/y`` increment-pair separator.
 
     Unsuffixed values are already in target CRS coordinate units. Geographic
     suffixes d/m/s/c denote degrees, minutes, and seconds; linear suffixes
@@ -188,21 +223,50 @@ def parse_increments(value, crs="EPSG:4326", *, at=None, axis="x"):
     return math.radians(delta) / unit_factor
 
 
-def parse_increment_pair(value, crs="EPSG:4326", *, at=None):
-    """Return (x_increment, y_increment) from a scalar or ``x/y`` string.
+def _split_increment_pair(value):
+    """Split x/y increments, ignoring slashes inside parentheses."""
+    depth = 0
+    separators = []
 
-    A single value applies to both axes.
+    for i, char in enumerate(value):
+        if char == "(":
+            depth += 1
+            if depth > 1:
+                raise ValueError("Nested parentheses are not supported")
+        elif char == ")":
+            depth -= 1
+            if depth < 0:
+                raise ValueError("Unbalanced increment parentheses")
+        elif char == "/" and depth == 0:
+            separators.append(i)
+
+    if depth != 0:
+        raise ValueError("Unbalanced increment parentheses")
+
+    if len(separators) > 1:
+        raise ValueError("Expected a single increment or x/y pair")
+
+    if not separators:
+        return value, value
+
+    pos = separators[0]
+    return value[:pos], value[pos + 1 :]
+
+
+def parse_increment_pair(value, crs="EPSG:4326", *, at=None):
+    """Return (x_increment, y_increment) from a scalar or x/y string.
+
+    A single value applies to both axes. Slashes inside parentheses
+    represent fractions; slashes outside parentheses separate x/y.
     """
     if isinstance(value, (tuple, list)):
         if len(value) != 2:
             raise ValueError("Increment pair must have two elements")
         x, y = value
-    elif isinstance(value, str) and "/" in value:
-        parts = value.split("/")
-        if len(parts) != 2:
-            raise ValueError("Expected x/y increment pair")
 
-        x, y = parts
+    elif isinstance(value, str):
+        x, y = _split_increment_pair(value)
+
     else:
         x = y = value
 
