@@ -198,3 +198,43 @@ def test_decimal_increment_truncation():
     coarse = parse_increments("1s")
 
     assert not math.isclose(fine * 9, coarse, rel_tol=1e-14)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "(0/1)s",
+        "(1/0)s",
+        "()s",
+        "(1/9/3)s",
+        "(0s)",
+        "(abc)s",
+        "(10*.3)s",
+    ],
+)
+def test_invalid_fractional_increments(value):
+    assert parse_increments(value) is None
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "(1/9)s",
+        "(1/9) s",
+        " (1/9) s ",
+        "( 1 / 9 ) s",
+    ],
+)
+def test_fractional_increment_whitespace(value):
+    assert parse_increments(value) == pytest.approx(1 / (9 * 3600))
+
+
+def test_native_fraction_increment():
+    from fractions import Fraction
+
+    assert parse_increments(Fraction(1, 9)) == pytest.approx(1 / 9)
+
+    x, y = parse_increment_pair((Fraction(1, 9), Fraction(1, 3)))
+
+    assert x == pytest.approx(1 / 9)
+    assert y == pytest.approx(1 / 3)
