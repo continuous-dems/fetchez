@@ -40,7 +40,7 @@ def configure_logging(
     if handler is None:
         handler = TqdmLoggingHandler()
 
-    handler.setFormatter(logging.Formatter("[ %(levelname)s ] %(module)s: %(message)s"))
+    handler.setFormatter(logging.Formatter("[ %(levelname)s ] %(name)s: %(message)s"))
     handler._fetchez_managed = True
     logger.addHandler(handler)
 

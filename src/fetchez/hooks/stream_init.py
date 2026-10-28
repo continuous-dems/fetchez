@@ -317,9 +317,10 @@ class DataStream(FetchHook):
         entry["stream_type"] = self._reader_stream_type(reader)
 
         logger.debug(
-            "[stream-init] Initialized %s using reader %s (stream_type=%s).",
+            "[stream-init] Initialized %s using reader %s (src=%s, stream_type=%s).",
             src,
             reader.name,
+            entry["src_srs"],
             entry["stream_type"],
         )
 
