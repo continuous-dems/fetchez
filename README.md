@@ -15,7 +15,7 @@
   <a href="https://doi.org/10.5281/zenodo.22130386"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22130386.svg" alt="DOI"></a>
 </p>
 
-**Fetchez** is an open-source, extensible Python framework for **discovering, retrieving, caching, and processing geospatial data**. Connect to public data providers, work with your own files, or configure a source that Fetchez has never seen before—without writing a new Python downloader.
+**Fetchez** is an open-source, extensible Python framework for **discovering, retrieving, caching, and processing geospatial data**. Connect to public data providers, work with your own files, or configure a source that Fetchez has never seen before.
 
 Use the same building blocks from the **command line, Python, or YAML**. Combine data sources with processing hooks, save workflows as recipes, and share reusable configurations with colleagues. Fetchez handles the data plumbing so you can focus on what to do with the data.
 
