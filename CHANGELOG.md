@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Support parenthesized fractional grid increments (e.g., (1/9)s, (1/3)s) using exact rational parsing before conversion to floating point, avoiding truncated decimal approximations.
+- Support fractional x/y increment pairs (e.g., (1/9)s/(1/3)s) while preserving existing GMT-style increment syntax and backward compatibility.
+- Added `spatial.parse_increment_list` to parse `/`-separated increment lists of any length (e.g., `(1/9)s/(1/3)s/1s`). It raises ValueError on a malformed list or an invalid item.
 - Added module `thredds` as a generic thredds fetch module.
 - Added module `http_index` as a generic http fetch module.
 - Added module `rest.py` as a generic REST API fetch module.
@@ -15,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ValueError to `to_*` sptaial.Region functions to raise on invalid geometries.
 
 ### CHANGED
+- Renamed `spatial.parse_increments` to `spatial.parse_increment`; the old name remains as an alias.
+- `spatial.parse_increment_pair` now wraps `parse_increment_list`. An invalid increment now raises ValueError instead of returning `(None, None)`.
 - Updated options and features in the `stac` module and added tests and docs.
 - Updated the generic `stac` module to be more robust and ready for expansion
 

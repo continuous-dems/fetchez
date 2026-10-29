@@ -366,10 +366,10 @@ def inc2str(inc: float) -> str:
 
 
 def str2inc(value, crs="EPSG:4326", *, at=None, axis="x"):
-    """Compatibility wrapper for `fetchez.spatial.parse_increments`."""
-    from fetchez.spatial import parse_increments
+    """Compatibility wrapper for `fetchez.spatial.parse_increment`."""
+    from fetchez.spatial import parse_increment
 
-    return parse_increments(value, crs=crs, at=at, axis=axis)
+    return parse_increment(value, crs=crs, at=at, axis=axis)
 
 
 def remove_glob2(*args: str) -> int:

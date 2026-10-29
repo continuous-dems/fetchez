@@ -18,6 +18,7 @@ import logging
 import warnings
 from pathlib import Path
 from typing import Union, List, Tuple, Optional
+from fractions import Fraction
 
 from shapely.geometry import shape, box
 from shapely import from_wkb
@@ -66,39 +67,72 @@ _LINEAR_METERS = {
 }
 
 
+def _parse_fraction(text):
+    """Parse a parenthesized positive number or ratio."""
+    text = text.strip()
+
+    if not (text.startswith("(") and text.endswith(")")):
+        return None
+
+    try:
+        parts = [part.strip() for part in text[1:-1].split("/")]
+
+        if len(parts) == 1:
+            result = Fraction(parts[0])
+        elif len(parts) == 2:
+            result = Fraction(parts[0]) / Fraction(parts[1])
+        else:
+            return None
+
+        number = float(result)
+        return number if math.isfinite(number) and number > 0 else None
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return None
+
+
 def _parse_increment_value(value):
     """Return (positive magnitude, unit) or None for an invalid increment."""
     if value is None:
         return None
 
+    if isinstance(value, Fraction):
+        try:
+            number = float(value)
+        except OverflowError:
+            return None
+        return (number, None) if math.isfinite(number) and number > 0 else None
+
     text = str(value).strip()
     if not text or text.lower() == "none":
         return None
 
-    try:
-        number = float(text)
-    except ValueError:
-        number = None
+    unit = None
 
-    if number is not None:
-        return (number, None) if math.isfinite(number) and number > 0 else None
-
-    if len(text) < 2 or text[-1] not in "dmscefkMnut":
-        return None
+    if text[-1] in "dmscefkMnut":
+        unit = text[-1]
+        text = text[:-1].strip()
 
     try:
-        number = float(text[:-1])
-    except ValueError:
+        if text.startswith("("):
+            number = _parse_fraction(text)
+        else:
+            number = float(text)
+    except (ValueError, OverflowError):
         return None
 
-    if not math.isfinite(number) or number <= 0:
+    if number is None or not math.isfinite(number) or number <= 0:
         return None
 
-    return number, text[-1]
+    return number, unit
 
 
-def parse_increments(value, crs="EPSG:4326", *, at=None, axis="x"):
+def parse_increment(value, crs="EPSG:4326", *, at=None, axis="x"):
     """Parse one positive GMT-style increment into coordinate units of *crs*.
+
+    Supports ordinary numeric increments (``1s``, ``0.5m``) and
+    parenthesized numbers or fractions (``(1)s``, ``(1/9)s``,
+    ``(1/3)m``). Parentheses distinguish fractions from the
+    ``x/y`` increment-pair separator.
 
     Unsuffixed values are already in target CRS coordinate units. Geographic
     suffixes d/m/s/c denote degrees, minutes, and seconds; linear suffixes
@@ -109,6 +143,13 @@ def parse_increments(value, crs="EPSG:4326", *, at=None, axis="x"):
     Angular-to-projected conversion requires ``at``. For linear-to-geographic
     conversion, the default reference is (0, 0), where the result approximates
     the displacement at the equator. ``axis`` specifies X/east or Y/north.
+
+    Returns None if *value* is not a valid positive increment (including
+    ``x/y`` lists; use `parse_increment_list` or `parse_increment_pair`).
+
+    Raises:
+        ValueError: If *crs*, *at* or *axis* is invalid, or a valid increment
+            cannot be converted at the given location.
     """
     parsed = _parse_increment_value(value)
     if parsed is None:
@@ -188,28 +229,114 @@ def parse_increments(value, crs="EPSG:4326", *, at=None, axis="x"):
     return math.radians(delta) / unit_factor
 
 
-def parse_increment_pair(value, crs="EPSG:4326", *, at=None):
-    """Return (x_increment, y_increment) from a scalar or ``x/y`` string.
+# Older name, public since 0.12.0.
+parse_increments = parse_increment
 
-    A single value applies to both axes.
+
+def _split_increment_list(value):
+    """Split a '/'-separated increment list, ignoring slashes inside parentheses.
+
+    Returns the items as stripped strings.
+
+    Raises:
+        ValueError: If parentheses are unbalanced or nested.
+    """
+    depth = 0
+    start = 0
+    items = []
+
+    for i, char in enumerate(value):
+        if char == "(":
+            depth += 1
+            if depth > 1:
+                raise ValueError("Nested parentheses are not supported")
+        elif char == ")":
+            depth -= 1
+            if depth < 0:
+                raise ValueError("Unbalanced increment parentheses")
+        elif char == "/" and depth == 0:
+            items.append(value[start:i].strip())
+            start = i + 1
+
+    if depth != 0:
+        raise ValueError("Unbalanced increment parentheses")
+
+    items.append(value[start:].strip())
+    return items
+
+
+def parse_increment_list(value, crs="EPSG:4326", *, at=None, axis="x"):
+    """Return a list of increments from a '/'-separated string or a sequence.
+
+    Accepts any number of increments, e.g. ``1s``, ``1s/3s/9s`` or
+    ``(1/9)s/(1/3)s/1s``. Slashes inside parentheses are fractions; slashes
+    outside parentheses separate items. A list or tuple is parsed item by
+    item, and any other scalar is a one-item list. Each item is parsed with
+    `parse_increment`.
+
+    ``axis`` is either one axis ('x' or 'y') for every item, or a sequence
+    with one axis per item.
+
+    Raises:
+        ValueError: If the list is malformed (unbalanced or nested
+            parentheses, empty items), any item is not a valid increment,
+            ``axis`` does not match the number of items, or `parse_increment`
+            raises.
     """
     if isinstance(value, (tuple, list)):
-        if len(value) != 2:
-            raise ValueError("Increment pair must have two elements")
-        x, y = value
-    elif isinstance(value, str) and "/" in value:
-        parts = value.split("/")
-        if len(parts) != 2:
-            raise ValueError("Expected x/y increment pair")
-
-        x, y = parts
+        items = list(value)
+    elif isinstance(value, str):
+        items = _split_increment_list(value)
     else:
-        x = y = value
+        items = [value]
 
-    return (
-        parse_increments(x, crs=crs, at=at, axis="x"),
-        parse_increments(y, crs=crs, at=at, axis="y"),
-    )
+    if not items:
+        raise ValueError("Increment list is empty")
+
+    if isinstance(axis, str):
+        axes = [axis] * len(items)
+    else:
+        axes = list(axis)
+        if len(axes) != len(items):
+            raise ValueError(
+                f"Got {len(axes)} axes for {len(items)} increments in {value!r}"
+            )
+
+    increments = []
+    for item, item_axis in zip(items, axes, strict=True):
+        inc = parse_increment(item, crs=crs, at=at, axis=item_axis)
+        if inc is None:
+            raise ValueError(f"Invalid increment {item!r} in {value!r}")
+        increments.append(inc)
+
+    return increments
+
+
+def parse_increment_pair(value, crs="EPSG:4326", *, at=None):
+    """Return (x_increment, y_increment) from a single value or an x/y pair.
+
+    A single value applies to both axes. Slashes inside parentheses
+    represent fractions; slashes outside parentheses separate x/y. This is
+    `parse_increment_list` limited to one or two items.
+
+    Raises:
+        ValueError: If there are more than two increments, or for any reason
+            `parse_increment_list` raises.
+    """
+    if isinstance(value, (tuple, list)):
+        items = list(value)
+    elif isinstance(value, str):
+        items = _split_increment_list(value)
+    else:
+        items = [value]
+
+    if len(items) == 1:
+        items = items * 2
+    if len(items) != 2:
+        raise ValueError(f"Expected a single increment or x/y pair, got {value!r}")
+
+    x, y = parse_increment_list(items, crs=crs, at=at, axis=("x", "y"))
+    return x, y
 
 
 # =============================================================================
