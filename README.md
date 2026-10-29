@@ -15,7 +15,7 @@
   <a href="https://doi.org/10.5281/zenodo.22130386"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22130386.svg" alt="DOI"></a>
 </p>
 
-**Fetchez** is an open-source, extensible Python framework for **discovering, retrieving, caching, and processing geospatial data**. Connect to public data providers, work with your own files, or configure a source that Fetchez has never seen before—without writing a new Python downloader.
+**Fetchez** is an open-source, extensible Python framework for **discovering, retrieving, caching, and processing geospatial data**. Connect to public data providers, work with your own files, or configure a source that Fetchez has never seen before.
 
 Use the same building blocks from the **command line, Python, or YAML**. Combine data sources with processing hooks, save workflows as recipes, and share reusable configurations with colleagues. Fetchez handles the data plumbing so you can focus on what to do with the data.
 
@@ -37,7 +37,7 @@ Some workflows also use external command-line programs such as GDAL. These are i
 
 ## From discovery to a reusable workflow
 
-Imagine you need elevation data around San Diego. You could look for a prebuilt provider module—but with Fetchez, you can also query a public STAC catalog directly.
+Imagine you need elevation data around San Diego. You could look for a [prebuilt provider module](https://fetchez.readthedocs.io/en/latest/modules/index.html), or you can also query a public STAC catalog directly.
 
 ### 1. Discover data
 
@@ -110,11 +110,14 @@ You don't have to rebuild a workflow by hand each time. Export a configured pipe
 fetchez build \
   -R 'loc:san diego, ca' \
   --export san_diego_dem.yaml \
-  list-only stac \
+  stac \
   --url https://earth-search.aws.element84.com/v1 \
   --collections cop-dem-glo-30 \
   --assets data \
-  --limit 100
+  --limit 100 \
+  exec \
+  --cmd "gdal_translate {file} {output}" \
+  --suffix "_trans"
 ```
 
 Run the exported recipe later:
@@ -140,15 +143,15 @@ That fragment describes a source, not an entire runnable recipe or registered bu
 
 ## Bring your own data source
 
-A major goal of Fetchez is to make new datasets accessible **through configuration first**, rather than requiring new Python code for every provider.
+Fetchez allows you to make new datasets **through configuration first**, rather than requiring new Python code for every provider.
 
-| Generic module | Best for |
-| --- | --- |
-| **`local_fs`** | Files, file lists, and directories already on your machine |
+| Generic module   | Best for                                                                                                  |
+|------------------|-----------------------------------------------------------------------------------------------------------|
+| **`local_fs`**   | Files, file lists, and directories already on your machine                                                |
 | **`http_index`** | HTTP directory listings and web pages linking to downloadable assets, with optional FRED spatial indexing |
-| **`rest_api`** | REST/JSON APIs, search responses, pagination, and discovered asset URLs |
-| **`stac`** | Spatial and temporal asset catalogs, including imagery, elevation, lidar, and other cloud datasets |
-| **`thredds`** | Scientific THREDDS catalogs and services including HTTPServer, NCSS, WCS, and OPeNDAP |
+| **`rest_api`**   | REST/JSON APIs, search responses, pagination, and discovered asset URLs                                   |
+| **`stac`**       | Spatial and temporal asset catalogs, including imagery, elevation, lidar, and other cloud datasets        |
+| **`thredds`**    | Scientific THREDDS catalogs and services including HTTPServer, NCSS, WCS, and OPeNDAP                     |
 
 For example, accessing files advertised by a ScienceBase record can be as simple as configuring `rest_api`:
 
