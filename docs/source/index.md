@@ -117,7 +117,7 @@ dict_keys(['modules', 'bundles', 'hooks', 'recipes', 'schemas', 'modifiers', 'pr
 
 Fetchez workflows are assembled from a small set of reusable component types:
 
-* **Modules and Bundles** discover and retrieve data.
+* **Modules** discover and retrieve data.
   * **Bundles** compose reusable groups of Modules.
 * **Hooks** process data as it moves through the pipeline.
   * **Presets** package reusable Hook chains.
