@@ -340,3 +340,5 @@ my_project_modifiers = "my_project.recipes.modifiers"
 [project.entry-points."fetchez.recipes.schemas"]
 my_project_schemas = "my_project.recipes.schemas"
 ```
+
+> Next up: See [Plugins and Extensions](plugins_and_extensions.md) to learn how to extend Fetchez with custom modules and hooks or use it in your application.

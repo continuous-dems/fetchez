@@ -1,4 +1,4 @@
-# 🗃️ Streams & Readers
+# 🗃️ Streams &xs Readers
 
 Fetchez provides a composable streaming interface for acquiring files, decoding them with registered readers, and processing data in chunks. The Python API uses `read()` to define sources and `.pipe()` to configure the processing hooks. This is a lightweight alternative to a full YAML recipe for interactive or application-level workflows.
 
@@ -249,3 +249,5 @@ Use the reader name and options supported by your installation. Profiles can be 
 ## When to use recipes instead
 
 `read().pipe()` is intended for lightweight, programmatic streaming. When a workflow requires persistent YAML configuration, complex module/bundle expansion, modifiers, schemas, or coordinated multi-stage outputs, prefer a Fetchez recipe. Both interfaces use the same underlying module, hook, and registry ecosystem.
+
+> Next up: See [Recipes](recipes.md) to learn about composable and reusable recipes.
