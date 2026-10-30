@@ -2,10 +2,21 @@
 
 Fetchez comes builtin with [more than 100 different modules](https://fetchez.readthedocs.io/en/latest/modules/index.html) to access geospatial data from various remote apis and local file-systems.
 
+Along with the specific provider modules, Fetchez allows you to make new datasets **through configuration first**, rather than requiring new Python code for every provider.
+
+| Generic module                            | Best for                                                                                                  |
+|-------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| **`local_fs`**                            | Files, file lists, and directories already on your machine                                                |
+| [**`http_index`**](modules/http_index.md) | HTTP directory listings and web pages linking to downloadable assets, with optional FRED spatial indexing |
+| [**`rest_api`**](modules/rest_api.md)     | REST/JSON APIs, search responses, pagination, and discovered asset URLs                                   |
+| [**`stac`**](modules/stac.md)             | Spatial and temporal asset catalogs, including imagery, elevation, lidar, and other cloud datasets        |
+| [**`thredds`**](modules/thredds.md)       | Scientific THREDDS catalogs and services including HTTPServer, NCSS, WCS, and OPeNDAP                     |
+
+
 ## Module Reference
 
 For detailed documentation of individual modules, including configuration,
-examples, and limitations, see the Module Reference.
+examples, and limitations, see the [Module Reference](modules/index.md).
 
 Not every registered module has a dedicated documentation page.
 Use the `fetchez modules` CLI commands or the `ModuleRegistry` to discover
@@ -124,3 +135,5 @@ my_project_modules = "my_project.modules"
 [project.entry-points."fetchez.modules.bundles"]
 my_project_bundles = "my_project.modules.bundles"
 ```
+
+> Next up: See [Hooks and Presets](hooks_and_presets.md) to learn about data processing hooks and presets.

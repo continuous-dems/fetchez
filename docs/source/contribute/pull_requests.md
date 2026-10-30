@@ -1,4 +1,4 @@
-# 📝 Pull Request Guidelines
+# 📥 Pull Request Guidelines
 
 1.  **Branching:** Create a new branch for your changes (`git checkout -b feature/add-mydata`).
 2.  **Coding Style:** Refer to our Community Compass policy on [Software Quality](https://continuous-dems-community-compass.readthedocs.io/en/latest/policies/software-quality/).

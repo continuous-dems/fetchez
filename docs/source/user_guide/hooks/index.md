@@ -35,4 +35,4 @@ hooks = list_hooks()
 matching = search_hooks("raster")
 ```
 
-See [Hooks and Presets](../hooks_and_presets.md) for information about hook stages, configuration, and extension development.
+> See [Hooks and Presets](../hooks_and_presets.md) for information about hook stages, configuration, and extension development.

@@ -14,6 +14,7 @@ docs
 modules
 user_plugins
 user_hooks
+entry
 pull_requests
 license
 ```
