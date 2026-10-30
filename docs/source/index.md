@@ -125,6 +125,7 @@ Fetchez workflows are assembled from a small set of reusable component types:
   * **Modifiers** alter assembled recipes before execution.
   * **Schemas** validate workflows against domain requirements.
 * **Streams** provide reusable data access and processing interfaces.
+  * **Data Types** set data entry types to link entries to profiles and readers.
   * **Readers** provide data specific stream adaptors.
   * **Profiles** link data entries to stream readers.
 
