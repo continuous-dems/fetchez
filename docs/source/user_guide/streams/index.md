@@ -1,10 +1,10 @@
-# Stream Reference
+# Readers Reference
 
 Fetchez provides a composable streaming interface for acquiring files, decoding them with registered readers, and processing data in chunks.
 
 For an introduction to stream, readers and profiles, see [Streams and Readers](../streams.md).
 
-## Documented Streams
+## Documented Readers
 
 ```{toctree}
 :maxdepth: 2

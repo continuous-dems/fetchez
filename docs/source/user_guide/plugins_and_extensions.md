@@ -84,3 +84,5 @@ class ZulipNotifier(FetchHook):
 ```
 
 You can now use this in your presets, recipes and cli commands: `fetchez run copernicus --hook zulip_notify`
+
+> Next up: Ready to make custom modules, hooks and recipes? Want to contribute to the Fetchez ecosystem? See the [Contributor Guide](/contribute/index.md) for information on how to do so!

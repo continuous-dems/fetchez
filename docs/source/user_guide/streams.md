@@ -1,4 +1,4 @@
-# 🗃️ Streams &xs Readers
+# 🗃️ Streams & Readers
 
 Fetchez provides a composable streaming interface for acquiring files, decoding them with registered readers, and processing data in chunks. The Python API uses `read()` to define sources and `.pipe()` to configure the processing hooks. This is a lightweight alternative to a full YAML recipe for interactive or application-level workflows.
 
@@ -20,13 +20,13 @@ for chunk in stream:
 
 The `BaseStream` runs its processing pipeline in a background thread and uses a bounded queue to deliver chunks to the caller. Streaming can reduce memory use compared with loading an entire dataset, although individual readers and hooks may have their own buffering requirements.
 
-## Stream Reference
+## Reader Reference
 
-For detailed documentation of individual streams, readers, etc, including configuration,
-examples, and limitations, see the [Stream Reference](streams/index.md).
+For detailed documentation of individual streams, readers, profiles and data types, including configuration,
+examples, and limitations, see the [Reader Reference](streams/index.md).
 
-Not every registered hook has a dedicated documentation page.
-Use the `fetchez streams` CLI commands or the `StreamRegistry` or `ReaderRegistry` to discover
+Not every registered reader has a dedicated documentation page.
+Use the `fetchez streams` CLI commands or the `StreamRegistry`, `ReaderRegistry` or `ProfileRegistry` to discover
 additional built-in and extension-provided streams and readers.
 
 ```{toctree}
