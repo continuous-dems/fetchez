@@ -47,3 +47,5 @@ pip install "fetchez[full]"
 ```
 
 If you try to run a module without its required dependency, `fetchez` will exit with a helpful error message telling you exactly which extra group or pip package to install.
+
+> Next up: once installed, head to [Modules and Bundles](modules_and_bundles.md) to learn about data source modules and bundles.
