@@ -32,4 +32,4 @@ modules = list_modules()
 matching = search_modules("bathymetry")
 ```
 
-See [Modules and Bundles](../modules_and_bundles.md) for information about modules, configuration, and extension development.
+> See [Modules and Bundles](../modules_and_bundles.md) for information about modules, configuration, and extension development.

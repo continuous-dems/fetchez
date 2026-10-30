@@ -252,3 +252,5 @@ my_project_hooks = "my_project.hooks"
 [project.entry-points."fetchez.hooks.presets"]
 my_project_presetes = "my_project.hooks.presets"
 ```
+
+> Next up: See [Streams and Readers](streams.md) to learn about data streams and format readers.
