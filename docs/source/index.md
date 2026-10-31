@@ -14,7 +14,7 @@ Originally developed for the [CUDEM](https://github.com/ciresdem/cudem) project,
 
 * **Composable Pipelines:** Chain Modules, Bundles, Hooks, and Presets directly from the command line with `fetchez build`, from YAML recipes, or from Python.
 
-* **Registry-Driven CLI:** Installed Fetchez components and extension-provided components become available dynamically without hard-coding commands into the core CLI.
+* **Registry-Driven CLI:** Installed Fetchez components and extension-provided components become available dynamically, without hard-coding commands into the core CLI.
 
 * **Reusable Bundles & Presets:** Package common source collections and processing chains as declarative YAML components, with support for selective bundle expansion and configuration overrides.
 
