@@ -20,13 +20,13 @@ for chunk in stream:
 
 The `BaseStream` runs its processing pipeline in a background thread and uses a bounded queue to deliver chunks to the caller. Streaming can reduce memory use compared with loading an entire dataset, although individual readers and hooks may have their own buffering requirements.
 
-## Stream Reference
+## Reader Reference
 
-For detailed documentation of individual streams, readers, etc, including configuration,
-examples, and limitations, see the [Stream Reference](streams/index.md).
+For detailed documentation of individual streams, readers, profiles and data types, including configuration,
+examples, and limitations, see the [Reader Reference](streams/index.md).
 
-Not every registered hook has a dedicated documentation page.
-Use the `fetchez streams` CLI commands or the `StreamRegistry` or `ReaderRegistry` to discover
+Not every registered reader has a dedicated documentation page.
+Use the `fetchez streams` CLI commands or the `StreamRegistry`, `ReaderRegistry` or `ProfileRegistry` to discover
 additional built-in and extension-provided streams and readers.
 
 ```{toctree}
@@ -249,3 +249,5 @@ Use the reader name and options supported by your installation. Profiles can be 
 ## When to use recipes instead
 
 `read().pipe()` is intended for lightweight, programmatic streaming. When a workflow requires persistent YAML configuration, complex module/bundle expansion, modifiers, schemas, or coordinated multi-stage outputs, prefer a Fetchez recipe. Both interfaces use the same underlying module, hook, and registry ecosystem.
+
+> Next up: See [Recipes](recipes.md) to learn about composable and reusable recipes.
