@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated options and features in the `stac` module and added tests and docs.
 - Updated the generic `stac` module to be more robust and ready for expansion
 
+### FIXED
+- Fixed recipe receipts being written to the starting directory instead of each batch's tile directory (regression from #490).
+
 ## [0.12.2 - 10-23-26]
 ### FIXED
 - Fixed regression bug in recipe regarding config and context differing if modifiers get applied.
