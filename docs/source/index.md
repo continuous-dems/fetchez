@@ -4,7 +4,7 @@
 
 **Fetchez** is an open-source, extensible Python framework for **discovering, retrieving, caching, and processing geospatial data**. Connect to public data providers, work with your own files, or configure a source that Fetchez has never seen before.
 
-Use the same building blocks from the **command line, Python, or YAML**. Combine data sources with processing hooks, save workflows as recipes, and share reusable configurations with colleagues. Fetchez handles the data plumbing so you can focus on what to do with the data.
+Use the same building blocks from the **command line**, **Python**, or **YAML**. Combine data sources with processing hooks, save workflows as recipes, and share reusable configurations with colleagues.
 
 Originally developed for the [CUDEM](https://github.com/ciresdem/cudem) project, Fetchez now provides a general-purpose geospatial ETL and workflow foundation for applications including [Globato](https://github.com/continuous-dems/globato) and [Transformez](https://github.com/continuous-dems/transformez).
 
