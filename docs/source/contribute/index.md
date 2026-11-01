@@ -72,12 +72,12 @@ If you want to create reusable modules, hooks, or readers:
 dev_setup
 architecture
 entry
-bugs
-docs
 modules
 user_plugins
 user_hooks
 entry_points
+bugs
+docs
 feature_requests
 pull_requests
 license
