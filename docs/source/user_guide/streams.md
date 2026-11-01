@@ -1,8 +1,10 @@
 # 🗃️ Streams & Readers
 
-Fetchez provides a composable streaming interface for acquiring files, decoding them with registered readers, and processing data in chunks. The Python API uses `read()` to define sources and `.pipe()` to configure the processing hooks. This is a lightweight alternative to a full YAML recipe for interactive or application-level workflows.
+Fetchez provides a composable streaming interface for acquiring files, decoding them with registered readers, and processing data in chunks. This is a lightweight alternative to full YAML recipes when you're building interactive workflows or integrating Fetchez into another application.
 
-## Quick start
+> **Running example:** In [Usage](usage.md) and [Hooks](hooks_and_presets.md), we fetched DEM tiles, unzipped them, and ran `gdal_translate`. Streams are useful when you need to **read the actual data** (e.g., extract elevation values, build a DataFrame, compute statistics) rather than just manage files.
+
+## Quick Start
 
 ```python
 from fetchez.api import read
@@ -16,18 +18,18 @@ for chunk in stream:
     print(chunk)
 ```
 
-`read()` returns a `BaseStream`; it does not immediately fetch or decode data. Module objects are constructed when `read()` is called, but source discovery, fetching, reader initialization, and stream processing take place when the stream is iterated. Each new iteration runs the pipeline again; caches may avoid repeating some work.
+**What's happening:**
 
-The `BaseStream` runs its processing pipeline in a background thread and uses a bounded queue to deliver chunks to the caller. Streaming can reduce memory use compared with loading an entire dataset, although individual readers and hooks may have their own buffering requirements.
+* `read()` returns a `BaseStream` — it does not immediately fetch or decode data
+* Module objects are constructed when `read()` is called
+* Source discovery, fetching, reader initialization, and stream processing occur **during iteration**
+* Each new iteration runs the pipeline again; caches may avoid repeating some work
 
-## Reader Reference
+The `BaseStream` runs its processing pipeline in a background thread and uses a bounded queue to deliver chunks to the caller. Streaming reduces memory use compared to loading an entire dataset, although individual readers and hooks may have their own buffering requirements.
 
-For detailed documentation of individual streams, readers, profiles and data types, including configuration,
-examples, and limitations, see the [Reader Reference](streams/index.md).
+For detailed documentation of individual streams, readers, profiles, and data types — including configuration, examples, and limitations — see the [Reader Reference](streams/index.md).
 
-Not every registered reader has a dedicated documentation page.
-Use the `fetchez streams` CLI commands or the `StreamRegistry`, `ReaderRegistry` or `ProfileRegistry` to discover
-additional built-in and extension-provided streams and readers.
+Not every registered reader has a dedicated documentation page. Use the `fetchez streams` CLI commands or the `StreamRegistry`, `ReaderRegistry`, or `ProfileRegistry` to discover additional built-in and extension-provided streams and readers.
 
 ```{toctree}
 :maxdepth: 2
@@ -38,15 +40,21 @@ streams/index
 ## Choosing an API
 
 | API | Use it to | Result |
-| --- | --- | --- |
+|-----|-----------|--------|
 | `fetchez.get()` | Download data from a particular module | Local file paths |
 | `fetchez.read()` | Build and consume a lightweight stream of data | Lazy `BaseStream` |
 | `stream.pipe()` | Add a reader initializer or processing hook to a stream | The same stream, for chaining |
-| Recipes / `Pipeline` | Orchestrate more involved acquisition and processing workflows | Recipe-driven execution |
+| Recipes / `Pipeline` | Orchestrate more involved acquisition and processing workflows | Recipe-driven execution with modifiers, schemas, and multi-region support |
 
-## Defining sources
+## Defining Sources
 
-`read(sources, region=None, shared_cache=None)` accepts a source string, a source-definition dictionary, or a list of both. Strings may refer to registered modules, bundles, or local files. For module-specific configuration, prefer a dictionary:
+`read(sources, region=None, shared_cache=None)` accepts:
+
+* A source string (registered module, bundle, or local file)
+* A source-definition dictionary
+* A list of either
+
+Strings are convenient for quick experiments; dictionaries give you explicit control over module arguments:
 
 ```python
 stream = read({
@@ -66,22 +74,28 @@ stream = read([
 
 `region` specifies the region for discovery and processing where supported by the module. `shared_cache` configures a shared location for eligible downloaded resources.
 
-**Configuration scope matters:** `args` inside a source definition belongs to that module. Reader configuration belongs to a profile or an explicit `stream-init` hook. Do not assume arbitrary entry metadata is forwarded as reader arguments.
+### Configuration Scope Matters
 
-## Readers, data types, profiles, and streams
+* `args` inside a source definition belongs to that **module**
+* Reader configuration belongs to a **profile** or an explicit `stream-init` hook
+* Do not assume arbitrary entry metadata is forwarded as reader arguments
+
+## Readers, Data Types, Profiles, and Streams
 
 These terms describe different parts of the pipeline:
 
 | Concept | Meaning | Example |
-| --- | --- | --- |
-| `data_type` | Generic representation of an entry | `raster`, `vector` |
+|---------|---------|---------|
+| `data_type` | Generic representation of an entry | `raster`, `vector`, `archive` |
 | `profile` | Selected reader and its default options | A registered CSV profile |
-| Reader | Implementation that decodes the source | CSV reader |
-| `stream_type` | Representation produced by the reader | `list-stream`, `point-stream` |
+| Reader | Implementation that decodes the source | CSV reader implementation |
+| `stream_type` | Representation produced by the reader | `list-stream`, `point-stream`, `raster-stream` |
 
-A data type does not necessarily select a domain-specific interpretation. For instance, a raster might contain elevation, imagery, or weather information. An explicit profile lets the caller select the intended reader and configuration.
+A data type does not necessarily select a domain-specific interpretation. A raster might contain elevation, imagery, or weather information. An explicit profile lets the caller select the intended reader and configuration.
 
-### Explicit reader initialization
+See [Hooks & Presets](hooks_and_presets.md) for how hooks advertise `accepts` and `produces` stream types.
+
+### Explicit Reader Initialization
 
 Use `.pipe("stream-init", ...)` when you need control over the reader:
 
@@ -96,11 +110,11 @@ for chunk in stream:
     process(chunk)
 ```
 
-The profile supplies reader defaults; explicitly supplied `stream-init` options can override them. The profile name above is illustrative: use `list_profiles()` to discover the profiles installed in your environment, and consult the selected reader for its supported options.
+The profile supplies reader defaults; explicitly supplied `stream-init` options can override them. The profile name above is illustrative — use `list_profiles()` to discover the profiles installed in your environment, and consult the selected reader for its supported options.
 
-If a pipeline already has an entry profile or a suitable data-type default, it can resolve a reader without an explicit profile override. Fetchez can also insert a default stream initializer when stream-stage hooks are present and no initializer or existing stream is available. Explicit initialization is preferable when a format can be interpreted in several ways.
+If a pipeline already has an entry profile or a suitable data-type default, it can resolve a reader without an explicit profile override. Fetchez can also insert a default stream initializer when stream-stage hooks are present and no initializer or existing stream is available. **Explicit initialization is preferable when a format can be interpreted in several ways.**
 
-### Inline profiles
+### Inline Profiles
 
 An entry's `profile` may be a registered profile name or an inline dictionary:
 
@@ -126,7 +140,7 @@ custom = ProfileRegistry.resolve(
 
 This resolves a configuration; it does not register or mutate the original profile. The resolved dictionary can be assigned to an entry's `profile` before stream initialization.
 
-### Discovering readers and profiles
+### Discovering Readers and Profiles
 
 ```python
 from fetchez.api import list_readers, list_profiles, list_data_types
@@ -138,9 +152,9 @@ data_types = list_data_types()
 print(profiles.keys())
 ```
 
-Reader availability depends on the installed Fetchez packages and extensions. In particular, domain-specific readers provided by Globato are not necessarily available in a Fetchez-only installation.
+Reader availability depends on the installed Fetchez packages and extensions. Domain-specific readers (e.g., from Globato) are not necessarily available in a Fetchez-only installation.
 
-## Composing processing hooks with `.pipe()`
+## Composing Processing Hooks with `.pipe()`
 
 `.pipe()` accepts a registered hook name, a hook-definition dictionary, or an instantiated hook. It returns the stream, so calls can be chained:
 
@@ -157,15 +171,24 @@ for chunk in stream:
 
 The example processing hook must be installed and registered. Hook options are supplied directly to that hook, rather than broadcast to all modules or readers.
 
-**Execution order:** hooks run according to Fetchez pipeline stages, not strictly the order in which `.pipe()` is called. Manifest hooks run before fetching, file hooks process acquired files, stream hooks operate on streams, and collection hooks run after file/stream processing. Within stream-stage processing, `stream-init` is prioritized before other stream hooks.
+### Execution Order
 
-### Different profiles for different entries
+Hooks run according to Fetchez pipeline stages, **not** strictly the order in which `.pipe()` is called:
+
+* Manifest hooks run before fetching
+* File hooks process acquired files
+* Stream hooks operate on streams
+* Collection hooks run after file/stream processing
+
+Within stream-stage processing, `stream-init` is prioritized before other stream hooks. See [Hooks & Presets](hooks_and_presets.md) for the full lifecycle.
+
+### Different Profiles for Different Entries
 
 An explicit `.pipe("stream-init", profile=...)` is convenient for a homogeneous group of files. For mixed inputs, entries may instead carry their own profiles, which `get_reader_from_entry()` resolves separately. Do not apply a single specialized profile to unrelated data formats.
 
 Rule-based profile assignment is a planned extension; until it is implemented, use existing entry-producing or manifest-stage configuration to assign entry-specific profiles, or build separate streams when appropriate.
 
-## Example: domain-specific streaming with Globato
+## Example: Domain-Specific Streaming with Globato
 
 Globato extends the Fetchez streaming infrastructure with geospatial elevation readers and processing hooks. For example, a homogeneous collection of ICESat-2 ATL03 files can be processed using an explicitly configured reader:
 
@@ -187,7 +210,7 @@ photons = stream.to_dataframe()
 
 This illustrates why explicit reader options belong on `stream-init`: the source list identifies the files, while the reader profile and options determine how the photon data is interpreted. The Globato profile and its options require a compatible Globato installation.
 
-## Developing custom readers
+## Developing Custom Readers
 
 Readers decode source files and yield chunks to the streaming pipeline. Fetchez discovers implementations through `ReaderRegistry`; implementations inherit from `fetchez.streams.readers.BaseReader`.
 
@@ -215,11 +238,11 @@ class MyCustomReader(BaseReader):
 
 This is a conceptual skeleton, not a runnable reader: implement `decode_my_format`, confirm the input attribute names against your installed `BaseReader`, and provide any other required methods. Spatial readers can use bounding-box metadata or sidecars to accelerate later spatial operations; the exact behavior depends on the reader implementation.
 
-## Registering readers, streams, and profiles
+See the [Contributor Guide](../contribute/index.md) for implementing custom readers.
 
-Installed extensions can provide their own reader classes, stream classes, and YAML profiles. Fetchez discovers these through package entry points.
+## Registering Readers, Streams, and Profiles
 
-For a package laid out with corresponding importable subpackages, `pyproject.toml` can declare:
+Installed extensions can provide their own reader classes, stream classes, and YAML profiles. Fetchez discovers these through package entry points:
 
 ```toml
 [project.entry-points."fetchez.streams"]
@@ -234,7 +257,7 @@ my_project = "my_project.streams.profiles"
 
 Reader implementations should be Python modules in the reader package; registered profile YAML files should be placed in the profile package. Fetchez also supports user configuration under `~/.fetchez/streams/readers` and `~/.fetchez/streams/profiles`.
 
-For example, a YAML reader profile can describe the selected reader and its default arguments:
+A YAML reader profile can describe the selected reader and its default arguments:
 
 ```yaml
 name: custom-csv
@@ -246,8 +269,23 @@ reader:
 
 Use the reader name and options supported by your installation. Profiles can be selected by name, resolved with overrides, or supplied inline as entry metadata.
 
-## When to use recipes instead
+## When to Use Recipes Instead
 
-`read().pipe()` is intended for lightweight, programmatic streaming. When a workflow requires persistent YAML configuration, complex module/bundle expansion, modifiers, schemas, or coordinated multi-stage outputs, prefer a Fetchez recipe. Both interfaces use the same underlying module, hook, and registry ecosystem.
+`read().pipe()` is intended for **lightweight, programmatic streaming**. Choose it when:
 
-> Next up: See [Recipes](recipes.md) to learn about composable and reusable recipes.
+* You're building an interactive workflow
+* You need a simple data pipeline without YAML configuration
+* You're integrating Fetchez into another Python application
+
+Prefer a **Fetchez recipe** when:
+
+* You need persistent YAML configuration for reproducibility
+* Your workflow involves complex module/bundle expansion
+* You want to use modifiers, schemas, or validation
+* You need coordinated multi-region or multi-batch execution
+
+Both interfaces use the same underlying module, hook, and registry ecosystem. Recipes provide persistence and coordination; streams provide flexibility and immediacy.
+
+---
+
+**Next up:** See [Recipes](recipes.md) to learn about composable and reproducible workflows for production use.

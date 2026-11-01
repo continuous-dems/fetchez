@@ -62,8 +62,8 @@ fetchez build \
   --assets data \
   --limit 100 \
   exec \
-  --cmd "gdal_translate {file} {output}" \
-  --suffix "_trans"
+  --cmd "gdal_translate {file} {output} -co COMPRESS=DEFLATE" \
+  --suffix "_deflate"
 ```
 
 Here `audit` precedes the source, so it observes the whole run, while `exec` follows `stac`, so it processes only the entries that `stac` produced.
@@ -81,8 +81,8 @@ fetchez build \
   --assets data \
   --limit 100 \
   exec \
-  --cmd "gdal_translate {file} {output}" \
-  --suffix "_trans"
+  --cmd "gdal_translate {file} {output} -co COMPRESS=DEFLATE" \
+  --suffix "_deflate"
 ```
 
 Run it later with:
