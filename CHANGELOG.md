@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the generic `stac` module to be more robust and ready for expansion
 
 ### FIXED
+- Fixed region parsing on malformed region.
 - Fixed recipe receipts being written to the starting directory instead of each batch's tile directory (regression from #490).
 
 ## [0.12.2 - 10-23-26]

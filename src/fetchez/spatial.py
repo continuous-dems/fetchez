@@ -1091,8 +1091,8 @@ def parse_region(input_r: Union[str, List, None]) -> List[Region]:
                 regions.append(r)
         else:
             r = Region.from_string(input_r)
-            r.srs = target_crs
-            if r:
+            if r is not None:
+                r.srs = target_crs
                 regions.append(r)
 
     # List/Tuple (Coordinate list OR List of strings)
