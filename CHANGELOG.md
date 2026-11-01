@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.3 - 11-01-26]
+
 ### ADDED
 - Support parenthesized fractional grid increments (e.g., (1/9)s, (1/3)s) using exact rational parsing before conversion to floating point, avoiding truncated decimal approximations.
 - Support fractional x/y increment pairs (e.g., (1/9)s/(1/3)s) while preserving existing GMT-style increment syntax and backward compatibility.

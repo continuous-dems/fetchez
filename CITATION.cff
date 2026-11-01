@@ -9,8 +9,8 @@ abstract: >-
   Fetchez is a robust, highly modular, and extendable Python framework designed
   to orchestrate geospatial data engineering workflows.
 
-version: "0.12.2"
-date-released: "2026-10-23"
+version: "0.12.3"
+date-released: "2026-11-01"
 
 type: "software"
 license: "MIT"
