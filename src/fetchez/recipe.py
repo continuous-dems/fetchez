@@ -504,8 +504,12 @@ class Recipe:
 
         return " \\\n  ".join(cmd_parts)
 
-    def to_markdown(self, config, batch_name=None):
-        """Generates a Markdown receipt detailing the pipeline execution plan."""
+    def to_markdown(self, config, batch_name=None, out_dir=None):
+        """Generates a Markdown receipt detailing the pipeline execution plan.
+
+        The receipt is written to `out_dir` (the batch's tile directory when
+        called from `run`), falling back to the recipe's base directory.
+        """
 
         import datetime
 
@@ -518,7 +522,7 @@ class Recipe:
             batch_name if batch_name else self.name.lower().replace(" ", "_")
         )
         receipt_filename = f"{receipt_prefix}_receipt.md"
-        receipt_path = Path(self.base_dir / receipt_filename)
+        receipt_path = Path(out_dir or self.base_dir) / receipt_filename
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -1200,6 +1204,7 @@ class Recipe:
                 self.to_markdown(
                     plan.config,
                     batch_name=batch_name,
+                    out_dir=tile_dir,
                 )
 
                 _results = plan.execute()

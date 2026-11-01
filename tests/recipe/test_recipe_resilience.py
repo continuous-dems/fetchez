@@ -278,3 +278,30 @@ def test_schema_failure_policy(ignore_failures, monkeypatch):
     else:
         with pytest.raises(ValueError, match="Invalid test configuration"):
             recipe.compile(ignore_failures=False)
+
+
+def test_run_writes_each_receipt_into_its_tile_dir(
+    isolated_recipe, monkeypatch, tmp_path
+):
+    """Batch receipts go to the batch's tile directory, not the caller's cwd."""
+    monkeypatch.setattr(PipelinePlan, "execute", lambda self: [])
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    outdir = tmp_path / "out"
+
+    recipe = Recipe(
+        {
+            "project": {"name": "receipt-test"},
+            "region": [[-121.0, -120.75, 36.75, 37.0], [-121.25, -121.0, 36.75, 37.0]],
+            "modules": [{"module": "resilience-module"}],
+        }
+    )
+    list(recipe.run(outdir=str(outdir)))
+
+    tile_dirs = sorted(p for p in outdir.iterdir() if p.is_dir())
+    assert len(tile_dirs) == 2
+    for tile_dir in tile_dirs:
+        assert (tile_dir / f"{tile_dir.name}_receipt.md").is_file()
+    assert not list(elsewhere.glob("*_receipt.md"))
+    assert Path.cwd() == elsewhere
