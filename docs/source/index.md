@@ -4,7 +4,7 @@
 
 **Fetchez** is an open-source, extensible Python framework for **discovering, retrieving, caching, and processing geospatial data**. Connect to public data providers, work with your own files, or configure a source that Fetchez has never seen before.
 
-Use the same building blocks from the **command line, Python, or YAML**. Combine data sources with processing hooks, save workflows as recipes, and share reusable configurations with colleagues. Fetchez handles the data plumbing so you can focus on what to do with the data.
+Use the same building blocks from the **command line**, **Python**, or **YAML**. Combine data sources with processing hooks, save workflows as recipes, and share reusable configurations with colleagues.
 
 Originally developed for the [CUDEM](https://github.com/ciresdem/cudem) project, Fetchez now provides a general-purpose geospatial ETL and workflow foundation for applications including [Globato](https://github.com/continuous-dems/globato) and [Transformez](https://github.com/continuous-dems/transformez).
 
@@ -14,7 +14,7 @@ Originally developed for the [CUDEM](https://github.com/ciresdem/cudem) project,
 
 * **Composable Pipelines:** Chain Modules, Bundles, Hooks, and Presets directly from the command line with `fetchez build`, from YAML recipes, or from Python.
 
-* **Registry-Driven CLI:** Installed Fetchez components and extension-provided components become available dynamically without hard-coding commands into the core CLI.
+* **Registry-Driven CLI:** Installed Fetchez components and extension-provided components become available dynamically, without hard-coding commands into the core CLI.
 
 * **Reusable Bundles & Presets:** Package common source collections and processing chains as declarative YAML components, with support for selective bundle expansion and configuration overrides.
 
@@ -36,7 +36,7 @@ pip install fetchez
 
 ### Command Line Interface
 
-Discover available data from a registered Fetchez component, in this case using the builtin [`stac` module](user_guide/modules/stac.md):
+Discover available data from a registered Fetchez component; here, the built-in [`stac` module](user_guide/modules/stac.md):
 
 ```bash
 fetchez build \
@@ -45,24 +45,28 @@ fetchez build \
   stac \
   --url https://earth-search.aws.element84.com/v1 \
   --collections cop-dem-glo-30 \
-  --assets data \
+  --assets data
 ```
+
+`list_only` inspects matching entries without downloading them, which makes it a safe way to see what a source will return before committing to a transfer.
 
 In `fetchez build`, components are composed from left to right: hooks before the first source apply globally, while [hooks and presets](user_guide/hooks_and_presets.md) placed after a [module or bundle](user_guide/modules_and_bundles.md) apply only to that source.
 
 ```bash
 fetchez build \
   -R 'loc:san diego, ca' \
-  audit \  # Hook (Global)
-  stac \   # Module
+  audit \
+  stac \
   --url https://earth-search.aws.element84.com/v1 \
   --collections cop-dem-glo-30 \
   --assets data \
-  --limit 100
-  exec \   # Hook (Attched to the `stac` module
-  --cmd "gdal_translate {file} {output}"
-  --suffix "_trans"
+  --limit 100 \
+  exec \
+  --cmd "gdal_translate {file} {output} -co COMPRESS=DEFLATE" \
+  --suffix "_deflate"
 ```
+
+Here `audit` precedes the source, so it observes the whole run, while `exec` follows `stac`, so it processes only the entries that `stac` produced.
 
 Export the same pipeline as a reusable recipe:
 
@@ -75,10 +79,10 @@ fetchez build \
   --url https://earth-search.aws.element84.com/v1 \
   --collections cop-dem-glo-30 \
   --assets data \
-  --limit 100
+  --limit 100 \
   exec \
-  --cmd "gdal_translate {file} {output}"
-  --suffix "_trans"
+  --cmd "gdal_translate {file} {output} -co COMPRESS=DEFLATE" \
+  --suffix "_deflate"
 ```
 
 Run it later with:
@@ -87,7 +91,7 @@ Run it later with:
 fetchez run sd_cop.yaml
 ```
 
-### Python API:
+### Python API
 
 ```python
 >>> import fetchez
@@ -104,12 +108,11 @@ dict_keys(['modules', 'bundles', 'hooks', 'recipes', 'schemas', 'modifiers', 'pr
 >>> # Get the info dictionary about the `nos_hydro` module
 >>> nos_info = fetchez.registry.ModuleRegistry.get_info("nos_hydro")
 
->>> # Fetch NOS Hydrographic Data (Returns list of fetched local file paths)
+>>> # Fetch NOS Hydrographic Data (returns a list of fetched local file paths)
 >>> files = fetchez.get("nos_hydro", region=[-120, -118, 33, 34], min_year=2020)
 
->>> # Fetch Electronic Nautical Chart data from NOAA,
->>> # extract the fetched data, filter the results by the .000 file extension
->>> # and write a detailed audit process.
+>>> # Fetch Electronic Nautical Chart data from NOAA, extract the fetched data,
+>>> # filter the results by the .000 file extension, and write a detailed audit process.
 >>> files = fetchez.get("charts", region=[-120, -118, 33, 34], hooks=['extract', 'filename_filter:match=.000,stage="file"', 'audit'])
 ```
 
@@ -131,9 +134,15 @@ Fetchez workflows are assembled from a small set of reusable component types:
 
 The same component model is shared by the Python API, YAML recipes, and the `fetchez build` command-line interface.
 
-## Learn More
+## Where to Go Next
 
-Read the [User Guide](user_guide/index.md) to install, discover data sources and modules and understand how Fetchez works; from data source modules, processing hooks, reporoducable recipes, to the CLI, API and more.
+**[User Guide](user_guide/index.md)** — Start here if you want to use Fetchez. Installation and setup, finding and configuring data sources, composing pipelines with hooks and presets, exporting and replaying recipes, and working with the CLI and Python APIs.
+
+**[Modules Index](modules/index.md)** — Browse the registered data source modules and bundles, including what each one provides and how to configure it.
+
+**[API Reference](api/index.md)** — Detailed documentation of Fetchez classes, functions, and registries for embedding Fetchez in your own applications.
+
+**[Contributor Guide](contribute/index.md)** — Start here if you want to extend Fetchez or contribute upstream. Writing custom Modules, Hooks, Streams, and Readers; packaging extensions and plugins; and the project's development and contribution workflow.
 
 
 ```{toctree}

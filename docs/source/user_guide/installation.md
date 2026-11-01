@@ -1,51 +1,88 @@
 # 📦 Installation
 
-## From Conda-Forge (Recommended)
+This guide covers installing Fetchez and the optional dependencies needed for specific data providers.
 
-* Fetchez is available on `conda-forge`:
+## Quick Install
 
-```bash
-conda install -c conda-forge fetchez
-```
-
-## From Pip/PyPi
+The fastest way to get started:
 
 ```bash
 pip install fetchez
 ```
 
-## From Source
+This installs the core Fetchez engine with support for local files and generic data sources.
 
-Download and install git (If you have not already): [git installation](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+## Recommended: Conda-Forge
 
-Then,
+For users who prefer conda or need better dependency resolution for scientific packages:
+
+```bash
+conda install -c conda-forge fetchez
+```
+
+Conda is particularly useful if you plan to work with GDAL, PROJ, or other geospatial libraries that are commonly used with Fetchez modules.
+
+## Optional Provider Dependencies
+
+Fetchez is designed to be lightweight. The core installation only includes what's strictly necessary to run the engine. However, some data modules require extra libraries to function:
+
+| Extra Group    | Includes            | Use Case                                         |
+|----------------|---------------------|--------------------------------------------------|
+| `[aws]`        | `boto3`, etc.       | AWS-based modules (BlueTopo, Earth Search, etc.) |
+| `[copernicus]` | `copernicus_marine` | Copernicus Marine and SDB data                   |
+| `[full]`       | All extras          | Everything above plus all optional dependencies  |
+
+Install extras with pip:
+
+```bash
+pip install "fetchez[aws]"       # For AWS modules
+pip install "fetchez[full]"      # For all provider support
+```
+
+> **Tip:** If you try to run a module without its required dependency, Fetchez will exit with a helpful error message telling you exactly which extra group or pip package to install.
+
+## Installing External Tools
+
+Some workflows require external command-line tools. These are **not** installed by pip/conda and must be installed separately:
+
+| Tool | Used By | Install Command |
+|------|---------|-----------------|
+| **GDAL** | Raster processing hooks (`raster_warp`, `pipe`, etc.) | `conda install -c conda-forge gdal` or `apt-get install gdal-bin` |
+| **PDAL** | Point cloud processing | `conda install -c conda-forge pdal` |
+| **Git** | Source installations | See [git-scm.com](https://git-scm.com/) |
+
+## Installing from Source
+
+If you want to contribute to Fetchez or use the latest development version:
+
+### Option 1: Install directly from Git
 
 ```bash
 pip install git+https://github.com/continuous-dems/fetchez.git#egg=fetchez
 ```
 
-Clone and install from source
+### Option 2: Clone and install editable
 
 ```bash
 git clone https://github.com/continuous-dems/fetchez.git
 cd fetchez
-pip install -e .
+pip install -e ".[full]"  # Include optional dependencies during dev
 ```
 
-## Module-Specific Dependencies
+This sets up an editable installation where changes to the source code are immediately reflected without reinstalling.
 
-Fetchez is designed to be lightweight. The core installation only includes what is strictly necessary to run the engine.
+## Verifying Your Installation
 
-However, some data modules require extra libraries to function (e.g., `boto3` for AWS data, `copernicus_marine` for Copernicus SDB data). You can install these "Extras" automatically using pip:
+Test that Fetchez is working correctly:
 
 ```bash
-# Install support for AWS-based modules (BlueTopo, etc.)
-pip install "fetchez[aws]"
-
-# Install ALL optional dependencies
-pip install "fetchez[full]"
+fetchez --version
+fetchez modules list
+fetchez hooks list
 ```
 
-If you try to run a module without its required dependency, `fetchez` will exit with a helpful error message telling you exactly which extra group or pip package to install.
+If these commands execute without errors, you're ready to start fetching data.
 
-> Next up: once installed, head to [Usage](usage.md) to learn about how to use Fetchez.
+---
+
+**Next step:** Head to [Usage](usage.md) to learn how to build and run your first Fetchez pipeline.

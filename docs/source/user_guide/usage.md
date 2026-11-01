@@ -1,91 +1,237 @@
 # 🛠️ Usage
 
-The `fetchez` command line tool allows you to chain modules and hooks together.
+The `fetchez` command line tool lets you chain data sources (Modules and Bundles) with processing steps (Hooks and Presets) into cohesive pipelines.
 
-Build and optionally execute an ad-hoc Fetchez pipeline.
+This guide shows you how to build and execute workflows, from simple one-liners to exported recipes you can share and replay.
 
-The `build` command composes registered Modules, Bundles, Hooks, and Presets
-into a Fetchez recipe. Components are chained from left to right and may be
-executed immediately or exported as reusable YAML.
+## Your First Pipeline
 
-## Pipeline Composition:
+Let's fetch elevation data for San Diego from a STAC catalog as a quick introduction:
 
-Source components are Modules or Bundles.
+```bash
+fetchez build \
+  -R 'loc:san diego, ca' \
+  list_only \
+  stac \
+  --url https://earth-search.aws.element84.com/v1 \
+  --collections cop-dem-glo-30 \
+  --assets data \
+  --limit 5
+```
 
-Processing components are Hooks or Presets. Their scope is determined by
-their position in the command chain:
+**What this does:**
 
-* Hooks and Presets before the first source are global.
-* Hooks and Presets after a Module or Bundle apply to that source.
-* Processing components continue to apply to the most recent source until another Module or Bundle is encountered.
+* `-R 'loc:san diego, ca'` — Sets the region of interest (San Diego area)
+* `list_only` — A Hook that inspects matching entries without downloading them
+* `stac` — A Module that queries a STAC catalog
+* `--url`, `--collections`, `--assets` — Arguments to the `stac` module
+* `--limit 5` — Returns only 5 matching results for this exploration
 
-Module and Hook arguments follow the component they configure.
+Run this command to see what data is available before committing to a full download.
 
-## Examples:
+## Pipeline Composition Rules
 
-Apply a global hook before fetching a source:
+Fetchez builds workflows by chaining components from left to right. Understanding **scope** is critical:
 
+| Component Position                        | Applies To                                         |
+|-------------------------------------------|----------------------------------------------------|
+| Hooks/Presets **before** the first source | The entire pipeline (global)                       |
+| Hooks/Presets **after** a Module/Bundle   | That specific source only                          |
+| New Module/Bundle encountered             | Starts a new scope; previous hooks no longer apply |
+
+### Visual Examples
+
+**Global hook before source:**
 ```bash
 fetchez build audit tnm
 ```
+- `audit` → applies to all modules below it (none yet)
+- `tnm` → the data source
 
-audit -> global hook
-tnm   -> module
+**Hook attached to a single source:**
+```bash
+fetchez build \
+	tnm \
+	exec \
+	--cmd "gdalwarp -tr 0.0002777777777777778 0.0002777777777777778 {file} {output}" \
+	--suffix "_warp1s"
+```
+- `tnm` → the data source
+- `exec` → applies only to `tnm` data
+- `--cmd` → argument to `exec`
+- `--suffix` → argument to `exec`
 
-Attach processing to a single source:
+**Multiple independently processed sources:**
+```bash
+fetchez build \
+	audit \
+	tnm \
+	exec \
+	--cmd "gdalwarp -tr 0.0002777777777777778 0.0002777777777777778 {file} {output}" \
+	--suffix "_warp1s" \
+	copernicus \
+	checksum
+```
+- `audit` → global hook (applies to everything)
+- `tnm` → first source
+- `exec` → applies only to `tnm` data
+- `copernicus` → second source
+- `checksum` → applies only to `copernicus` data
+
+Once you encounter a new Module or Bundle, the previous hooks stop applying.
+
+## Downloading Data
+
+To actually download data, remove `list_only`:
 
 ```bash
-fetchez build tnm raster_warp --res 1s
+fetchez build \
+  -R 'loc:san diego, ca' \
+  stac \
+  --url https://earth-search.aws.element84.com/v1 \
+  --collections cop-dem-glo-30 \
+  --assets data \
+  --limit 10
 ```
 
-tnm         -> module
-raster_warp -> hook attached to tnm
+Fetchez will:
+1. Query the STAC catalog
+2. Download matching assets to a cache
+3. Apply any hooks attached after `stac`
 
-Compose multiple independently processed sources:
+## Adding Processing Hooks
+
+Hooks let you transform, filter, or observe data as it flows through the pipeline. Here's how to unzip archives and generate an audit log:
 
 ```bash
-fetchez build audit tnm raster_warp --res 1s copernicus checksum
+fetchez build \
+  -R 'loc:san diego, ca' \
+  audit \
+  stac \
+  --url https://earth-search.aws.element84.com/v1 \
+  --collections cop-dem-glo-30 \
+  --assets data \
+  --limit 10 \
+  exec \
+  --cmd "gdal_translate {file} {output} -co COMPRESS=DEFLATE" \
+  --suffix "_compressed \
+  --update_entry True"
 ```
 
-audit       -> global hook
-tnm         -> first module
-raster_warp -> hook attached to tnm
-copernicus  -> second module
-checksum    -> hook attached to copernicus
+**Breakdown:**
+- `audit` (global) → logs everything that happens
+- `stac` → fetches the DEM tiles
+- `exec` → runs `gdal_translate` on each file to create compressed versions
 
-Select members of a registered bundle:
+> **Note:** GDAL must be installed separately for the `exec` hook to work. See [Installation](installation.md) for dependencies.
+
+## Saving and Replaying Workflows
+
+You don't want to type this command every time. Export it as a reusable recipe:
 
 ```bash
-fetchez build -R <W/E/S/N> glob-tnm --select products=1m/1_9as
+fetchez build \
+  -R 'loc:san diego, ca' \
+  --export san_diego_dem.yaml \
+  audit \
+  stac \
+  --url https://earth-search.aws.element84.com/v1 \
+  --collections cop-dem-glo-30 \
+  --assets data \
+  --limit 10 \
+  exec \
+  --cmd "gdal_translate {file} {output} -co COMPRESS=DEFLATE" \
+  --suffix "_compressed \
+  --update_entry True"
 ```
 
-Hooks may also be supplied using `--hook` and `--global-hook` for concise or
-backward-compatible command construction.
-
-Use `--export` to write the generated recipe to YAML instead of executing it:
+This writes `san_diego_dem.yaml` to your current directory. Run it later with:
 
 ```bash
-fetchez build -R <W/E/S/N> --export pipeline.yaml tnm audit
+fetchez run san_diego_dem.yaml
 ```
 
-The exported recipe can later be reproduced with:
+> **Caution:** The exported recipe retains `list_only` if it was in your command. Remove that step before running to actually fetch data.
+
+## Discovering Available Components
+
+Before building pipelines, explore what's installed:
 
 ```bash
-fetchez run pipeline.yaml
+# List all data source modules
+fetchez modules list
+
+# List curated groups of modules
+fetchez modules bundles list
+
+# List all processing hooks
+fetchez hooks list
+
+# List hook presets (macro combinations)
+fetchez hooks presets list
 ```
 
-### Component Discovery:
+Inspect a specific component's options:
 
-```text
-fetchez modules list           List available data modules
-fetchez modules bundles list   List curated data bundles
-fetchez hooks list             List processing hooks
-fetchez hooks presets list     List hook presets
+```bash
+fetchez build stac --help
+fetchez build unzip --help
 ```
 
-Use any registered component directly in the build chain.
-Run `fetchez build <component> --help` to inspect its component-specific options.
+## Component Argument Syntax
 
-> Related: See the [Command Line Interface](cli_usage.md) guide to see all the CLI options and syntax.
+Arguments follow the component they configure:
 
-> Next up: See [Modules and Bundles](modules_and_bundles.md) to learn about data source modules and bundles.
+```bash
+fetchez build \
+  stac \
+  --url https://example.com \
+  --collections my-collection \
+  checksum \
+  --algo sha256
+```
+
+Short flags (`-R`) are available for common options like region. Long flags (`--region`) work too.
+
+## Quick Reference
+
+| Goal | Command Pattern |
+|------|-----------------|
+| Explore data without downloading | Add `list_only` before the source |
+| Download and process | Remove `list_only`, add hooks after source |
+| Log everything | Add `audit` as a global hook |
+| Transform files | Use `exec` with `{file}` and `{output}` placeholders |
+| Save for later | Add `--export recipe.yaml` |
+| Replay saved workflow | `fetchez run recipe.yaml` |
+
+## Using the Python API
+
+The same workflows can be built in Python:
+
+```python
+import fetchez
+
+# Fetch with hooks applied
+files = fetchez.get(
+    "stac",
+    url="https://earth-search.aws.element84.com/v1",
+    collections=["cop-dem-glo-30"],
+    assets=["data"],
+    region=[-118.0, -116.0, 32.5, 33.5],
+    hooks=["unzip", "audit"],
+)
+```
+
+For complex workflows, recipes (YAML) remain the preferred approach for reproducibility. See [Recipes](recipes.md).
+
+---
+
+## What's Next?
+
+Now that you've built your first pipeline, learn about the building blocks:
+
+* **[Modules & Bundles](modules_and_bundles.md)** — Deep dive into data sources: how they work, how to configure them, and how to create your own
+* **[Hooks & Presets](hooks_and_presets.md)** — Master the processing layer: hooks, stages, presets, and how they compose
+* **[Recipes](recipes.md)** — Create advanced workflows with modifiers, schemas, and programmatic recipe construction
+
+Or jump to the full [Command Line Interface](cli_usage.md) reference for complete syntax and all available commands.
