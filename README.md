@@ -244,7 +244,3 @@ Questions, ideas, and new source configurations are welcome in the [community ch
 Fetchez is licensed under the [MIT License](LICENSE).
 
 Copyright (c) 2010–2026 Regents of the University of Colorado.
-
----
-
-*Made with ❤️ by the CUDEM team*
