@@ -223,6 +223,8 @@ If you have developed a robust workflow (e.g., "Standard Archival Prep" or "Clou
 my_custom_presets = "my_package.hooks.presets"
 ```
 
+> See [Entry Points](entry_points.md) for more information about registering your hooks.
+
 **Contribute to Core:** If a preset is universally useful, you can propose adding it directly to the `fetchez/hooks/presets/` core directory via a Pull Request.
 
 # 🔗 Sharing a Hook or Preset
