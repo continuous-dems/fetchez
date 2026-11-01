@@ -19,7 +19,7 @@
 
 ---
 
-**Fetchez** is an open-source, extensible Python framework for discovering, retrieving, caching, and processing geospatial data. Connect to public data providers, work with local files, or configure sources Fetchez has never seen before—all without writing new code for every dataset.
+**Fetchez** is an open-source, extensible Python framework for discovering, retrieving, caching, and processing geospatial data. Connect to public data providers, work with local files, or configure sources Fetchez has never seen before.
 
 Use the same building blocks from the **command line**, **Python**, or **YAML**. Combine data sources with processing hooks, save workflows as recipes, and share reusable configurations with colleagues. Fetchez handles the data plumbing so you can focus on what to do with the data.
 
@@ -144,13 +144,13 @@ The exported recipe retains `list-only` for safe exploration. Remove that discov
 
 Fetchez composes workflows from several component types. Understanding these helps you build effective configurations:
 
-| Component | Purpose |
-|-----------|---------|
-| **Sources** | Discover and retrieve data from catalogs, APIs, filesystems, or web indices |
-| **Hooks** | Process entries as they pass through the pipeline (transform, filter, audit, etc.) |
-| **Recipes** | YAML files that compose sources, hooks, and options into repeatable workflows |
-| **Bundles** | Pre-packaged collections of sources, hooks, and configurations for sharing |
-| **Readers** | Connect acquired data with downstream processing applications |
+| Component   | Purpose                                                                            |
+|-------------|------------------------------------------------------------------------------------|
+| **Sources** | Discover and retrieve data from catalogs, APIs, filesystems, or web indices        |
+| **Hooks**   | Process entries as they pass through the pipeline (transform, filter, audit, etc.) |
+| **Recipes** | YAML files that compose sources, hooks, and options into repeatable workflows      |
+| **Bundles** | Pre-packaged collections of sources, hooks, and configurations for sharing         |
+| **Readers** | Connect acquired data with downstream processing applications                      |
 
 In `fetchez build`, components are composed left to right: hooks before the first source apply globally, while hooks after a source apply only to that source.
 
@@ -167,13 +167,13 @@ fetchez hooks presets list    # Hook presets
 
 Fetchez prioritizes **configuration over code**. You can make new datasets accessible through YAML configuration rather than writing Python modules for every provider.
 
-| Generic Module | Best For |
-|----------------|----------|
-| **`local_fs`** | Local files, file lists, and directories |
+| Generic Module   | Best For                                                                                            |
+|------------------|-----------------------------------------------------------------------------------------------------|
+| **`local_fs`**   | Local files, file lists, and directories                                                            |
 | **`http_index`** | HTTP directory listings and web pages with downloadable assets, with optional FRED spatial indexing |
-| **`rest_api`** | REST/JSON APIs, search responses, pagination, and discovered asset URLs |
-| **`stac`** | Spatial and temporal asset catalogs (imagery, elevation, lidar, cloud datasets) |
-| **`thredds`** | Scientific THREDDS catalogs and services (HTTPServer, NCSS, WCS, OPeNDAP) |
+| **`rest_api`**   | REST/JSON APIs, search responses, pagination, and discovered asset URLs                             |
+| **`stac`**       | Spatial and temporal asset catalogs (imagery, elevation, lidar, cloud datasets)                     |
+| **`thredds`**    | Scientific THREDDS catalogs and services (HTTPServer, NCSS, WCS, OPeNDAP)                           |
 
 For example, accessing files from a ScienceBase record can be as simple as configuring `rest_api`:
 
