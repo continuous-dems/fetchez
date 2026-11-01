@@ -74,4 +74,6 @@ fetchez run my_checkpoints
 # 🔗 Sharing a Module or Bundle
 Did you build a Module or Bundle that would be useful for the wider community? We'd love to incorporate it!
 
+> See [Entry Points](entry_points.md) for more information about registering your hooks.
+
 Submit a Pull Request adding your file to `fetchez/modules/` or `fetchez/modules/bundles`.

@@ -152,3 +152,6 @@ Fetchez aims to keep its core footprint small. If your new module or plugin requ
 
             # Proceed with fetching...
 	```
+
+
+> See [Entry Points](entry_points.md) for more information about registering your modules.

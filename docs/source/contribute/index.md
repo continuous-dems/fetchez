@@ -1,4 +1,4 @@
-# Contributing to Fetchez
+# Contributor Guide
 
 Thank you for considering contributing to Fetchez! Whether you're fixing a bug, adding a new data module, improving documentation, or extending the framework with custom components, this guide will help you get started.
 
