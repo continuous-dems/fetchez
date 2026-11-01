@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ValueError to `to_*` sptaial.Region functions to raise on invalid geometries.
 
 ### CHANGED
+- RTD Contributor Guide update.
 - RTD Documentation re-write.
 - Renamed `spatial.parse_increments` to `spatial.parse_increment`; the old name remains as an alias.
 - `spatial.parse_increment_pair` now wraps `parse_increment_list`. An invalid increment now raises ValueError instead of returning `(None, None)`.
