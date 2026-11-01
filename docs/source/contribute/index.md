@@ -12,10 +12,11 @@ If you want to create reusable modules, hooks, or readers:
 
 1. **[Development Setup](dev_setup.md)** — Get your environment ready
 2. **[Component Architecture](architecture.md)** — Understand how Fetchez is structured
-6. **[Entry Architecture](entry.md)** — Understand Fetchez entries and how they're used
-3. **[Developing Modules](modules.md)** — Write custom data source modules
-4. **[Creating Hooks](user_hooks.md)** — Implement processing hooks
-5. **[Adding Plugins](user_plugins.md)** — Register local or distributed extensions
+3. **[Entry Architecture](entry.md)** — Understand Fetchez entries and how they're used
+4. **[Developing Modules](modules.md)** — Write custom data source modules
+5. **[Creating Hooks](user_hooks.md)** — Implement processing hooks
+6. **[Adding Plugins](user_plugins.md)** — Register local or distributed extensions
+7. **[Entry Points](entry_points.md)** — Configure package entry points for distribution
 
 ### Reporting Issues or Requesting Features?
 
@@ -68,14 +69,16 @@ If you want to create reusable modules, hooks, or readers:
 ```{toctree}
 :maxdepth: 2
 
-architecture
 dev_setup
+architecture
+entry
 bugs
 docs
 modules
 user_plugins
 user_hooks
-entry
+entry_points
+feature_requests
 pull_requests
 license
 ```
