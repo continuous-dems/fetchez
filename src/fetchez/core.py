@@ -1430,9 +1430,9 @@ def run_fetchez(
 
                         if result != 0:
                             raise FetchError(
-                                f"Module '{mod.name}' returned {result!r} while fetching "
-                                f"'{file_name}'. Expected 0 on success; acquisition failures "
-                                f"must raise an exception instead of returning a status code."
+                                f"Module '{mod.name}' returned unexpected fetch result "
+                                f"{result!r} for '{file_name}'. Expected 0 on success; "
+                                f"failures must raise an exception."
                             )
 
                     except FetchCancelled:
