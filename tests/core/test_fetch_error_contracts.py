@@ -458,7 +458,9 @@ def test_ignore_failures_continues_and_annotates_failed_entry(tmp_path):
 
 def test_legacy_minus_one_is_rejected_in_strict_mode(tmp_path):
     entry = {"dst_fn": str(tmp_path / "bad.nc"), "url": URL}
-    with pytest.raises(RuntimeError, match="non-zero status code: -1") as _exc:
+    with pytest.raises(
+        RuntimeError, match="Expected 0 on success; failures must raise an exception."
+    ) as _exc:
         _run([entry], lambda _: -1)
 
 
