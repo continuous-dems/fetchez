@@ -1426,11 +1426,13 @@ def run_fetchez(
                     pbar.update(1)
 
                     try:
-                        status = future.result()
+                        result = future.result()
 
-                        if status != 0:
+                        if result != 0:
                             raise FetchError(
-                                f"Fetch worker returned non-zero status code: {status}"
+                                f"Module '{mod.name}' returned {result!r} while fetching "
+                                f"'{file_name}'. Expected 0 on success; acquisition failures "
+                                f"must raise an exception instead of returning a status code."
                             )
 
                     except FetchCancelled:
