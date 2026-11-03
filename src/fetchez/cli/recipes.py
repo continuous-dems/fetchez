@@ -12,6 +12,7 @@ Discoverability and documentation for fetchez recipes.
 """
 
 import sys
+import json
 import yaml
 import click
 from pathlib import Path
@@ -30,6 +31,7 @@ from .schemas import schemas_group
 from .modifiers import modifiers_group
 
 RECIPE_COMMANDS = [
+    "compile",
     "copy",
     "dump",
     "info",
@@ -242,6 +244,153 @@ def recipe_validate(name, schema):
             click.echo(f"  {error}")
         click.echo("\nPlease modify the recipe and try again.\n")
         sys.exit(1)
+
+
+def _compile_label(definition, key):
+    """Display a declarative or runtime component without copying its state."""
+    if isinstance(definition, dict):
+        definition = definition.get(key, "Unknown")
+    if isinstance(definition, str):
+        return definition
+    if isinstance(definition, type):
+        return definition.__name__
+    return getattr(definition, "name", type(definition).__name__)
+
+
+def _inspectable(value):
+    """Convert a compiled definition into safe-to-encode presentation data."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(k): _inspectable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_inspectable(item) for item in value]
+    if isinstance(value, type):
+        return f"<class {value.__module__}.{value.__qualname__}>"
+    # Avoid serializing arbitrary live instances (e.g., file handles and queues).
+    return f"<instance {type(value).__module__}.{type(value).__qualname__}>"
+
+
+def _print_compile_hook(hook, *, indent, verbose):
+    name = _compile_label(hook, "name")
+    click.echo(f"{' ' * indent}- {name}")
+    if verbose and isinstance(hook, dict):
+        for key, value in hook.get("args", {}).items():
+            click.echo(f"{' ' * (indent + 2)}{key}: {_inspectable(value)}")
+
+
+@recipes_group.command("compile", cls=FetchezMainCommand)
+@click.argument("name")
+@click.option(
+    "--region",
+    "region_override",
+    default=None,
+    help="Override the recipe region; useful for recipes with multiple regions.",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["summary", "yaml", "json"], case_sensitive=False),
+    default="summary",
+    show_default=True,
+    help="Output a readable execution plan or the fully resolved configuration.",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show configured arguments in the readable summary.",
+)
+def compile_recipe(name, region_override, output_format, verbose):
+    """Resolve and inspect a recipe without fetching or processing data.
+
+    \b
+    NAME may be a registered recipe or a local YAML/JSON recipe path.
+    Expansion, modifiers, schema validation, and component initialization
+    happen just as they would during execution. No pipeline is executed.
+
+    \b
+    Examples:
+      fetchez recipes compile socal-crm-standard
+      fetchez recipes compile ./recipe.yaml --region=-123/-122/36/37
+      fetchez recipes compile ./recipe.yaml --format yaml
+    """
+    path = Path(name).expanduser()
+    try:
+        if path.is_file():
+            recipe = Recipe.from_file(path)
+        else:
+            config = load_recipe_config(name)
+            if config is None:
+                raise click.ClickException(
+                    f"Recipe '{name}' was not found locally or in the registry."
+                )
+            recipe = Recipe.from_dict(config)
+
+        # Never modify the recipe's original configuration.
+        if region_override is not None:
+            recipe.config = {**recipe.config, "region": region_override}
+
+        declared_modifiers = list(recipe.config.get("modifiers", []))
+        declared_schemas = list(recipe.config.get("schemas", []))
+        plan = recipe.compile()
+    except click.ClickException:
+        raise
+    except Exception as exc:
+        raise click.ClickException(f"Could not compile '{name}': {exc}") from exc
+
+    config = _inspectable(plan.config)
+    if output_format == "json":
+        click.echo(json.dumps(config, indent=2, ensure_ascii=False))
+        return
+    if output_format == "yaml":
+        click.echo(yaml.safe_dump(config, sort_keys=False, allow_unicode=True))
+        return
+
+    click.secho(f"\nCOMPILED RECIPE: {name}", fg="cyan", bold=True)
+    click.echo("=" * 60)
+    click.echo(f"Project : {config.get('project', {}).get('name', recipe.name)}")
+    click.echo(f"Region  : {config.get('region', 'Global / unspecified')}")
+    click.echo(f"Threads : {plan.threads}")
+    click.echo(f"Modules : {len(plan.modules)}")
+    click.echo(f"Hooks   : {len(plan.global_hooks)} global")
+
+    click.secho("\nModifiers requested:", fg="yellow", bold=True)
+    if declared_modifiers:
+        for item in declared_modifiers:
+            click.echo(f"  - {_compile_label(item, 'name')}")
+    else:
+        click.echo("  (none)")
+
+    click.secho("\nSchemas requested (validation passed):", fg="yellow", bold=True)
+    if declared_schemas:
+        for item in declared_schemas:
+            click.echo(f"  - {_compile_label(item, 'name')}")
+    else:
+        click.echo("  (none)")
+
+    click.secho("\nResolved data modules:", fg="green", bold=True)
+    for definition in config.get("modules", []):
+        click.echo(f"  - {_compile_label(definition, 'module')}")
+        if isinstance(definition, dict):
+            if verbose:
+                for key, value in definition.get("args", {}).items():
+                    click.echo(f"      {key}: {value}")
+            for hook in definition.get("hooks", []):
+                _print_compile_hook(hook, indent=6, verbose=verbose)
+    if not config.get("modules"):
+        click.echo("  (none)")
+
+    click.secho("\nResolved global hooks (configured order):", fg="green", bold=True)
+    for hook in config.get("global_hooks", []):
+        _print_compile_hook(hook, indent=2, verbose=verbose)
+    if not config.get("global_hooks"):
+        click.echo("  (none)")
+
+    click.echo("=" * 60)
+    click.echo("Compilation successful. No pipeline was executed.\n")
 
 
 @recipes_group.command("translate", cls=FetchezMainCommand)
