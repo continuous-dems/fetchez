@@ -86,6 +86,48 @@ modules:
 
 Each module's `hooks` list applies only to that module's data — the same scoping rule described in [Usage](usage.md).
 
+### Optional names for module entries
+
+Add `id` when a hook needs to distinguish individual declarations of the same
+provider. It is recipe metadata, outside `args`, and does not rename the provider:
+
+```yaml
+modules:
+  - id: nos_xyz
+    module: nos_hydro
+    args: {datatype: xyz}
+  - id: nos_bag
+    module: nos_hydro
+    args: {datatype: bag}
+```
+
+The compiler exposes each label as `module.recipe_id`. Hook authors can use that
+attribute to select entries; this feature does not add selectors to every hook.
+Globato's separate Stack QC integration can use labels for target/reference
+selection. Labels are also useful for two entries from the same lidar survey
+that apply different class-filter hooks. Keep those existing hooks unchanged.
+
+IDs must be unique non-empty strings without surrounding whitespace. Duplicate
+labels are checked in the top-level declarations before expansion and again when
+instantiating the prepared modules. Use `id` on concrete module declarations;
+it is not a namespace or renaming option for an entire bundle. Repeated bundle
+instances containing fixed IDs need distinct concrete labels after expansion.
+
+Naming an entry does not change its provider configuration or download-cache ID.
+Before manifest hooks run, explicit labels are attached with the existing
+`set_contribution_id(entry, "recipe", label)` mechanism. This distinguishes
+processed contributions from separately named entries of the same physical
+source while preserving its URL and other contribution components. Labels do
+not establish independent survey evidence or authorize counting duplicate
+measurements twice.
+
+Unnamed entries remain supported. They receive automatic display labels such as
+`entry_1`, but those labels are not added to processed-source identity. Existing
+unnamed recipes retain their provider and processed-source identities. Display
+labels may change when a recipe is reordered; use an explicit ID when a hook
+needs a stable readable selector. One runtime module object cannot represent two
+entries in a single compiled plan; declare two modules instead.
+
 ### 3. Global Hooks (The Assembly Line)
 
 The `global_hooks` block defines the processing pipeline applied to the combined pool of data from all modules.

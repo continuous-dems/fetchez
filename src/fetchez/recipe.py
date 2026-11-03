@@ -221,6 +221,36 @@ def load_recipe_config(target):
     return base_config
 
 
+def _module_entry_ids(definitions):
+    """Validate explicit labels and assign collision-free display labels."""
+    explicit = set()
+    for definition in definitions:
+        if not isinstance(definition, dict) or "id" not in definition:
+            continue
+        label = definition["id"]
+        if not isinstance(label, str) or not label.strip() or label != label.strip():
+            raise ValueError(
+                "Module entry id must be a non-empty string without surrounding whitespace"
+            )
+        if label in explicit:
+            raise ValueError(f"Duplicate module entry id: {label}")
+        explicit.add(label)
+    labels = []
+    used = set(explicit)
+    for position, definition in enumerate(definitions, 1):
+        if isinstance(definition, dict) and "id" in definition:
+            labels.append(definition["id"])
+            continue
+        label = f"entry_{position}"
+        suffix = 2
+        while label in used:
+            label = f"entry_{position}_{suffix}"
+            suffix += 1
+        used.add(label)
+        labels.append(label)
+    return labels
+
+
 def _safe_config_copy(value):
     """Copy configuration containers without cloning runtime objects."""
 
@@ -604,6 +634,7 @@ class Recipe:
     def _check_integrity(self):
         """Ensures the fetchez version meets the recipe's minimum requirements."""
 
+        _module_entry_ids(self.config.get("modules", []))
         conf = self.config.get("config", {})
         min_fz = conf.get("min_fetchez_version")
 
@@ -768,7 +799,9 @@ class Recipe:
     ):
         """Create modules per batch, preserving supplied instances and their state."""
         modules_to_run = []
-        for definition in module_defs:
+        module_defs = list(module_defs)
+        recipe_ids = _module_entry_ids(module_defs)
+        for definition, recipe_id in zip(module_defs, recipe_ids, strict=True):
             if isinstance(definition, dict):
                 ref = definition.get("module")
                 args = dict(definition.get("args", {}))
@@ -785,6 +818,14 @@ class Recipe:
                         f"Module instance '{_component_label(resolved)}' is already configured; "
                         "use a module class with args/hooks for batch-specific configuration."
                     )
+                if any(item is resolved for item in modules_to_run):
+                    raise ValueError(
+                        "The same module object cannot represent two recipe entries; use two module definitions"
+                    )
+                resolved.recipe_id_explicit = (
+                    isinstance(definition, dict) and "id" in definition
+                )
+                resolved.recipe_id = recipe_id
                 modules_to_run.append(resolved)
                 continue
 
@@ -802,7 +843,15 @@ class Recipe:
                 region.srs = mod_region_srs
             kwargs = dict(args)
             kwargs.update(src_region=region, hook=mod_hooks)
-            modules_to_run.append(resolved(**_constructor_kwargs(resolved, kwargs)))
+            module = resolved(**_constructor_kwargs(resolved, kwargs))
+            module.recipe_id_explicit = (
+                isinstance(definition, dict) and "id" in definition
+            )
+            module.recipe_id = recipe_id
+            modules_to_run.append(module)
+        for module in modules_to_run:
+            module._recipe_ids = frozenset(recipe_ids)
+            module._recipe_providers = frozenset(item.name for item in modules_to_run)
         return modules_to_run
 
     def _init_modifiers(self, modifier_defs, output_dir=None):

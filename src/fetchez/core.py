@@ -1249,6 +1249,19 @@ def run_fetchez(
 
     for module in modules:
         module._execution_context = context
+        if getattr(module, "recipe_id_explicit", False):
+            # Reuse the entry contribution contract before any cache/sink hook
+            # sees these sources. Labels never alter the provider download ID.
+            from fetchez.entry import set_contribution_id
+
+            owned = []
+            for entry in module.results:
+                if isinstance(entry, dict):
+                    entry = dict(entry)
+                    entry["contribution_id"] = dict(entry.get("contribution_id") or {})
+                    set_contribution_id(entry, "recipe", module.recipe_id)
+                owned.append(entry)
+            module.results = owned
 
     seen: set[Any] = set()
 
