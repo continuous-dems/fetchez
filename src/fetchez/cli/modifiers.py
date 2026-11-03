@@ -35,9 +35,9 @@ def modifiers_group():
     """Discover, search, and learn about recipe modifiers.
 
     \b
-    Modifiers are middle-ware mutators that can be applied to Recipes.
-    They can be used to make on-the-fly modifications to recipes before
-    they are run.
+    Modifiers transform recipe configurations during compilation,
+    allowing reusable workflows to be customized without changing their
+    source definitions.
     """
 
     pass
