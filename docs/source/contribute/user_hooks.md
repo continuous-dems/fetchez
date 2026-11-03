@@ -138,6 +138,58 @@ Use `meta_related` for helpful companion components that are not required.
 
 Dependency declarations are initially intended for discovery and documentation. They do not automatically insert missing hooks. Recipe schemas or modifiers may provide dependency validation or resolution separately.
 
+### Optional hooks for finished outputs
+
+A hook can implement `final_hooks()` to request normal collection hooks that
+need the pipeline's finished outputs. This is useful for an optional report
+requested by a filter, including a filter attached to one source module.
+
+```python
+from fetchez.hooks import FetchHook
+
+
+class Report(FetchHook):
+    name = "example-report"
+    meta_stage = "collection"
+
+    def run(self, entries):
+        # Read the finished output entries and write a report here.
+        return entries
+
+
+class Filter(FetchHook):
+    name = "example-filter"
+    meta_stage = "collection"
+
+    def __init__(self, report=False, **kwargs):
+        super().__init__(**kwargs)
+        self.report = report
+
+    def final_hooks(self):
+        return (Report(),) if self.report else ()
+```
+
+Return configured `FetchHook` instances at the `collection` stage. This method
+only declares companions: it must not run processing, discovery or downloads.
+They are appended after all explicitly configured global collection hooks and
+use the same execution, failure and teardown handling. For exact placement
+before a cleanup step, configure the report explicitly at that position.
+
+An explicit global hook with the same canonical `name` overrides automatic
+companions, preserving its configuration and placement. Separate requesters can
+return separately scoped publishers with the same name. A shared requester is
+inspected once, and companions do not recursively request more hooks.
+
+`Recipe.compile()` includes the automatic hooks in its plan. Direct callers of
+`run_fetchez()` get the same behavior; preparing the list again does not add
+duplicates. Reusing a plan does not accumulate hooks. Defaults return no extra
+hooks, so existing workflows keep their configured order. A strict upstream
+processing failure prevents later publication; publication failures follow the
+existing `ignore_failures` policy.
+
+This opt-in runtime capability is separate from `meta_requires`, which remains
+discovery/documentation metadata and is not automatically executed.
+
 ### Stages and artifact types
 
 `meta_stage` defines a hook's default execution stage, not a restriction on where it can run. For example, a filename filter may operate during manifest discovery, after archive extraction, or during collection processing.

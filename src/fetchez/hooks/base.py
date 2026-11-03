@@ -87,6 +87,15 @@ class FetchHook:
     # ==========================================
     # PIPELINE
     # ==========================================
+    def final_hooks(self):
+        """Return optional configured collection hooks for the finished pipeline.
+
+        These run after the recipe's explicit global collection hooks. An
+        explicit global hook with the same name overrides the automatic one.
+        This only declares normal hooks; it must not execute processing.
+        """
+        return ()
+
     def teardown(self):
         """Cleanup.
         Called once after all processing is complete.

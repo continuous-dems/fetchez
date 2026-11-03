@@ -1197,6 +1197,35 @@ def _fetch_worker(module, entry, verbose=True, context=None):
     )
 
 
+def prepare_final_hooks(modules, global_hooks):
+    """Append hooks requested for finished outputs, without changing input lists.
+
+    Repeated preparation is idempotent. Explicit global hooks take precedence;
+    otherwise separate requesters can each publish their own scoped results.
+    Only directly requested collection hooks are added (no recursive expansion).
+    """
+    from .hooks import FetchHook
+
+    prepared = list(global_hooks)
+    explicit = {h.name for h in prepared}
+    seen = set()
+    for hook in [*global_hooks, *(h for m in modules for h in getattr(m, "hooks", ()))]:
+        if id(hook) in seen:
+            continue
+        seen.add(id(hook))
+        request = getattr(hook, "final_hooks", None)
+        if not callable(request):
+            continue
+        for companion in request():
+            if not isinstance(companion, FetchHook) or companion.stage != "collection":
+                raise ValueError(
+                    "final_hooks() must return configured collection hooks"
+                )
+            if companion.name not in explicit:
+                prepared.append(companion)
+    return prepared
+
+
 def _teardown_hooks(hooks, *, ignore_failures=False, seen=None):
     """Teardown hooks once, preserving the failure policy."""
     if seen is None:
@@ -1245,15 +1274,13 @@ def run_fetchez(
                          If True, tags failed entries with status='failed' and continues.
     """
 
+    global_hooks = prepare_final_hooks(modules, global_hooks or [])
     context = context or FetchExecutionContext()
 
     for module in modules:
         module._execution_context = context
 
     seen: set[Any] = set()
-
-    if global_hooks is None:
-        global_hooks = []
 
     silent = logger.getEffectiveLevel() > logging.INFO
 
