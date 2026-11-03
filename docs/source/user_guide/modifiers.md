@@ -171,7 +171,9 @@ Modifiers are applied once per batch. When a recipe targets multiple regions, ea
 
 ### Failure Handling
 
-An unknown modifier name raises a `ValueError` and stops compilation. If you pass `ignore_failures=True` (or the equivalent CLI flag), Fetchez logs a warning and skips the missing modifier instead, allowing the rest of the recipe to proceed.
+Unknown modifiers are compilation errors. If a requested modifier is not registered, Fetchez raises a ValueError rather than silently omitting it. This prevents a recipe from executing with an unexpectedly altered workflow.
+
+When running multiple regions with ignore_failures=True, a compilation failure may cause the affected batch to be skipped rather than stopping the entire run. The modifier itself is not skipped while the rest of that batch continues.
 
 ## Creating Your Own
 
