@@ -148,10 +148,6 @@ global_hooks:
 
 The Modifier Engine intercepts recipes as they are loaded and mutates them before core execution. This allows for complete runtime control of the pipeline without editing the YAML file.
 
-#### Using a Modifier
-
-Add a `modifiers` argument to the top of your YAML recipe:
-
 ```yaml
 ---
 project:
@@ -168,21 +164,17 @@ modules:
   - bundle: my-bathymetry-bundle
 ```
 
-**What happens:** The `exclude_module` modifier removes the named `margrav` and `charts` modules from the bundle before the recipe runs.
-
-**Use the modifier in the CLI:**
+The `exclude_module` modifier removes the named modules from the bundle before the recipe runs. Modifiers can also be supplied from the CLI:
 
 ```bash
 fetchez run my_project.yaml --modifier exclude_module:modules=margrav/charts
 ```
 
+📖 **[Full documentation: Recipe Modifiers →](modifiers.md)**
+
 ### Schemas
 
 The Schema Engine scans recipes to enforce rules or validate structure and purpose.
-
-#### Using a Schema
-
-Add a `schemas` argument to the top of your YAML recipe:
 
 ```yaml
 project:
@@ -194,13 +186,26 @@ schemas:
 region: [-120.0, -119.75, 33.0, 33.25]  # Your exact delivery tile
 ```
 
-**What happens:** The `quarter-degree-tile` schema checks that the region snaps to a quarter-degree tile in WGS84, returning validity along with any errors found.
-
-**Use the schema in the CLI:**
+The `quarter-degree-tile` schema checks that the region snaps to a quarter-degree tile in WGS84, returning validity along with any errors found. Schemas can also be supplied from the CLI:
 
 ```bash
 fetchez run -R -120/-119.75/33/33.25 --schema quarter-degree-tile my_strict_project.yaml
 ```
+
+📖 **[Full documentation: Recipe Schemas →](schemas.md)**
+
+## Compilation Order
+
+Understanding when each step happens explains why modifiers and schemas behave the way they do. During compilation, Fetchez performs these steps in order:
+
+1. **Bundles and presets expand** into concrete modules and hooks
+2. **Modifiers apply**, in configured order
+3. **Execution options apply** (shared cache, refresh behaviour)
+4. **`%placeholder%` values are injected**
+5. **Schemas validate** the resulting configuration
+6. **Components are instantiated**
+
+So modifiers see expanded modules and unresolved placeholders, while schemas see the fully prepared configuration. See [Recipe Modifiers](modifiers.md) and [Recipe Schemas](schemas.md) for the practical implications.
 
 ## High-Level Execution: `Recipe.run()`
 
