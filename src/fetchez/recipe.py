@@ -831,7 +831,14 @@ class Recipe:
                     ModifierCls(**_constructor_kwargs(ModifierCls, kwargs))
                 )
             else:
-                logger.warning(f"Modifier '{name}' missing.")
+                err_msg = (
+                    f"Unknown recipe modifier '{name}'. "
+                    "Check the registered modifiers and installed extensions."
+                )
+                if self.ignore_failures:
+                    logger.warning(err_msg)
+                else:
+                    raise ValueError(err_msg)
 
         return active_modifiers
 
