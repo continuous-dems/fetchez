@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.12.3 - 11-01-26]
 
 ### ADDED
+- Added `modifiers.md` and `schemas.md` to the RTD docs `user_guide`.
+- Added CLI command `fetchez recipes compile` to allow for CLI recipe compilation and inspection.
 - Support parenthesized fractional grid increments (e.g., (1/9)s, (1/3)s) using exact rational parsing before conversion to floating point, avoiding truncated decimal approximations.
 - Support fractional x/y increment pairs (e.g., (1/9)s/(1/3)s) while preserving existing GMT-style increment syntax and backward compatibility.
 - Added `spatial.parse_increment_list` to parse `/`-separated increment lists of any length (e.g., `(1/9)s/(1/3)s/1s`). It raises ValueError on a malformed list or an invalid item.
@@ -29,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ValueError to `to_*` sptaial.Region functions to raise on invalid geometries.
 
 ### CHANGED
+- Missing modifiers and schemas raise and exception by default.
 - RTD Contributor Guide update.
 - RTD Documentation re-write.
 - Renamed `spatial.parse_increments` to `spatial.parse_increment`; the old name remains as an alias.

@@ -831,7 +831,14 @@ class Recipe:
                     ModifierCls(**_constructor_kwargs(ModifierCls, kwargs))
                 )
             else:
-                logger.warning(f"Modifier '{name}' missing.")
+                err_msg = (
+                    f"Unknown recipe modifier '{name}'. "
+                    "Check the registered modifiers and installed extensions."
+                )
+                # if self.ignore_failures:
+                #     logger.warning(err_msg)
+                # else:
+                raise ValueError(err_msg)
 
         return active_modifiers
 
@@ -848,9 +855,20 @@ class Recipe:
                 if SchemaCls:
                     active_schemas.append(SchemaCls())
                 else:
-                    logger.warning(f"Schema '{name}' missing.")
+                    err_msg = (
+                        f"Unknown recipe schema '{name}'. "
+                        "Check the registered schemas and installed extensions."
+                    )
+                    # if self.ignore_failures:
+                    # logger.warning(err_msg)
+                    # else:
+                    raise ValueError(err_msg)
             else:
-                logger.debug("Invalid schema formatting: {schema}")
+                err_msg = f"Invalid schema formatting: {schema}"
+                # if self.ignore_failures:
+                #     logger.debug(err_msg)
+                # else:
+                raise ValueError(err_msg)
 
         return active_schemas
 
