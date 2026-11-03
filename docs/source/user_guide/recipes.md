@@ -251,6 +251,14 @@ print(plan.global_hooks)
 plan.execute()
 ```
 
+Recipes can be compiled from the CLI for inspection using the `fetchez recipes compile` command:
+
+```bash
+fetchez recipes compile my_recipe.yaml
+fetchez recipes compile my_recipe.yaml --format yaml
+fetchez recipes compile my_recipe.yaml --format json
+```
+
 ## Python Runtime Components (Without Registration)
 
 Recipes can be constructed in Python using custom `FetchModule` and `FetchHook` subclasses **without registering them**. A Python recipe may mix registered component names, Python class references, and already-initialized component instances in its `modules`, `global_hooks`, and module-local `hooks` lists.
