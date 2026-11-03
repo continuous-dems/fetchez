@@ -77,7 +77,9 @@ Schemas run late in compilation — after bundles and presets have expanded, aft
 
 When a schema reports a violation, compilation raises a `ValueError` listing the errors it found. Because this happens during compilation, **no data is fetched** — the recipe fails cleanly and early.
 
-If you pass `ignore_failures=True` (or the equivalent CLI flag), schema violations are downgraded to warnings and the recipe proceeds anyway. During a multi-region run, a batch that fails to compile is logged and skipped rather than aborting the whole run. This is useful for exploratory work, but it defeats the purpose of validation — reserve it for cases where you genuinely want best-effort behaviour.
+Schema violations normally stop compilation with a ValueError containing the collected validation errors. With ignore_failures=True, reported schema violations are logged as warnings and compilation continues.
+
+Exceptions that prevent compilation from completing—such as an unavailable schema or invalid component configuration—are different from reported schema violations. During multi-region execution, such failures may cause the affected batch to be skipped when permissive failure handling is enabled.
 
 ## Inspecting and Validating Recipes
 
