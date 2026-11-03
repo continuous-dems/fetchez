@@ -835,10 +835,10 @@ class Recipe:
                     f"Unknown recipe modifier '{name}'. "
                     "Check the registered modifiers and installed extensions."
                 )
-                if self.ignore_failures:
-                    logger.warning(err_msg)
-                else:
-                    raise ValueError(err_msg)
+                # if self.ignore_failures:
+                #     logger.warning(err_msg)
+                # else:
+                raise ValueError(err_msg)
 
         return active_modifiers
 
@@ -859,16 +859,16 @@ class Recipe:
                         f"Unknown recipe schema '{name}'. "
                         "Check the registered schemas and installed extensions."
                     )
-                    if self.ignore_failures:
-                        logger.warning(err_msg)
-                    else:
-                        raise ValueError(err_msg)
+                    # if self.ignore_failures:
+                    # logger.warning(err_msg)
+                    # else:
+                    raise ValueError(err_msg)
             else:
                 err_msg = f"Invalid schema formatting: {schema}"
-                if self.ignore_failures:
-                    logger.debug(err_msg)
-                else:
-                    raise ValueError(err_msg)
+                # if self.ignore_failures:
+                #     logger.debug(err_msg)
+                # else:
+                raise ValueError(err_msg)
 
         return active_schemas
 
