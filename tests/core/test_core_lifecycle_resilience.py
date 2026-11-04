@@ -208,3 +208,21 @@ def test_empty_or_invalid_manifest_clears_execution_context(fail):
         assert core.run_fetchez([module], threads=1) == []
 
     assert module.context is None
+
+
+def test_direct_execution_preserves_prepared_discovery_results():
+    module = FakeModule()
+    module.results = [
+        {
+            "url": "https://example.test/granule.h5",
+            "dst_fn": "granule_subset_bbox.h5",
+        }
+    ]
+
+    # Discovery must not run again.
+    def unexpected_run():
+        raise AssertionError("Discovery ran twice")
+
+    module.run = unexpected_run
+
+    core.run_fetchez([module], discover=False)
