@@ -41,6 +41,7 @@ class RuntimeModule(FetchModule):
         self.dataset = dataset
         self.outdir = outdir
         self.results = []
+        self.instance_id = None
         type(self).created.append(self)
 
     def run(self):
@@ -346,13 +347,27 @@ def test_runtime_batch_context_instantiates_classes_but_preserves_instances(
         recipe_module.Recipe, "_init_modifiers", lambda self, specs, **kwargs: []
     )
     executed = []
+
+    def fake_engine(modules, **kwargs):
+        assert kwargs["discover"] is True
+
+        for module in modules:
+            module.run()
+
+        executed.append((list(modules), list(kwargs["global_hooks"])))
+
     monkeypatch.setattr(
         recipe_module,
         "run_fetchez",
-        lambda modules, **kw: executed.append(
-            (list(modules), list(kw["global_hooks"]))
-        ),
+        fake_engine,
     )
+    # monkeypatch.setattr(
+    #     recipe_module,
+    #     "run_fetchez",
+    #     lambda modules, **kw: executed.append(
+    #         (list(modules), list(kw["global_hooks"]))
+    #     ),
+    # )
     monkeypatch.setattr(recipe_module.tracemalloc, "start", lambda: None)
     monkeypatch.setattr(recipe_module.tracemalloc, "stop", lambda: None)
     monkeypatch.setattr(recipe_module.tracemalloc, "get_traced_memory", lambda: (0, 0))
@@ -698,7 +713,7 @@ def test_compile_applies_refresh_and_cache_only_to_declarative_classes(
     assert original.outdir == "as-provided"
 
 
-def test_plan_execute_runs_each_module_and_engine_once(monkeypatch):
+def test_plan_execute_delegates_to_engine_with_context(monkeypatch):
     import fetchez.recipe as recipe_module
 
     calls = []
@@ -710,8 +725,12 @@ def test_plan_execute_runs_each_module_and_engine_once(monkeypatch):
 
     def engine(modules, **kwargs):
         calls.append(("engine", len(modules)))
+
         assert kwargs["threads"] == 5
         assert kwargs["global_hooks"] == ["existing"]
+        assert kwargs["discover"] is True
+        assert kwargs["context"].plan is plan
+
         return ["result"]
 
     monkeypatch.setattr(recipe_module, "run_fetchez", engine)
@@ -721,7 +740,7 @@ def test_plan_execute_runs_each_module_and_engine_once(monkeypatch):
         global_hooks=["existing"],
     )
     result = plan.execute()
-    assert calls == [("module", "a"), ("module", "b"), ("engine", 2)]
+    assert calls == [("engine", 2)]
     assert result == ["result"]
 
 

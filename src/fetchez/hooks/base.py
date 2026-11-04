@@ -39,6 +39,9 @@ class FetchHook:
         else:
             self.stage = "file"  # Fallback
 
+        self.context = None
+        self.instance_id = None
+
     def __eq__(self, other):
         """Hooks are 'equal' if they are the same type and have identical dicts."""
         if not isinstance(other, type(self)):

@@ -1222,6 +1222,54 @@ class FetchExecutionContext:
         return self.cancel_event.is_set()
 
 
+@dataclass
+class FetchContext:
+    """Shared context for one Fetchez pipeline execution."""
+
+    plan: Any | None = None
+    execution: FetchExecutionContext = field(default_factory=FetchExecutionContext)
+
+    @property
+    def cancelled(self):
+        return self.execution.cancelled
+
+    def cancel(self):
+        self.execution.cancel()
+
+
+def normalize_context(context=None) -> FetchContext:
+    if context is None:
+        return FetchContext()
+
+    if isinstance(context, FetchContext):
+        return context
+
+    if isinstance(context, FetchExecutionContext):
+        return FetchContext(execution=context)
+
+    raise TypeError("context must be FetchContext or FetchExecutionContext")
+
+
+def bind_context(context, modules, global_hooks):
+    for module in modules:
+        module.context = context
+        for hook in module.hooks:
+            hook.context = context
+
+    for hook in global_hooks or []:
+        hook.context = context
+
+
+def clear_context(modules, global_hooks):
+    for module in modules:
+        module.context = None
+        for hook in module.hooks:
+            hook.context = None
+
+    for hook in global_hooks or []:
+        hook.context = None
+
+
 def _fetch_worker(module, entry, verbose=True, context=None):
     if context is not None and context.cancelled:
         raise FetchCancelled("Fetch Cancelled.")
@@ -1269,6 +1317,7 @@ def run_fetchez(
     global_hooks: Optional[List[Any]] = None,
     ignore_failures: bool = False,
     context=None,
+    discover=True,
 ):
     """Run Fetchez in parallel with hooks.
 
@@ -1278,34 +1327,44 @@ def run_fetchez(
         global_hooks: List of hooks to run globally across all entries.
         ignore_failures: If False (default), raises an exception on any failure.
                          If True, tags failed entries with status='failed' and continues.
+        context: The FetchContext for the plan and execution context.
+        discover: Execute module.run directly, set False if already run.
     """
 
-    context = context or FetchExecutionContext()
-
-    for module in modules:
-        module._execution_context = context
-        if getattr(module, "recipe_id_explicit", False):
-            # Reuse the entry contribution contract before any cache/sink hook
-            # sees these sources. Labels never alter the provider download ID.
-            from fetchez.entry import set_contribution_id
-
-            owned = []
-            for entry in module.results:
-                if isinstance(entry, dict):
-                    entry = dict(entry)
-                    entry["contribution_id"] = dict(entry.get("contribution_id") or {})
-                    set_contribution_id(entry, "recipe", module.recipe_id)
-                owned.append(entry)
-            module.results = owned
-
+    context = normalize_context(context)
     seen: set[Any] = set()
 
     if global_hooks is None:
         global_hooks = []
 
     silent = logger.getEffectiveLevel() > logging.INFO
+    runtime_hooks = []
 
     try:
+        # -- Context and Discovery --
+        bind_context(context, modules, global_hooks)
+        for mod in modules:
+            if discover:
+                try:
+                    if context.execution.cancelled:
+                        raise FetchCancelled("Pipeline cancelled")
+
+                    mod.run()
+                except FetchCancelled:
+                    raise
+                except Exception as _exc:
+                    mod.results = []
+                    mod._discovery_failed = True
+                    if not ignore_failures:
+                        raise
+
+                    logger.exception(
+                        "Module '%s' failed during discovery",
+                        mod.name,
+                    )
+                if getattr(mod, "_discovery_failed", False):
+                    mod.results = []
+
         # --- Module Pre-Hooks ---
         for mod in modules:
             mod_pre = [h for h in mod.hooks if h.stage == "manifest"]
@@ -1387,7 +1446,6 @@ def run_fetchez(
             f"Starting parallel fetch: {total_files} files with {threads} threads."
         )
         final_results_with_owner = []
-        runtime_hooks = []
         all_hooks = [
             *global_hooks,
             *(hook for module in modules for hook in module.hooks),
@@ -1542,6 +1600,7 @@ def run_fetchez(
                                 init_hook_cls = DataStream
                                 logger.debug(f"Auto-initializing stream for {mod.name}")
                                 init_hook = init_hook_cls()
+                                init_hook.context = context
                                 active_stream_hooks.insert(0, init_hook)
                                 runtime_hooks.append(init_hook)
 
@@ -1690,5 +1749,4 @@ def run_fetchez(
         return flat_results
 
     finally:
-        for module in modules:
-            module._execution_context = None
+        clear_context(modules, [*global_hooks, *runtime_hooks])

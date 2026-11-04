@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ADDED
+- Added per-occurrence module `instance_id` labels in recipes, with explicit YAML id values, Python-instance support, collision-free generated display labels, and compiled-plan lookup through PipelinePlan.modules_by_id.
+- Added shared pipeline execution context for modules and hooks, exposing the compiled plan and cooperative cancellation controls.
+- Added regression coverage for module identity, recipe compilation, discovery lifecycle, cancellation, and context cleanup.
+
 ### CHANGED
+- **Breaking Change** Centralized module discovery in `run_fetchez()` before manifest hooks; PipelinePlan.execute() now delegates to the common core execution path. The engine supports `discover=False` for previously discovered modules.
+- Kept workflow instance labels separate from deterministic module/cache identity and source, dataset, and contribution provenance.
+- Improved failure cleanup and cancellation propagation across discovery, fetching, and hooks.
 - Refactored core HTTP acquisition with centralized request execution, retry management, and consistent error handling.
 - Standardized acquisition exceptions (`FetchError`, `FetchRetryExhausted`, `FetchCancelled`, `FetchLockTimeout`) and preserved underlying failure causes for improved downstream diagnostics.
 - Improved resumable downloads with byte-range and file-size validation, recovery from interrupted transfers, and reliable partial-file handling.

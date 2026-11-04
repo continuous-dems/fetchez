@@ -86,10 +86,9 @@ modules:
 
 Each module's `hooks` list applies only to that module's data — the same scoping rule described in [Usage](usage.md).
 
-### Optional names for module entries
+### Module instance IDs
 
-Add `id` when a hook needs to distinguish individual declarations of the same
-provider. It is recipe metadata, outside `args`, and does not rename the provider:
+Give a module declaration an optional `id` to reference that **workflow occurrence**, especially when the same provider appears more than once:
 
 ```yaml
 modules:
@@ -101,32 +100,11 @@ modules:
     args: {datatype: bag}
 ```
 
-The compiler exposes each label as `module.recipe_id`. Hook authors can use that
-attribute to select entries; this feature does not add selectors to every hook.
-Globato's separate Stack QC integration can use labels for target/reference
-selection. Labels are also useful for two entries from the same lidar survey
-that apply different class-filter hooks. Keep those existing hooks unchanged.
+The compiled module exposes its label as `module.instance_id`; hook authors can resolve named modules through `self.context.plan.modules_by_id` during recipe execution. The `id` field is recipe metadata, not a provider option, and it does **not** change `module.module_id()`, cache identity, or data-source provenance. In particular, Fetchez does not inject a recipe label into an entry's `contribution_id`.
 
-IDs must be unique non-empty strings without surrounding whitespace. Duplicate
-labels are checked in the top-level declarations before expansion and again when
-instantiating the prepared modules. Use `id` on concrete module declarations;
-it is not a namespace or renaming option for an entire bundle. Repeated bundle
-instances containing fixed IDs need distinct concrete labels after expansion.
+IDs must be unique, nonempty strings without surrounding whitespace. Unnamed modules receive generated display labels such as `entry_1`; these can change when declarations are reordered, so use explicit IDs for stable references. Python-created recipes may supply preconfigured module instances with their own IDs. A single module object cannot be used as two occurrences in one compiled plan.
 
-Naming an entry does not change its provider configuration or download-cache ID.
-Before manifest hooks run, explicit labels are attached with the existing
-`set_contribution_id(entry, "recipe", label)` mechanism. This distinguishes
-processed contributions from separately named entries of the same physical
-source while preserving its URL and other contribution components. Labels do
-not establish independent survey evidence or authorize counting duplicate
-measurements twice.
-
-Unnamed entries remain supported. They receive automatic display labels such as
-`entry_1`, but those labels are not added to processed-source identity. Existing
-unnamed recipes retain their provider and processed-source identities. Display
-labels may change when a recipe is reordered; use an explicit ID when a hook
-needs a stable readable selector. One runtime module object cannot represent two
-entries in a single compiled plan; declare two modules instead.
+Bundle and preset inheritance are unchanged by this feature. In particular, IDs are not yet targeted override selectors for inherited declarations, and bundle merging may affect which concrete declarations reach compilation. See [Identity in Fetchez](identity_guide.md) for a comparison of `instance_id`, `module_id()`, `source_id`, `dataset_id`, and `contribution_id`, as well as examples and current limitations.
 
 ### 3. Global Hooks (The Assembly Line)
 
@@ -240,12 +218,13 @@ fetchez run -R -120/-119.75/33/33.25 --schema quarter-degree-tile my_strict_proj
 
 Understanding when each step happens explains why modifiers and schemas behave the way they do. During compilation, Fetchez performs these steps in order:
 
-1. **Bundles and presets expand** into concrete modules and hooks
-2. **Modifiers apply**, in configured order
-3. **Execution options apply** (shared cache, refresh behaviour)
-4. **`%placeholder%` values are injected**
-5. **Schemas validate** the resulting configuration
-6. **Components are instantiated**
+1. **Initial compatibility and explicit-ID checks** validate the original recipe
+2. **Bundles and presets expand** into concrete modules and hooks
+3. **Modifiers apply**, in configured order
+4. **Execution options apply** (shared cache, refresh behaviour)
+5. **`%placeholder%` values are injected**
+6. **Schemas validate** the resulting configuration
+7. **Components are instantiated and final module IDs validated**
 
 So modifiers see expanded modules and unresolved placeholders, while schemas see the fully prepared configuration. See [Recipe Modifiers](modifiers.md) and [Recipe Schemas](schemas.md) for the practical implications.
 
