@@ -28,8 +28,8 @@ import urllib.parse
 from urllib.error import HTTPError
 from urllib.request import Request, build_opener, HTTPCookieProcessor
 from typing import List, Dict, Optional, Any, Tuple
-import concurrent.futures
 from dataclasses import dataclass, field
+import concurrent.futures
 
 import requests
 import lxml.etree
@@ -60,6 +60,50 @@ logger = logging.getLogger(__name__)
 HOOK_LOCK = threading.Lock()
 
 
+class FetchezError(Exception):
+    """Base exception for Fetchez runtime errors."""
+
+
+class FetchError(FetchezError):
+    """A resource could not be acquired."""
+
+
+class FetchCancelled(FetchezError):
+    """An acquisition or workflow was cancelled."""
+
+
+class FetchLockTimeout(FetchError):
+    """Timed out waiting for a download lock."""
+
+
+class HookExecutionError(FetchezError):
+    """A processing hook failed."""
+
+
+class PipelineExecutionError(FetchezError):
+    """The pipeline could not complete successfully."""
+
+
+class RetryRangeReset(Exception):
+    """Retry once after discarding an invalid Range request."""
+
+
+class IncompleteDownloadError(Exception):
+    """A remote transfer ended before the expected byte count."""
+
+
+class FetchRetryExhausted(FetchError):
+    def __init__(self, url, attempts, cause):
+        self.url = url
+        self.attempts = attempts
+        self.cause = cause
+
+        super().__init__(
+            f"Failed to fetch {url} after {attempts} attempts: "
+            f"{type(cause).__name__}: {cause}"
+        )
+
+
 # =============================================================================
 # Helper Functions
 # =============================================================================
@@ -69,6 +113,46 @@ def fetches_callback(r: List[Any]):
     """
 
     pass
+
+
+def validate_content_range(response, expected_start):
+    header = response.headers.get("Content-Range", "")
+
+    try:
+        unit, value = header.split(" ", 1)
+        range_part, total_part = value.split("/", 1)
+        start_str, end_str = range_part.split("-", 1)
+
+        start = int(start_str)
+        end = int(end_str)
+        total = int(total_part)
+
+    except (ValueError, AttributeError) as exc:
+        raise FetchError(f"Malformed Content-Range: {header!r}") from exc
+
+    if unit.lower() != "bytes":
+        raise FetchError(f"Invalid Content-Range unit: {unit}")
+
+    if not (0 <= start <= end < total):
+        raise FetchError(f"Invalid Content-Range bounds: {header}")
+
+    if start != expected_start:
+        raise FetchError(f"Resume mismatch: expected {expected_start}, got {start}")
+
+    return total
+
+
+def mark_entry_failed(entry, exc, *, stage, hook=None):
+    entry["status"] = "failed"
+    entry["error_message"] = str(exc)
+    entry["error"] = {
+        "stage": stage,
+        "type": type(exc).__name__,
+        "message": str(exc),
+    }
+
+    if hook is not None:
+        entry["error"]["hook"] = hook
 
 
 def urlencode_(opts: Dict) -> str:
@@ -150,9 +234,9 @@ def get_userpass(
             auth_results = info.authenticators(host_auth)
             if auth_results is not None:
                 username, _, password = auth_results
-    except Exception as e:
-        if "No such file" not in str(e):
-            logger.error(f"Failed to parse netrc: {e}")
+    except Exception as exc:
+        if "No such file" not in str(exc):
+            logger.error(f"Failed to parse netrc: {exc}")
         username = None
         password = None
 
@@ -248,9 +332,12 @@ class iso_xml:
         }
 
         if self.url is not None:
-            req = Fetch(self.url).fetch_req(timeout=timeout, read_timeout=read_timeout)
-            if req and req.status_code == 200:
-                self._parse(req.content)
+            with Fetch(self.url).fetch_req(
+                timeout=timeout, read_timeout=read_timeout
+            ) as req:
+                # req = Fetch(self.url).fetch_req(timeout=timeout, read_timeout=read_timeout)
+                if req and req.status_code == 200:
+                    self._parse(req.content)
         elif xml is not None:
             self._parse(xml)
 
@@ -259,8 +346,8 @@ class iso_xml:
             # Use recover=True to handle slight XML errors
             parser = lxml.etree.XMLParser(recover=True)
             self.xml_doc = lxml.etree.fromstring(content, parser=parser)
-        except Exception as e:
-            logger.error(f"XML Parsing failed: {e}")
+        except Exception as exc:
+            logger.error(f"XML Parsing failed: {exc}")
             self.xml_doc = None
 
     def _xpath_get(self, xpath_str):
@@ -386,8 +473,8 @@ class iso_xml:
             else:
                 return out_poly
 
-        except (IndexError, ValueError) as e:
-            logger.error(f"Could not parse polygon from xml: {e}")
+        except (IndexError, ValueError) as exc:
+            logger.error(f"Could not parse polygon from xml: {exc}")
             return None
 
 
@@ -406,6 +493,8 @@ _PERMANENT_REQUEST_ERRORS = (
     requests.exceptions.InvalidSchema,
     requests.exceptions.MissingSchema,
 )
+
+_RETRYABLE_EXCEPTIONS = (requests.exceptions.RequestException,)
 
 
 def _is_transient(status: int) -> bool:
@@ -646,155 +735,195 @@ class Fetch:
 
         self.session = fetchezSession(rauth=self.auth, rheaders=self.headers)
 
+    def _execute_request(
+        self,
+        method: str,
+        timeout_tuple: tuple,
+        stream: bool = True,
+        **kwargs,
+    ) -> requests.Response:
+        """Execute one HTTP request and classify its response."""
+
+        if self.cancel_event is not None and self.cancel_event.is_set():
+            raise FetchCancelled("Fetch cancelled")
+
+        try:
+            response = self.session.request(
+                method=method,
+                url=self.url,
+                timeout=timeout_tuple,
+                verify=self.verify,
+                allow_redirects=self.allow_redirects,
+                auth=self.auth,
+                stream=stream,
+                **kwargs,
+            )
+
+        except _PERMANENT_REQUEST_ERRORS as exc:
+            raise FetchError(f"Invalid request for {self.url}: {exc}") from exc
+
+        status = response.status_code
+
+        # Successful response, or special statuses handled by the caller.
+        if 200 <= status < 300 or status in (304, 416):
+            return response
+
+        # Retryable HTTP failure.
+        if _is_transient(status):
+            error = requests.HTTPError(
+                f"HTTP {status} requesting {self.url}",
+                response=response,
+            )
+            response.close()
+            raise error
+
+        # Permanent HTTP failure.
+        error = requests.HTTPError(
+            f"HTTP {status} requesting {self.url}",
+            response=response,
+        )
+
+        response.close()
+
+        raise FetchError(f"HTTP {status} requesting {self.url}") from error
+
+    def _with_retries(self, operation, *, tries=5, method="GET"):
+        if tries < 1:
+            raise ValueError("tries must be >= 1")
+
+        attempt = 0
+        range_resets = 0
+
+        while attempt < tries:
+            self._check_cancelled()
+            attempt += 1
+
+            try:
+                return operation(attempt)
+
+            except FetchCancelled:
+                raise
+
+            except FetchError:
+                raise
+
+            except RetryRangeReset as exc:
+                if range_resets >= 1:
+                    raise FetchError(
+                        f"Repeated HTTP 416 while recovering Range for {self.url}"
+                    ) from exc
+
+                range_resets += 1
+                attempt -= 1
+                continue
+
+            except (
+                requests.ConnectionError,
+                requests.Timeout,
+                requests.exceptions.ChunkedEncodingError,
+                requests.HTTPError,
+                IncompleteDownloadError,
+            ) as exc:
+                if isinstance(exc, requests.HTTPError):
+                    response = exc.response
+                    if response is None or not _is_transient(response.status_code):
+                        raise FetchError(
+                            f"Non-retryable HTTP error for {self.url}: {exc}"
+                        ) from exc
+
+                if method.upper() not in ("GET", "HEAD"):
+                    raise FetchError(
+                        f"Automatic retry is not enabled for {method}"
+                    ) from exc
+
+                if attempt == tries:
+                    raise FetchRetryExhausted(
+                        url=self.url,
+                        attempts=attempt,
+                        cause=exc,
+                    ) from exc
+
+                delay = self._retry_delay(attempt, exc)
+
+                logger.debug(
+                    "Attempt %d/%d failed for %s: %s",
+                    attempt,
+                    tries,
+                    self.url,
+                    exc,
+                )
+
+                self._wait_for_retry(delay)
+
+        raise FetchError(f"Retry loop terminated unexpectedly for {self.url}")
+
+    def _check_cancelled(self):
+        if self.cancel_event is not None and self.cancel_event.is_set():
+            raise FetchCancelled("Fetch cancelled")
+
+    def _wait_for_retry(self, seconds):
+        if self.cancel_event is not None:
+            if self.cancel_event.wait(seconds):
+                raise FetchCancelled("Fetch cancelled during retry wait")
+        else:
+            time.sleep(seconds)
+
+    def _retry_delay(self, attempt, exc):
+        if isinstance(exc, requests.HTTPError) and exc.response is not None:
+            if exc.response.status_code == 429:
+                retry_after = exc.response.headers.get("Retry-After")
+                if retry_after and retry_after.isdigit():
+                    return min(int(retry_after), 120)
+
+        return min(2 * attempt, 30)
+
     def fetch_req(
         self,
-        method: str = "GET",
-        params: Optional[Dict] = None,
-        data: Optional[Any] = None,
-        json: Optional[Dict] = None,
-        tries: int = 5,
-        # timeout: Optional[Union[float, Tuple]] = None,
-        timeout: Optional[float] = 30,
-        read_timeout: Optional[float] = 120,
-    ) -> Optional[requests.Response]:
-        """Fetch src_url and return the requests object (iterative retry)."""
-
-        req = None
-        last_failure: Exception | None = None
-        current_timeout = timeout
-        current_read_timeout = read_timeout
-        attempts = 0
+        method="GET",
+        params=None,
+        data=None,
+        json=None,
+        tries=5,
+        timeout=30,
+        read_timeout=120,
+    ) -> requests.Response:
         headers = self.headers.copy()
+        range_reset = False
 
-        for attempt in range(tries):
-            try:
-                for _ in range(2):
-                    # Calculate timeouts for this attempt
-                    tupled_timeout = (
-                        current_timeout if current_timeout else None,
-                        current_read_timeout if current_read_timeout else None,
-                    )
+        def attempt(_number):
+            nonlocal range_reset
 
-                    req = self.session.request(
-                        method=method,
-                        url=self.url,
-                        params=params,
-                        data=data,
-                        json=json,
-                        headers=headers,
-                        auth=self.auth,
-                        timeout=tupled_timeout,
-                        verify=self.verify,
-                        allow_redirects=self.allow_redirects,
-                        stream=True,  # Always stream to support large files
-                    )
+            response = self._execute_request(
+                method=method,
+                timeout_tuple=(timeout, read_timeout),
+                stream=True,
+                headers=headers,
+                params=params,
+                data=data,
+                json=json,
+            )
 
-                    if req is None:
-                        raise ConnectionError
+            if response.status_code == 416:
+                response.close()
 
-                    if req.status_code == 416:
-                        req.close()
+                if "Range" in headers and not range_reset:
+                    range_reset = True
+                    headers.pop("Range")
+                    raise RetryRangeReset()
 
-                        if "Range" in headers:
-                            logger.warning(
-                                "Server rejected Range %s for %s (HTTP 416). "
-                                "Retrying without Range.",
-                                headers["Range"],
-                                self.url,
-                            )
-                            headers.pop("Range", None)
-                            continue
+                raise FetchError(f"HTTP 416 without recoverable Range for {self.url}")
 
-                        raise requests.HTTPError(
-                            f"HTTP 416 from {self.url} without a Range header"
-                        )
-                    break
+            if response.status_code == 304:
+                response.close()
+                raise FetchError(f"Unexpected HTTP 304 for {self.url}")
 
-                if req is None:
-                    raise ConnectionError
+            return response
 
-                # Check status codes
-                if req.status_code == 504:  # Gateway Timeout
-                    last_failure = requests.HTTPError("504 Gateway Timeout")
-                    req.close()
-                    time.sleep(2)
-                    ## Increase timeouts next loop
-                    if current_timeout:
-                        current_timeout += 1
-                    if current_read_timeout:
-                        current_read_timeout += 10
-                    continue
-
-                elif req.status_code == 429:  # Too Many Requests
-                    last_failure = requests.HTTPError("429 Too Many Requests")
-                    retry_after = req.headers.get("Retry-After")
-                    req.close()
-                    wait_time = (
-                        int(retry_after)
-                        if retry_after and retry_after.isdigit()
-                        else 30 * (attempt + 1)
-                    )
-                    logger.warning(
-                        f"Rate limited (429) by {self.url}. Waiting {wait_time}s before retry..."
-                    )
-                    time.sleep(wait_time)
-                    continue
-
-                # elif not _is_transient(req.status_code):
-                elif 299 < req.status_code > 200:
-                    # Fatal error for this attempt
-                    status_msg = f"Status {req.status_code}"
-                    try:
-                        body = req.json()
-                        extras = ", ".join(
-                            f"{k}: {body[k]}" for k in ("error", "message") if k in body
-                        )
-                        if extras:
-                            status_msg += f" ({extras})"
-                    except Exception:
-                        req.raise_for_status()
-                    raise ConnectionError(status_msg)
-
-                elif 200 <= req.status_code <= 299:
-                    return req
-
-                elif _is_transient(req.status_code):
-                    logger.error(f"Request from {req.url} returned {req.status_code}")
-                    req.raise_for_status()
-
-                else:
-                    logger.error(f"Request from {req.url} returned {req.status_code}")
-                    req.raise_for_status()
-                    # return req
-
-            except ConnectionError as e:
-                attempts += 1
-                last_failure = e
-                if req is not None:
-                    req.close()
-                break
-
-            except Exception as e:
-                last_failure = e
-                attempts += 1
-                if req is not None:
-                    req.close()
-                logger.debug(f"Attempt {attempt + 1}/{tries} failed: {e}")
-                if current_timeout:
-                    current_timeout *= 2
-                if current_read_timeout:
-                    current_read_timeout *= 2
-                time.sleep(1)
-
-        logger.error(f"Connection failed after {attempts} attempts: {self.url}")
-        detail = (
-            f"{type(last_failure).__name__}: {last_failure}"
-            if last_failure is not None
-            else "no response"
+        return self._with_retries(
+            attempt,
+            tries=tries,
+            method=method,
         )
-        raise ConnectionError(
-            f"Maximum attempts at connecting have failed: {self.url} ({detail})"
-        ) from last_failure
 
     def fetch_html(self, timeout=2):
         """Fetch src_url and return it as an HTML object."""
@@ -815,30 +944,6 @@ class Fetch:
             return lxml.etree.fromstring(response.content)
         finally:
             response.close()
-
-    # def fetch_html(self, timeout=2):
-    #     """Fetch src_url and return it as an HTML object."""
-
-    #     req = self.fetch_req(timeout=timeout)
-
-    #     if req is not None:
-    #         return lh.document_fromstring(req.text)
-    #     return None
-
-    # def fetch_xml(self, timeout=2, read_timeout=10):
-    #     """Fetch src_url and return it as an XML object."""
-
-    #     try:
-    #         req = self.fetch_req(timeout=timeout, read_timeout=read_timeout)
-    #         results = lxml.etree.fromstring(req.text.encode("utf-8"))
-    #     except Exception:
-    #         ## Fallback empty XML
-    #         results = lxml.etree.fromstring(
-    #             '<?xml version="1.0"?><!DOCTYPE _[<!ELEMENT _ EMPTY>]><_/>'.encode(
-    #                 "utf-8"
-    #             )
-    #         )
-    #     return results
 
     def fetch_file(
         self,
@@ -870,8 +975,7 @@ class Fetch:
                         logger.debug(f"Verified local: {src_path}")
                     return 0
                 else:
-                    logger.error(f"Missing local file: {src_path}")
-                    return -1
+                    raise IOError(f"Missing local file: {src_path}")
 
             # Copy from Network/Local -> Output Dir
             else:
@@ -887,17 +991,16 @@ class Fetch:
                         "Source and destination share the same; skipping copy."
                     )
                     return 0
-                except Exception as e:
-                    logger.error(f"Local copy failed: {e}")
-                    return -1
+                except Exception as exc:
+                    raise FetchError(f"Local copy failed: {exc}") from exc
 
         # Regular file fetching here-on-out
         dst_fn = Path(dst_fn)
         dst_dir = Path(dst_fn).parent.resolve()
         dst_dir.mkdir(parents=True, exist_ok=True)
 
-        part_fn = f"{dst_fn}.part"
-        lock_fn = f"{dst_fn}.lock"
+        part_fn = Path(f"{dst_fn}.part")
+        lock_fn = Path(f"{dst_fn}.lock")
 
         if not overwrite and dst_fn.exists():
             if not check_size or dst_fn.stat().st_size > 0:
@@ -905,8 +1008,106 @@ class Fetch:
 
         lock = filelock.FileLock(lock_fn, timeout=3600)
         if self.cancel_event is not None and self.cancel_event.is_set():
-            logger.warning("Download cancelled.")
-            return -1
+            raise FetchCancelled("Fetch Cancelled.")
+
+        def attempt(_number):
+            self._check_cancelled()
+
+            # Recalculate on EVERY attempt because the previous attempt
+            # may have written additional bytes.
+            resume_pos = part_fn.stat().st_size if part_fn.exists() else 0
+
+            headers = self.headers.copy()
+            headers.pop("Range", None)
+
+            mode = "wb"
+
+            if resume_pos > 0:
+                headers["Range"] = f"bytes={resume_pos}-"
+                mode = "ab"
+
+            response = self._execute_request(
+                method=method,
+                timeout_tuple=(timeout, read_timeout),
+                stream=True,
+                headers=headers,
+                params=params,
+            )
+
+            with response:
+                if response.status_code == 416:
+                    if resume_pos == 0:
+                        raise FetchError(
+                            f"HTTP 416 without a Range request for {self.url}"
+                        )
+
+                    logger.warning(
+                        "Server rejected resume for %s; restarting from beginning",
+                        dst_fn.name,
+                    )
+
+                    part_fn.unlink(missing_ok=True)
+                    raise RetryRangeReset()
+
+                if response.status_code == 304:
+                    if dst_fn.exists() and dst_fn.stat().st_size > 0:
+                        return 0
+                    raise FetchError(f"HTTP 304 without a cached file: {self.url}")
+
+                if response.status_code not in (200, 206):
+                    raise FetchError(
+                        f"Unexpected HTTP {response.status_code}: {self.url}"
+                    )
+
+                if resume_pos and response.status_code == 200:
+                    logger.warning(
+                        "Server ignored Range for %s; restarting download",
+                        dst_fn.name,
+                    )
+                    resume_pos = 0
+                    mode = "wb"
+
+                if response.status_code == 206:
+                    total_size = validate_content_range(response, resume_pos)
+                else:
+                    total_size = int(response.headers.get("Content-Length", 0))
+
+                with open(part_fn, mode) as output:
+                    with tqdm(
+                        desc=utils.format_dataset_id(self.url),
+                        total=total_size,
+                        initial=resume_pos,
+                        disable=not (verbose and not self.silent),
+                        unit="B",
+                        unit_scale=True,
+                        unit_divisor=1024,
+                        leave=False,
+                    ) as pbar:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            self._check_cancelled()
+
+                            if chunk:
+                                output.write(chunk)
+                                pbar.update(len(chunk))
+
+                if check_size and total_size > 0:
+                    actual_size = part_fn.stat().st_size
+
+                    if actual_size < total_size:
+                        raise IncompleteDownloadError(
+                            f"Incomplete download: {actual_size}/{total_size}"
+                        )
+
+                    if actual_size > total_size:
+                        raise FetchError(
+                            f"Download exceeds expected size: "
+                            f"{actual_size}/{total_size}"
+                        )
+
+                self._check_cancelled()
+
+                os.replace(part_fn, dst_fn)
+                return 0
 
         try:
             with lock:
@@ -917,183 +1118,18 @@ class Fetch:
                         )
                         return 0
 
-                headers = self.headers.copy()
-                for attempt in range(tries):
-                    req_headers = headers.copy()
-                    resume_byte_pos = 0
-                    mode = "wb"
+                return self._with_retries(
+                    attempt,
+                    tries=tries,
+                    method=method,
+                )
 
-                    # Resume if partial file exists
-                    if Path(part_fn).exists():
-                        resume_byte_pos = Path(part_fn).stat().st_size
-                        if resume_byte_pos > 0:
-                            req_headers["Range"] = f"bytes={resume_byte_pos}-"
-                            mode = "ab"
-
-                    try:
-                        with self.session.request(
-                            method=method,
-                            url=self.url,
-                            stream=True,
-                            params=params,
-                            # data=data,
-                            # json=json,
-                            auth=self.auth,
-                            headers=req_headers,
-                            timeout=(timeout, read_timeout),
-                            verify=self.verify,
-                            allow_redirects=self.allow_redirects,
-                        ) as req:
-                            # Finished/Cached by Server (304) or Pre-check
-                            if req.status_code == 304:
-                                return 0
-
-                            # Get Expected Size
-                            remote_size = int(req.headers.get("content-length", 0))
-                            total_size = remote_size
-
-                            # Adjust expectation if this is a partial response
-                            if req.status_code == 206:
-                                content_range = req.headers.get("Content-Range", "")
-                                if "/" in content_range:
-                                    total_size = int(content_range.split("/")[-1])
-
-                            # Check if already done (.part matches full size)
-                            if (
-                                check_size
-                                and total_size > 0
-                                and resume_byte_pos == total_size
-                            ):
-                                ## We have the whole file in .part, just move it.
-                                os.rename(part_fn, dst_fn)
-                                return 0
-
-                            # Remove the Range header if the server doesn't support resume
-                            if resume_byte_pos > 0 and req.status_code == 200:
-                                logger.warning(
-                                    f"Server ignored resume request for {dst_fn.name}. "
-                                    "Restarting download from scratch."
-                                )
-                                mode = "wb"
-                                resume_byte_pos = 0
-                                headers.pop("Range", None)
-
-                            # Error Codes
-                            if req.status_code == 416:
-                                # Range No Good: Local file is likely corrupt.
-                                # Delete .part and retry from scratch (next loop iteration)
-                                logger.debug(
-                                    f"Invalid Range for {dst_fn.name}. Restarting..."
-                                )
-                                if Path(part_fn).exists():
-                                    Path(part_fn).unlink()
-                                headers.pop("Range", None)
-                                continue
-
-                            elif req.status_code in [401, 403]:
-                                # Unauthorized / Forbidden
-                                raise UnboundLocalError(
-                                    "Authentication Failed / Forbidden"
-                                )
-
-                            elif req.status_code not in [200, 206]:
-                                # Fatal error for this attempt
-                                if attempt < tries - 1:
-                                    time.sleep(2)
-                                    continue
-                                status_msg = f"Status {req.status_code}"
-                                try:
-                                    body = req.json()
-                                    extras = ", ".join(
-                                        f"{k}: {body[k]}"
-                                        for k in ("error", "message")
-                                        if k in body
-                                    )
-                                    if extras:
-                                        status_msg += f" ({extras})"
-                                except Exception:
-                                    req.raise_for_status()
-                                raise ConnectionError(status_msg)
-
-                            with open(part_fn, mode) as f:
-                                # desc = utils.str_truncate_middle(self.url, n=60)
-                                desc = utils.format_dataset_id(self.url)
-                                show_bar = verbose and not self.silent
-                                with tqdm(
-                                    desc=desc,
-                                    total=total_size,
-                                    initial=resume_byte_pos,
-                                    disable=not show_bar,
-                                    unit="B",
-                                    unit_scale=True,
-                                    unit_divisor=1024,
-                                    leave=False,
-                                ) as pbar:
-                                    for chunk in req.iter_content(chunk_size=8192):
-                                        if (
-                                            self.cancel_event is not None
-                                            and self.cancel_event.is_set()
-                                        ):
-                                            logger.warning("Download cancelled.")
-                                            return -1
-
-                                        if chunk:
-                                            f.write(chunk)
-                                            pbar.update(len(chunk))
-
-                            # If we got here without exception, check size, if wanted
-                            if check_size and total_size > 0:
-                                final_size = Path(part_fn).stat().st_size
-                                if final_size < total_size:
-                                    # If smaller, the connection was most likely cut.
-                                    raise IOError(
-                                        f"Incomplete download: {final_size}/{total_size} bytes"
-                                    )
-
-                                elif final_size > total_size:
-                                    # If larger, it was likely decompressed on the fly ? (GZIP).
-                                    logger.debug(
-                                        f"File size ({final_size}) > Header ({total_size}). "
-                                        "Assuming transparent decompression."
-                                    )
-                                    # req.raise_for_status()
-
-                                else:
-                                    pass
-
-                            if (
-                                self.cancel_event is not None
-                                and self.cancel_event.is_set()
-                            ):
-                                logger.warning("Download cancelled.")
-                                return -1
-
-                            os.rename(part_fn, dst_fn)
-                            return 0
-
-                    except (
-                        requests.exceptions.RequestException,
-                        IOError,
-                        UnboundLocalError,
-                    ) as e:
-                        if attempt < tries - 1:
-                            wait_time = (attempt + 1) * 2
-                            logger.debug(
-                                f"Download failed: {e}. Retrying in {wait_time}s..."
-                            )
-                            time.sleep(wait_time)
-                        else:
-                            logger.debug(f"Failed to download {self.url}: {e}")
-                            # return -1
-                            req.raise_for_status()
-
-        except filelock.Timeout:
-            logger.error(
+        except filelock.Timeout as exc:
+            raise FetchLockTimeout(
                 f"Timeout waiting for lock on {dst_fn}. Another process may be hanging."
-            )
-            return -1
+            ) from exc
 
-        return -1
+        raise FetchError("Fetch failed for unknown reason.")
 
     def fetch_ftp_file(
         self, dst_fn: str | Path, params: Optional[Dict] = None, overwrite: bool = False
@@ -1114,8 +1150,7 @@ class Fetch:
         dest_dir.mkdir(parents=True, exist_ok=True)
 
         if self.cancel_event is not None and self.cancel_event.is_set():
-            logger.warning("Download cancelled.")
-            return -1
+            raise FetchCancelled("Fetch Cancelled.")
 
         ftp = None
 
@@ -1148,7 +1183,7 @@ class Fetch:
                     def callback(data):
                         if self.cancel_event is not None and self.cancel_event.is_set():
                             logger.warning("Download cancelled.")
-                            raise InterruptedError("FTP download cancelled")
+                            raise FetchCancelled("FTP download cancelled")
 
                         local_file.write(data)
                         pbar.update(len(data))
@@ -1157,12 +1192,13 @@ class Fetch:
 
             logger.info(f"Fetched remote ftp file: {Path(self.url).name}.")
 
-        except Exception as e:
-            logger.error(f"FTP Error: {e}")
-            status = -1
+        except FetchCancelled:
+            dst_fn.unlink(missing_ok=True)
+            raise
 
-            if dst_fn.exists():
-                dst_fn.unlink()
+        except Exception as exc:
+            dst_fn.unlink(missing_ok=True)
+            raise FetchError(f"FTP Error: {exc}") from exc
 
         finally:
             if ftp is not None:
@@ -1188,7 +1224,7 @@ class FetchExecutionContext:
 
 def _fetch_worker(module, entry, verbose=True, context=None):
     if context is not None and context.cancelled:
-        return -1
+        raise FetchCancelled("Fetch Cancelled.")
 
     return module.fetch_entry(
         entry,
@@ -1227,7 +1263,6 @@ def _teardown_hooks(hooks, *, ignore_failures=False, seen=None):
         raise RuntimeError("One or more hooks failed during teardown") from first_error
 
 
-# List[FetchModule]
 def run_fetchez(
     modules: List[Any],
     threads: int = 3,
@@ -1287,11 +1322,11 @@ def run_fetchez(
                             local_entries = []
 
                         utils._log_hook_history(local_entries, hook)
-                    except Exception as e:
-                        err_msg = f'Module "{mod.name}" manifest-hook "{hook.name}" failed: {e}'
+                    except Exception as exc:
+                        err_msg = f'Module "{mod.name}" manifest-hook "{hook.name}" failed: {exc}'
                         if not ignore_failures:
                             logger.critical(f"CRITICAL: {err_msg}")
-                            raise RuntimeError(err_msg) from e
+                            raise RuntimeError(err_msg) from exc
                         logger.error(
                             f"{err_msg} (Skipping due to ignore_failures=True)"
                         )
@@ -1330,11 +1365,11 @@ def run_fetchez(
                         all_entries = result
 
                     utils._log_hook_history(all_entries, hook)
-                except Exception as e:
-                    err_msg = f'Global manifest-hook "{hook.name}" failed: {e}'
+                except Exception as exc:
+                    err_msg = f'Global manifest-hook "{hook.name}" failed: {exc}'
                     if not ignore_failures:
                         logger.critical(f"CRITICAL: {err_msg}")
-                        raise RuntimeError(err_msg) from e
+                        raise RuntimeError(err_msg) from exc
                     logger.error(f"{err_msg} (Skipping due to ignore_failures=True)")
         finally:
             _teardown_hooks(
@@ -1364,219 +1399,232 @@ def run_fetchez(
             if hook.stage != "collection" and hook.stage != "manifest"
         ]
 
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=threads)
+
+        aborted = False
+
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
-                futures = {
-                    executor.submit(
-                        _fetch_worker,
-                        mod,
-                        entry,
-                        verbose=True,
-                        context=context,
-                    ): (mod, entry)
-                    for mod, entry in all_entries
-                }
-                # futures = {
-                #     executor.submit(_fetch_worker, mod, entry, verbose=True): (mod, entry)
-                #     for mod, entry in all_entries
-                # }
+            futures = {
+                executor.submit(
+                    _fetch_worker,
+                    mod,
+                    entry,
+                    verbose=True,
+                    context=context,
+                ): (mod, entry)
+                for mod, entry in all_entries
+            }
 
-                with tqdm(
-                    total=total_files,
-                    unit="file",
-                    desc="Starting Pipeline...",
-                    position=0,
-                    leave=False,
-                    disable=silent,
-                ) as pbar:
-                    for future in concurrent.futures.as_completed(futures):
-                        if context.cancelled:
-                            raise KeyboardInterrupt("Pipeline aborted.")
+            with tqdm(
+                total=total_files,
+                unit="file",
+                desc="Starting Pipeline...",
+                position=0,
+                leave=False,
+                disable=silent,
+            ) as pbar:
+                for future in concurrent.futures.as_completed(futures):
+                    if context.cancelled:
+                        raise FetchCancelled("Pipeline cancelled")
 
-                        mod, original_entry = futures[future]
-                        file_name = Path(original_entry.get("dst_fn", "item")).name
-                        short_name = (
-                            file_name[:30] + "..." if len(file_name) > 30 else file_name
+                    mod, original_entry = futures[future]
+
+                    file_name = Path(original_entry.get("dst_fn", "item")).name
+
+                    short_name = (
+                        file_name[:30] + "..." if len(file_name) > 30 else file_name
+                    )
+
+                    pbar.set_description(f"[{mod.name}] {short_name}")
+                    pbar.update(1)
+
+                    try:
+                        result = future.result()
+
+                        if result != 0:
+                            raise FetchError(
+                                f"Module '{mod.name}' returned unexpected fetch result "
+                                f"{result!r} for '{file_name}'. Expected 0 on success; "
+                                f"failures must raise an exception."
+                            )
+
+                    except FetchCancelled:
+                        context.cancel()
+                        raise
+
+                    except Exception as exc:
+                        err_msg = f"Failed to fetch {file_name}: {exc}"
+
+                        if not ignore_failures:
+                            logger.critical(
+                                "CRITICAL: [%s] %s",
+                                mod.name,
+                                err_msg,
+                            )
+                            context.cancel()
+                            # raise PipelineExecutionError(err_msg) from exc
+                            raise RuntimeError(err_msg) from exc
+
+                        logger.error("[%s] %s (Continuing...)", mod.name, err_msg)
+                        mark_entry_failed(
+                            original_entry,
+                            exc,
+                            stage="fetch",
                         )
-                        pbar.set_description(f"[{mod.name}] {short_name}")
 
+                        final_results_with_owner.append((mod, original_entry))
+                        continue
+
+                    # --- File Hooks ---
+                    gf_hooks = [h for h in global_hooks if h.stage == "file"]
+                    lf_hooks = [h for h in mod.hooks if h.stage == "file"]
+
+                    active_file_hooks = utils.merge_hooks(lf_hooks, gf_hooks)
+                    current_entries = [(mod, original_entry)]
+
+                    hook_failed = False
+                    for hook in active_file_hooks:
+                        if context.cancelled:
+                            raise FetchCancelled("Pipeline cancelled")
                         try:
-                            status = future.result()
-                            if status != 0:
-                                raise IOError(
-                                    f"Fetch worker returned non-zero status code: {status}"
-                                )
-                        except Exception as e:
-                            err_msg = f"Failed to fetch {file_name}: {e}"
+                            current_entries = hook.run(current_entries)
+                            if current_entries is None:
+                                current_entries = []
+                            utils._log_hook_history(current_entries, hook)
+                        except Exception as exc:
+                            err_msg = (
+                                f'File hook "{hook.name}" failed on {file_name}: {exc}'
+                            )
                             if not ignore_failures:
                                 logger.critical(f"CRITICAL: [{mod.name}] {err_msg}")
                                 context.cancel()
                                 executor.shutdown(wait=False, cancel_futures=True)
-                                raise RuntimeError(err_msg) from e
+                                raise RuntimeError(err_msg) from exc
 
-                            logger.error(f"[{mod.name}] {err_msg} (Continuing...)")
+                            logger.error(f"[{mod.name}] {err_msg}")
                             original_entry["status"] = "failed"
-                            original_entry["error_message"] = str(e)
-                            final_results_with_owner.append((mod, original_entry))
-                            pbar.update(1)
-                            continue
-                            # logger.error(f"Worker exception: {e}")
-                            # original_entry.update({"status": -1})
-                            # # continue
+                            original_entry["error_message"] = str(exc)
+                            hook_failed = True
+                            break
 
-                        # --- File Hooks ---
-                        gf_hooks = [h for h in global_hooks if h.stage == "file"]
-                        lf_hooks = [h for h in mod.hooks if h.stage == "file"]
+                    if hook_failed:
+                        final_results_with_owner.append((mod, original_entry))
+                        continue
 
-                        active_file_hooks = utils.merge_hooks(lf_hooks, gf_hooks)
-                        current_entries = [(mod, original_entry)]
+                    # --- Stream Hooks ---
+                    gs_hooks = [h for h in global_hooks if h.stage == "stream"]
+                    ls_hooks = [h for h in mod.hooks if h.stage == "stream"]
 
-                        hook_failed = False
-                        for hook in active_file_hooks:
+                    active_stream_hooks = utils.merge_hooks(ls_hooks, gs_hooks)
+
+                    stream_init_names = {"stream-init", "stream_data"}
+
+                    # Ensure explicit stream initializers run before other stream hooks.
+                    active_stream_hooks.sort(
+                        key=lambda hook: hook.name not in stream_init_names
+                    )
+
+                    if active_stream_hooks:
+                        has_stream = any(
+                            item.get("stream") is not None
+                            for _, item in current_entries
+                        )
+
+                        has_stream_init = any(
+                            hook.name in stream_init_names
+                            for hook in active_stream_hooks
+                        )
+
+                        if not has_stream and not has_stream_init:
+                            try:
+                                from fetchez.hooks.stream_init import DataStream
+
+                                init_hook_cls = DataStream
+                                logger.debug(f"Auto-initializing stream for {mod.name}")
+                                init_hook = init_hook_cls()
+                                active_stream_hooks.insert(0, init_hook)
+                                runtime_hooks.append(init_hook)
+
+                            except Exception as exc:
+                                logger.warning(
+                                    f"Could not auto-initialize stream: {exc}"
+                                )
+
+                        # Run the stream transforms.
+                        for hook in active_stream_hooks:
+                            if context.cancelled:
+                                raise FetchCancelled("Pipeline cancelled")
                             try:
                                 current_entries = hook.run(current_entries)
                                 if current_entries is None:
                                     current_entries = []
                                 utils._log_hook_history(current_entries, hook)
-                            except Exception as e:
-                                err_msg = f'File hook "{hook.name}" failed on {file_name}: {e}'
+                            except Exception as exc:
+                                err_msg = f'Stream hook "{hook.name}" failed on {file_name}: {exc}'
                                 if not ignore_failures:
                                     logger.critical(f"CRITICAL: [{mod.name}] {err_msg}")
                                     context.cancel()
                                     executor.shutdown(wait=False, cancel_futures=True)
-                                    raise RuntimeError(err_msg) from e
+                                    raise RuntimeError(err_msg) from exc
 
                                 logger.error(f"[{mod.name}] {err_msg}")
                                 original_entry["status"] = "failed"
-                                original_entry["error_message"] = str(e)
+                                original_entry["error_message"] = str(exc)
                                 hook_failed = True
                                 break
 
-                        if hook_failed:
-                            final_results_with_owner.append((mod, original_entry))
-                            pbar.update(1)
-                            continue
+                    if hook_failed:
+                        final_results_with_owner.append((mod, original_entry))
+                        continue
 
-                        # --- Stream Hooks ---
-                        gs_hooks = [h for h in global_hooks if h.stage == "stream"]
-                        ls_hooks = [h for h in mod.hooks if h.stage == "stream"]
+                    # --- Stream Exhaustion ---
+                    processed_entries = []
+                    for owner, item in current_entries:
+                        stream = item.get("stream")
+                        if stream and isinstance(
+                            stream,
+                            (collections.abc.Iterator, collections.abc.Generator),
+                        ):
+                            try:
+                                logger.debug(
+                                    f"Exhausting stream for {Path(item.get('dst_fn', '')).name}..."
+                                )
+                                collections.deque(stream, maxlen=0)
+                            except Exception as exc:
+                                err_msg = f"Stream processing error in {Path(item.get('dst_fn', '')).name}: {exc}"
+                                if not ignore_failures:
+                                    logger.critical(f"CRITICAL: [{mod.name}] {err_msg}")
+                                    context.cancel()
+                                    executor.shutdown(wait=False, cancel_futures=True)
+                                    raise RuntimeError(err_msg) from exc
 
-                        active_stream_hooks = utils.merge_hooks(ls_hooks, gs_hooks)
+                                logger.error(f"[{mod.name}] {err_msg}")
+                                item["status"] = "failed"
+                                item["error_message"] = str(exc)
 
-                        stream_init_names = {"stream-init", "stream_data"}
+                        processed_entries.append((owner, item))
 
-                        # Ensure explicit stream initializers run before other stream hooks.
-                        active_stream_hooks.sort(
-                            key=lambda hook: hook.name not in stream_init_names
-                        )
+                    final_results_with_owner.extend(processed_entries)
 
-                        if active_stream_hooks:
-                            has_stream = any(
-                                item.get("stream") is not None
-                                for _, item in current_entries
-                            )
-
-                            has_stream_init = any(
-                                hook.name in stream_init_names
-                                for hook in active_stream_hooks
-                            )
-
-                            if not has_stream and not has_stream_init:
-                                try:
-                                    from fetchez.hooks.stream_init import DataStream
-
-                                    init_hook_cls = DataStream
-                                    logger.debug(
-                                        f"Auto-initializing stream for {mod.name}"
-                                    )
-                                    init_hook = init_hook_cls()
-                                    active_stream_hooks.insert(0, init_hook)
-                                    runtime_hooks.append(init_hook)
-
-                                except Exception as e:
-                                    logger.warning(
-                                        f"Could not auto-initialize stream: {e}"
-                                    )
-
-                            # Run the stream transforms.
-                            for hook in active_stream_hooks:
-                                try:
-                                    current_entries = hook.run(current_entries)
-                                    if current_entries is None:
-                                        current_entries = []
-                                    utils._log_hook_history(current_entries, hook)
-                                except Exception as e:
-                                    err_msg = f'Stream hook "{hook.name}" failed on {file_name}: {e}'
-                                    if not ignore_failures:
-                                        logger.critical(
-                                            f"CRITICAL: [{mod.name}] {err_msg}"
-                                        )
-                                        context.cancel()
-                                        executor.shutdown(
-                                            wait=False, cancel_futures=True
-                                        )
-                                        raise RuntimeError(err_msg) from e
-
-                                    logger.error(f"[{mod.name}] {err_msg}")
-                                    original_entry["status"] = "failed"
-                                    original_entry["error_message"] = str(e)
-                                    hook_failed = True
-                                    break
-
-                        if hook_failed:
-                            final_results_with_owner.append((mod, original_entry))
-                            pbar.update(1)
-                            continue
-
-                        # --- Stream Exhaustion ---
-                        processed_entries = []
-                        for owner, item in current_entries:
-                            stream = item.get("stream")
-                            if stream and isinstance(
-                                stream,
-                                (collections.abc.Iterator, collections.abc.Generator),
-                            ):
-                                try:
-                                    logger.debug(
-                                        f"Exhausting stream for {Path(item.get('dst_fn', '')).name}..."
-                                    )
-                                    collections.deque(stream, maxlen=0)
-                                except Exception as e:
-                                    err_msg = f"Stream processing error in {Path(item.get('dst_fn', '')).name}: {e}"
-                                    if not ignore_failures:
-                                        logger.critical(
-                                            f"CRITICAL: [{mod.name}] {err_msg}"
-                                        )
-                                        context.cancel()
-                                        executor.shutdown(
-                                            wait=False, cancel_futures=True
-                                        )
-                                        raise RuntimeError(err_msg) from e
-
-                                    logger.error(f"[{mod.name}] {err_msg}")
-                                    item["status"] = "failed"
-                                    item["error_message"] = str(e)
-                                    # logger.exception(
-                                    #     f"Stream processing error in {Path(item.get('dst_fn', '')).name}: {e}"
-                                    # )
-
-                            processed_entries.append((owner, item))
-
-                        final_results_with_owner.extend(processed_entries)
-                        pbar.update(1)
-
-        except KeyboardInterrupt:
+        except BaseException:
+            aborted = True
             context.cancel()
-            logger.debug("KeyboardInterrupt initiated.")
-            executor.shutdown(wait=False, cancel_futures=True)
+
+            logger.warning("Cancelling Fetchez pipeline...")
             raise
 
         finally:
-            _teardown_hooks(
-                [*runtime_hooks, *pre_collection_hooks],
-                ignore_failures=ignore_failures,
-                seen=seen,
-            )
+            try:
+                _teardown_hooks(
+                    [*runtime_hooks, *pre_collection_hooks],
+                    ignore_failures=ignore_failures,
+                    seen=seen,
+                )
+            finally:
+                executor.shutdown(
+                    wait=not aborted,
+                    cancel_futures=aborted,
+                )
 
         # --- Collection Hooks (post) ---
         # Module-level Collection-Hooks (post)
@@ -1597,11 +1645,11 @@ def run_fetchez(
                             if current_mod_entries is None:
                                 current_mod_entries = []
                             utils._log_hook_history(current_mod_entries, hook)
-                        except Exception as e:
-                            err_msg = f'Module "{mod.name}" collection-hook "{hook.name}" failed: {e}'
+                        except Exception as exc:
+                            err_msg = f'Module "{mod.name}" collection-hook "{hook.name}" failed: {exc}'
                             if not ignore_failures:
                                 logger.critical(f"CRITICAL: {err_msg}")
-                                raise RuntimeError(err_msg) from e
+                                raise RuntimeError(err_msg) from exc
                             logger.error(f"{err_msg} (Skipping...)")
                 finally:
                     _teardown_hooks(
@@ -1626,11 +1674,11 @@ def run_fetchez(
                     if flat_results is None:
                         flat_results = []
                     utils._log_hook_history(flat_results, hook)
-                except Exception as e:
-                    err_msg = f'Global collection-hook "{hook.name}" failed: {e}'
+                except Exception as exc:
+                    err_msg = f'Global collection-hook "{hook.name}" failed: {exc}'
                     if not ignore_failures:
                         logger.critical(f"CRITICAL: {err_msg}")
-                        raise RuntimeError(err_msg) from e
+                        raise RuntimeError(err_msg) from exc
                     logger.error(f"{err_msg} (Skipping...)")
         finally:
             _teardown_hooks(

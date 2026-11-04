@@ -27,7 +27,7 @@ def test_fetch_preserves_timeout_after_exhausted_attempts(monkeypatch):
 
     monkeypatch.setattr(fetch.session, "request", fail)
     with pytest.raises(
-        ConnectionError, match="ConnectTimeout: TNM connection timed out"
+        core.FetchRetryExhausted, match="ConnectTimeout: TNM connection timed out"
     ) as error:
         fetch.fetch_req(tries=2)
     assert isinstance(error.value.__cause__, requests.exceptions.ConnectTimeout)
@@ -50,7 +50,7 @@ def test_fetch_preserves_http_status_after_exhausted_attempts(monkeypatch):
     monkeypatch.setattr(core.time, "sleep", lambda _: None)
     fetch = core.Fetch("https://tnmaccess.nationalmap.gov/api/v1/products")
     monkeypatch.setattr(fetch.session, "request", lambda **_: _response(503))
-    with pytest.raises(ConnectionError, match="HTTPError: 503 Server Error") as error:
+    with pytest.raises(core.FetchRetryExhausted, match="HTTPError: HTTP 503") as error:
         fetch.fetch_req(tries=2)
     assert isinstance(error.value.__cause__, requests.HTTPError)
 
@@ -59,7 +59,7 @@ def test_fetch_does_not_masquerade_permanent_bad_request_as_timeout(monkeypatch)
     monkeypatch.setattr(core.time, "sleep", lambda _: None)
     fetch = core.Fetch("https://tnmaccess.nationalmap.gov/api/v1/products")
     monkeypatch.setattr(fetch.session, "request", lambda **_: _response(400))
-    with pytest.raises(ConnectionError, match="HTTPError: 400 Client Error") as error:
+    with pytest.raises(core.FetchError, match="HTTP 400") as error:
         fetch.fetch_req(tries=2)
     assert isinstance(error.value.__cause__, requests.HTTPError)
 
@@ -68,9 +68,7 @@ def test_fetch_preserves_gateway_status_after_exhausted_attempts(monkeypatch):
     monkeypatch.setattr(core.time, "sleep", lambda _: None)
     fetch = core.Fetch("https://tnmaccess.nationalmap.gov/api/v1/products")
     monkeypatch.setattr(fetch.session, "request", lambda **_: _response(504))
-    with pytest.raises(
-        ConnectionError, match="HTTPError: 504 Gateway Timeout"
-    ) as error:
+    with pytest.raises(core.FetchRetryExhausted, match="HTTPError: HTTP 504") as error:
         fetch.fetch_req(tries=2)
     assert isinstance(error.value.__cause__, requests.HTTPError)
 
@@ -79,8 +77,6 @@ def test_fetch_preserves_rate_limit_status_after_exhausted_attempts(monkeypatch)
     monkeypatch.setattr(core.time, "sleep", lambda _: None)
     fetch = core.Fetch("https://tnmaccess.nationalmap.gov/api/v1/products")
     monkeypatch.setattr(fetch.session, "request", lambda **_: _response(429))
-    with pytest.raises(
-        ConnectionError, match="HTTPError: 429 Too Many Requests"
-    ) as error:
+    with pytest.raises(core.FetchRetryExhausted, match="HTTPError: HTTP 429") as error:
         fetch.fetch_req(tries=2)
     assert isinstance(error.value.__cause__, requests.HTTPError)
