@@ -839,3 +839,44 @@ def test_modifier_execution_threads_are_taken_from_final_config(
     assert plan.config["execution"]["threads"] == 7
     assert plan.threads == 7
     assert recipe.config["execution"]["threads"] == 2
+
+
+@pytest.mark.parametrize("scope", ["module", "global"])
+def test_compile_includes_final_hooks_once_without_running_them(tmp_path, scope):
+    events = []
+
+    class Publisher(FetchHook):
+        name = "test-final-report"
+        meta_stage = "collection"
+
+        def run(self, entries):
+            events.append("published")
+            return entries
+
+    class Requester(FetchHook):
+        name = "test-report-requester"
+        meta_stage = "collection"
+
+        def final_hooks(self):
+            return (Publisher(),)
+
+    request = Requester()
+    module = FetchModule(
+        hook=[request] if scope == "module" else [], outdir=str(tmp_path)
+    )
+    recipe = Recipe.from_dict(
+        dict(
+            region=[0, 1, 0, 1],
+            modules=[module],
+            global_hooks=[request] if scope == "global" else [],
+        )
+    )
+    context = RecipeContext(name="final-hooks", tile_dir=tmp_path)
+    for _ in range(2):
+        plan = recipe.compile(context)
+        assert isinstance(plan.global_hooks[-1], Publisher)
+        assert sum(isinstance(hook, Publisher) for hook in plan.global_hooks) == 1
+    assert events == []
+    assert not any(
+        isinstance(hook, Publisher) for hook in recipe.config["global_hooks"]
+    )
