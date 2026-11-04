@@ -1343,8 +1343,8 @@ def run_fetchez(
     try:
         # -- Context and Discovery --
         bind_context(context, modules, global_hooks)
-        for mod in modules:
-            if discover:
+        if discover:
+            for mod in modules:
                 try:
                     if context.execution.cancelled:
                         raise FetchCancelled("Pipeline cancelled")
