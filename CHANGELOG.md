@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CHANGED
+- Refactored core HTTP acquisition with centralized request execution, retry management, and consistent error handling.
+- Standardized acquisition exceptions (`FetchError`, `FetchRetryExhausted`, `FetchCancelled`, `FetchLockTimeout`) and preserved underlying failure causes for improved downstream diagnostics.
+- Improved resumable downloads with byte-range and file-size validation, recovery from interrupted transfers, and reliable partial-file handling.
+- Improved pipeline cancellation and executor shutdown, allowing Ctrl+C to abort workflows without requiring repeated interrupts.
+- Added structured per-entry failure reporting for workflows using `ignore_failures=True`.
+- Expanded core regression tests covering HTTP failures, retry exhaustion, cancellation, download resumption, and error propagation.
+- **Breaking Change** Acquisition failures that previously returned nonzero status codes now raise exceptions. Downstream integrations should handle the appropriate `FetchError` subclasses or `FetchCancelled`. Successful file fetches continue to return `0`.
+
 ## [0.12.3 - 11-01-26]
 
 ### ADDED
