@@ -1346,23 +1346,22 @@ def run_fetchez(
         bind_context(context, modules, global_hooks)
         if discover:
             for mod in modules:
-                try:
-                    if context.execution.cancelled:
-                        raise FetchCancelled("Pipeline cancelled")
+                if context.execution.cancelled:
+                    raise FetchCancelled("Pipeline cancelled")
 
+                try:
                     mod.run()
+
                 except FetchCancelled:
                     raise
-                except Exception:
-                    mod.results = []
-                    mod._discovery_failed = True
 
+                except Exception:
                     if not ignore_failures:
                         raise
 
                     logger.exception(
                         "Module '%s' failed during discovery",
-                        mod.name,
+                        getattr(mod, "name", type(mod).__name__),
                     )
 
         # --- Module Pre-Hooks ---
