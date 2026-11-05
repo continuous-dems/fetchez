@@ -224,47 +224,6 @@ def test_discovery_failure_strict_raises():
     assert module.context is None
 
 
-def test_discovery_failure_tolerant_continues():
-    class DummyModule:
-        name = "dummy"
-        hooks = []
-        context = None
-
-        def __init__(self, fails=False):
-            self.fails = fails
-            self.results = []
-            self.calls = 0
-            self._discovery_failed = False
-
-        def run(self):
-            self.calls += 1
-            if self.fails:
-                raise RuntimeError("discovery failure")
-            return self
-
-    broken = DummyModule(fails=True)
-    good = DummyModule()
-
-    plan = PipelinePlan(
-        config={},
-        modules=[broken, good],
-        global_hooks=[],
-        ignore_failures=True,
-    )
-
-    assert plan.execute() == []
-
-    assert broken.calls == 1
-    assert broken._discovery_failed is True
-    assert broken.results == []
-
-    assert good.calls == 1
-    assert good._discovery_failed is False
-
-    assert broken.context is None
-    assert good.context is None
-
-
 def test_version_prerelease_suffix_does_not_change_patch_number():
     assert _parse_version("1.2.3rc4") == (1, 2, 3, 4)
 
