@@ -176,19 +176,22 @@ def test_discovery_exception_tolerant_continues_other_modules():
     assert bad.context is good.context is None
 
 
-def test_discovery_failed_flag_drops_partial_results_without_exception():
+def test_partial_discovery_results_are_preserved():
     class SoftFailure(StubModule):
         def run(self):
             super().run()
             self._discovery_failed = True
             return self
 
-    bad = SoftFailure(entries=[_sample_entry()])
-    results = run_fetchez([bad], threads=1, discover=True)
-    assert results == []
-    assert bad.results == []
-    assert bad.fetch_calls == 0
-    assert bad.context is None
+    module = SoftFailure(entries=[_sample_entry()])
+
+    results = run_fetchez([module], discover=True, threads=1)
+
+    assert module._discovery_failed is True
+    assert len(results) == 1
+    assert module.fetch_calls == 1
+    assert results[0][1]["fetched"] is True
+    assert module.context is None
 
 
 def test_pre_cancelled_context_does_not_discover_and_is_unbound():

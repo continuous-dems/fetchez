@@ -1353,9 +1353,10 @@ def run_fetchez(
                     mod.run()
                 except FetchCancelled:
                     raise
-                except Exception as _exc:
+                except Exception:
                     mod.results = []
                     mod._discovery_failed = True
+
                     if not ignore_failures:
                         raise
 
@@ -1363,8 +1364,6 @@ def run_fetchez(
                         "Module '%s' failed during discovery",
                         mod.name,
                     )
-                if getattr(mod, "_discovery_failed", False):
-                    mod.results = []
 
         # --- Module Pre-Hooks ---
         for mod in modules:
