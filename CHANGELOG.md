@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added regression coverage for module identity, recipe compilation, discovery lifecycle, cancellation, and context cleanup.
 
 ### CHANGED
-- **Breaking Change** Centralized module discovery in `run_fetchez()` before manifest hooks; PipelinePlan.execute() now delegates to the common core execution path. The engine supports `discover=False` for previously discovered modules.
+- Centralized module discovery in `run_fetchez()` before manifest hooks; PipelinePlan.execute() now delegates to the common core execution path. This is opt-in, so the engine supports `discover=True` to perform discovery in `run_fetchez`, previous behavior is maintained.
 - Kept workflow instance labels separate from deterministic module/cache identity and source, dataset, and contribution provenance.
 - Improved failure cleanup and cancellation propagation across discovery, fetching, and hooks.
 - Refactored core HTTP acquisition with centralized request execution, retry management, and consistent error handling.
