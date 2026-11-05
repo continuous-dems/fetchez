@@ -1317,7 +1317,7 @@ def run_fetchez(
     global_hooks: Optional[List[Any]] = None,
     ignore_failures: bool = False,
     context=None,
-    discover=True,
+    discover=False,
 ):
     """Run Fetchez in parallel with hooks.
 
@@ -1328,7 +1328,8 @@ def run_fetchez(
         ignore_failures: If False (default), raises an exception on any failure.
                          If True, tags failed entries with status='failed' and continues.
         context: The FetchContext for the plan and execution context.
-        discover: Execute module.run directly, set False if already run.
+        discover: Execute module.run directly, if False, module results discovery should have
+                  already taken place (historical usage).
     """
 
     context = normalize_context(context)

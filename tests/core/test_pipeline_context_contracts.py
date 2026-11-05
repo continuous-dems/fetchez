@@ -97,7 +97,7 @@ def test_context_normalization_rejects_unrelated_values():
 def test_direct_execution_creates_context_without_a_plan():
     module = StubModule(entries=[_sample_entry()])
     hook = ObserveHook()
-    results = run_fetchez([module], global_hooks=[hook], threads=1)
+    results = run_fetchez([module], global_hooks=[hook], threads=1, discover=True)
     assert module.run_calls == 1
     assert module.discovery_context is hook.seen_context
     assert hook.seen_context.plan is None
@@ -158,7 +158,7 @@ def test_discovery_exception_strict_cleans_all_contexts():
     hook = ObserveHook()
     module = StubModule(hooks=[hook], fail=RuntimeError("lookup failed"))
     with pytest.raises(RuntimeError, match="lookup failed"):
-        run_fetchez([module], global_hooks=[ObserveHook()], threads=1)
+        run_fetchez([module], global_hooks=[ObserveHook()], threads=1, discover=True)
     assert module.run_calls == 1
     assert module.context is None and hook.context is None
     assert module.results == []
@@ -168,7 +168,7 @@ def test_discovery_exception_strict_cleans_all_contexts():
 def test_discovery_exception_tolerant_continues_other_modules():
     bad = StubModule(entries=[_sample_entry()], fail=RuntimeError("API offline"))
     good = StubModule(entries=[_sample_entry()])
-    results = run_fetchez([bad, good], ignore_failures=True, threads=1)
+    results = run_fetchez([bad, good], ignore_failures=True, threads=1, discover=True)
     assert bad._discovery_failed and bad.results == []
     assert bad.fetch_calls == 0
     assert good.run_calls == good.fetch_calls == 1
@@ -184,7 +184,7 @@ def test_discovery_failed_flag_drops_partial_results_without_exception():
             return self
 
     bad = SoftFailure(entries=[_sample_entry()])
-    results = run_fetchez([bad], threads=1)
+    results = run_fetchez([bad], threads=1, discover=True)
     assert results == []
     assert bad.results == []
     assert bad.fetch_calls == 0
@@ -232,3 +232,13 @@ def test_plan_uses_current_instance_ids_without_mutating_modules():
     assert not hasattr(a, "_instance_ids")
     assert not hasattr(a, "_recipe_providers")
     assert a.context is b.context is None
+
+
+def test_run_fetchez_default_uses_prepared_results():
+    module = StubModule()
+    module.results = [{"url": "https://example.test/file.dat"}]
+
+    run_fetchez([module])
+
+    assert module.run_calls == 0
+    assert module.fetch_calls == 1
