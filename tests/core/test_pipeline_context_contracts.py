@@ -162,18 +162,58 @@ def test_discovery_exception_strict_cleans_all_contexts():
     assert module.run_calls == 1
     assert module.context is None and hook.context is None
     assert module.results == []
-    assert module._discovery_failed
 
 
-def test_discovery_exception_tolerant_continues_other_modules():
-    bad = StubModule(entries=[_sample_entry()], fail=RuntimeError("API offline"))
+def test_discovery_exception_tolerant_preserves_partial_results():
+    bad = StubModule(
+        entries=[_sample_entry()],
+        fail=RuntimeError("API offline"),
+    )
     good = StubModule(entries=[_sample_entry()])
-    results = run_fetchez([bad, good], ignore_failures=True, threads=1, discover=True)
-    assert bad._discovery_failed and bad.results == []
-    assert bad.fetch_calls == 0
-    assert good.run_calls == good.fetch_calls == 1
-    assert [owner for owner, _ in results] == [good]
+
+    results = run_fetchez(
+        [bad, good],
+        ignore_failures=True,
+        threads=1,
+        discover=True,
+    )
+
+    # Discovery attempted for both modules.
+    assert bad.run_calls == good.run_calls == 1
+
+    # The executor does not modify module discovery state.
+    assert bad._discovery_failed is False
+    assert len(bad.results) == 1
+
+    # Tolerant execution continues with available entries.
+    assert bad.fetch_calls == 1
+    assert good.fetch_calls == 1
+
+    assert [owner for owner, _ in results] == [bad, good]
+
+    # Transient execution context is cleaned up.
     assert bad.context is good.context is None
+
+
+def test_discovery_failed_flag_does_not_discard_partial_results():
+    class PartialDiscoveryModule(StubModule):
+        def run(self):
+            super().run()
+            self._discovery_failed = True
+            return self
+
+    module = PartialDiscoveryModule(entries=[_sample_entry()])
+
+    results = run_fetchez(
+        [module],
+        discover=True,
+        threads=1,
+    )
+
+    assert module._discovery_failed is True
+    assert module.fetch_calls == 1
+    assert len(results) == 1
+    assert results[0][0] is module
 
 
 def test_partial_discovery_results_are_preserved():
