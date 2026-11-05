@@ -168,6 +168,11 @@ class FetchModule:
         self._original_run = self.run
         self.run = self._cached_run
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["context"] = None
+        return state
+
     @property
     def hooks(self):
         """Combine internal and external hooks in the correct execution order."""

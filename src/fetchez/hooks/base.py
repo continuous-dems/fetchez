@@ -48,6 +48,11 @@ class FetchHook:
             return False
         return self.__dict__ == other.__dict__
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["context"] = None
+        return state
+
     # ==========================================
     # STREAM HELPERS
     # ==========================================
