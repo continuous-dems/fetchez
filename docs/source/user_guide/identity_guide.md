@@ -12,6 +12,10 @@ Fetchez uses several identifiers for different purposes. A workflow occurrence, 
 
 The last three identifiers depend on the entry and its metadata. They are **not** aliases for a recipe ID. A workflow label must not be inserted automatically into `contribution_id` or used to manufacture independent source or survey evidence.
 
+`dataset_id(entry)` identifies the current dataset state represented by an entry. It begins with the underlying source or dataset identity and incorporates semantic processing distinctions recorded through `set_contribution_id()`. Hooks that materially change the represented data should update the contribution metadata so that separately processed versions of the same source receive distinct dataset IDs.
+
+`source_id(entry)` remains associated with the originating source, while `dataset_id(entry)` may evolve as processing occurs. Workflow occurrence IDs do not affect either identity.
+
 ## Name a module occurrence
 
 ```yaml
