@@ -34,3 +34,21 @@ def test_remove_glob():
     "Make sure remove_glob resolves to remove_glob2"
 
     assert utils.remove_glob == utils.remove_glob2
+
+
+def test_utils_exports():
+    for name in utils.__all__:
+        assert hasattr(utils, name), f"Missing utility export: {name}"
+
+
+def test_identity_exports():
+    assert callable(utils.make_id)
+    assert callable(utils.canonicalize)
+
+
+def test_compatibility_imports():
+    from fetchez.utils import (
+        parse_hook_string,
+    )
+
+    assert callable(parse_hook_string)
