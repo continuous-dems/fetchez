@@ -15,7 +15,7 @@ import logging
 from pathlib import Path
 
 from fetchez.hooks import FetchHook
-from fetchez.utils import p_f_extract
+from fetchez.utils import UnsafeArchiveError, p_f_extract
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +72,13 @@ class Extract(FetchHook):
                     members=self.members,
                     overwrite=self.overwrite,
                 )
+
+            except UnsafeArchiveError as exc:
+                # Must come before ValueError, which it subclasses, so an
+                # unsafe archive is reported instead of passed through quietly.
+                logger.error("Refusing to extract %s: %s", file_path, exc)
+                out_entries.append((mod, entry))
+                continue
 
             except ValueError:
                 # Not an archive format handled by this hook.
