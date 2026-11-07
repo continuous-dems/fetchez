@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Centralized module discovery in `run_fetchez()` before manifest hooks; PipelinePlan.execute() now delegates to the common core execution path. This is opt-in, so the engine supports `discover=True` to perform discovery in `run_fetchez`, previous behavior is maintained.
 - Kept workflow instance labels separate from deterministic module/cache identity and source, dataset, and contribution provenance.
 - Improved failure cleanup and cancellation propagation across discovery, fetching, and hooks.
+- Introduced fetchez.utils.identity with make_id(), canonicalize(), and canonical_json() for deterministic, namespaced identity generation across Fetchez and its extensions.
+- Reorganized the monolithic utils.py into a modular fetchez.utils package, separating archive handling, CLI utilities, file operations, logging, output management, parsing, and general helpers.
+- Consolidated logging utilities under fetchez.utils.logging, preserving backward compatibility with existing imports.
+- Maintained the existing fetchez.utils interface through explicit compatibility exports, allowing extensions to adopt categorized imports incrementally.
 - Refactored core HTTP acquisition with centralized request execution, retry management, and consistent error handling.
 - Standardized acquisition exceptions (`FetchError`, `FetchRetryExhausted`, `FetchCancelled`, `FetchLockTimeout`) and preserved underlying failure causes for improved downstream diagnostics.
 - Improved resumable downloads with byte-range and file-size validation, recovery from interrupted transfers, and reliable partial-file handling.

@@ -3,6 +3,7 @@
 import multiprocessing
 from pathlib import Path
 
+import filelock
 from fetchez import utils
 import time
 import zipfile
@@ -58,7 +59,7 @@ def test_p_f_extract_is_safe_with_multiple_processes(tmp_path):
 def _lock_worker(lock_path, started, finished):
     started.set()
 
-    with utils.filelock.FileLock(str(lock_path), timeout=10):
+    with filelock.FileLock(str(lock_path), timeout=10):
         finished.set()
 
 
@@ -69,7 +70,7 @@ def test_filelock_blocks_across_processes(tmp_path):
     started = ctx.Event()
     finished = ctx.Event()
 
-    lock = utils.filelock.FileLock(str(lock_path))
+    lock = filelock.FileLock(str(lock_path))
 
     with lock:
         process = ctx.Process(
@@ -140,7 +141,7 @@ def test_p_f_extract_waits_for_existing_process_lock(tmp_path):
     started = ctx.Event()
     finished = ctx.Event()
 
-    lock = utils.filelock.FileLock(
+    lock = filelock.FileLock(
         str(lock_path),
         timeout=10,
     )
