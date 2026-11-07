@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### FIXED
 - `p_f_extract()` (and `p_f_unzip()`, `p_f_untar()`, `p_f_gunzip()`) now re-extracts every selected member when `overwrite=True`. ZIP and TAR previously kept existing files whose size matched, and GZIP ignored `overwrite` (#530).
 - With `overwrite=False`, an existing ZIP output is reused only when its size and CRC32 match the archive entry, and an existing GZIP output only when its size and CRC32 match the GZIP trailer; otherwise it is extracted again. TAR outputs are still matched on size alone, since TAR stores no content checksum (#530).
+- GZIP extraction now stages and publishes its output the same way as ZIP and TAR. The output gets the usual umask-derived permissions instead of `0600`, no temporary file is left behind when decompression is interrupted (for example by Ctrl+C), and the returned path is resolved like ZIP and TAR member paths (#530).
+- An empty `.gz` file now raises `gzip.BadGzipFile` instead of publishing an empty output, and a `.gz` file with no name before the suffix (such as `.gz`) raises `ValueError` instead of replacing the source with its own decompressed contents (#530).
 
 ## [0.12.3 - 11-01-26]
 
