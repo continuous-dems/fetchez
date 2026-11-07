@@ -22,9 +22,11 @@ import filelock
 
 import fnmatch
 import hashlib
+import struct
 import tarfile
 import gzip
 import zipfile
+import zlib
 
 
 logger = logging.getLogger(__name__)
@@ -90,39 +92,65 @@ def _member_matches(
 def _publish_extracted_file(
     temp_path: Path,
     dest_path: Path,
-    *,
-    expected_size: Optional[int] = None,
-    overwrite: bool = False,
-) -> bool:
-    """Atomically publish one extracted file.
-
-    Returns:
-        True when the destination was published, False when an existing valid
-        destination was reused.
-    """
-    if not overwrite and _complete_destination_exists(dest_path, expected_size):
-        return False
-
+) -> None:
+    """Atomically publish one extracted file."""
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     os.replace(temp_path, dest_path)
-    return True
 
 
-def _complete_destination_exists(
+def _file_crc32(path: Path) -> int:
+    """Return the CRC32 of a file, read in chunks."""
+    crc = 0
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            crc = zlib.crc32(chunk, crc)
+    return crc
+
+
+def _existing_output_matches(
     path: Path,
-    expected_size: int | None = None,
+    expected_size: int,
+    expected_crc: Optional[int] = None,
 ) -> bool:
-    """Return whether an extracted destination exists and appears complete."""
+    """Return whether an existing output can be reused for an archive member.
+
+    The file must be a regular file of the expected size. When the archive
+    records a CRC32 for the member, the file's CRC32 must match it too.
+    """
     try:
-        if not path.is_file():
+        if not path.is_file() or path.stat().st_size != expected_size:
             return False
 
-        if expected_size is not None:
-            return path.stat().st_size == expected_size
-
-        return True
+        return expected_crc is None or _file_crc32(path) == expected_crc
 
     except OSError:
+        return False
+
+
+def _gzip_output_matches(
+    src_file: Path,
+    dest_path: Path,
+) -> bool:
+    """Return whether dest_path matches the CRC32 and size in a GZIP trailer.
+
+    The trailer stores the size modulo 2**32. For a multi-member GZIP file it
+    describes only the last member, so the check fails and the file is
+    decompressed again rather than wrongly reused.
+    """
+    try:
+        if not dest_path.is_file():
+            return False
+
+        with src_file.open("rb") as handle:
+            handle.seek(-8, os.SEEK_END)
+            expected_crc, expected_size_mod = struct.unpack("<II", handle.read(8))
+
+        if dest_path.stat().st_size % 2**32 != expected_size_mod:
+            return False
+
+        return _file_crc32(dest_path) == expected_crc
+
+    except (OSError, struct.error):
         return False
 
 
@@ -133,7 +161,8 @@ def _extract_zip(
     overwrite: bool,
 ) -> List[Path]:
     """Extract selected ZIP members into a staging directory."""
-    extracted: List[tuple[Path, Path, Optional[int]]] = []
+    result: List[Path] = []
+    staged: List[tuple[Path, Path]] = []
 
     with tempfile.TemporaryDirectory(
         prefix=f".{outdir.name}.extract-",
@@ -147,16 +176,10 @@ def _extract_zip(
 
             temp_path = _safe_member_path(temp_dir, info.filename)
             dest_path = _safe_member_path(outdir, info.filename)
+            result.append(dest_path)
 
-            if _complete_destination_exists(dest_path, info.file_size):
-                extracted.append((dest_path, dest_path, info.file_size))
-                continue
-
-            if (
-                not overwrite
-                and dest_path.exists()
-                and dest_path.is_file()
-                and dest_path.stat().st_size == info.file_size
+            if not overwrite and _existing_output_matches(
+                dest_path, info.file_size, info.CRC
             ):
                 continue
 
@@ -165,30 +188,12 @@ def _extract_zip(
             with archive.open(info, "r") as source, temp_path.open("wb") as target:
                 shutil.copyfileobj(source, target)
 
-            extracted.append((temp_path, dest_path, info.file_size))
+            staged.append((temp_path, dest_path))
 
-        result: List[Path] = []
+        for temp_path, dest_path in staged:
+            _publish_extracted_file(temp_path, dest_path)
 
-        for temp_path, dest_path, expected_size in extracted:
-            _publish_extracted_file(
-                temp_path,
-                dest_path,
-                expected_size=expected_size,
-                overwrite=overwrite,
-            )
-            result.append(Path(dest_path))
-
-        # Include valid files that were already present.
-        for info in archive.infolist():
-            if info.is_dir() or not _member_matches(info.filename, members):
-                continue
-
-            dest_path = _safe_member_path(outdir, info.filename)
-            if dest_path.exists() and dest_path.is_file():
-                if dest_path not in result:
-                    result.append(dest_path)
-
-        return result
+    return result
 
 
 def _extract_tar(
@@ -198,7 +203,8 @@ def _extract_tar(
     overwrite: bool,
 ) -> List[Path]:
     """Extract selected regular TAR members into a staging directory."""
-    extracted: List[tuple[Path, Path, Optional[int]]] = []
+    result: List[Path] = []
+    staged: List[tuple[Path, Path]] = []
 
     with tempfile.TemporaryDirectory(
         prefix=f".{outdir.name}.extract-",
@@ -213,50 +219,28 @@ def _extract_tar(
             temp_path = _safe_member_path(temp_dir, info.name)
             dest_path = _safe_member_path(outdir, info.name)
 
-            if _complete_destination_exists(dest_path, info.size):
-                extracted.append((dest_path, dest_path, info.size))
-                continue
-
-            if (
-                not overwrite
-                and dest_path.exists()
-                and dest_path.is_file()
-                and dest_path.stat().st_size == info.size
-            ):
+            # TAR headers carry no checksum of the member contents, so an
+            # existing file is matched on size alone.
+            if not overwrite and _existing_output_matches(dest_path, info.size):
+                result.append(dest_path)
                 continue
 
             source = archive.extractfile(info)
             if source is None:
                 continue
 
+            result.append(dest_path)
             temp_path.parent.mkdir(parents=True, exist_ok=True)
 
             with source, temp_path.open("wb") as target:
                 shutil.copyfileobj(source, target)
 
-            extracted.append((temp_path, dest_path, info.size))
+            staged.append((temp_path, dest_path))
 
-        result: List[Path] = []
+        for temp_path, dest_path in staged:
+            _publish_extracted_file(temp_path, dest_path)
 
-        for temp_path, dest_path, expected_size in extracted:
-            _publish_extracted_file(
-                temp_path,
-                dest_path,
-                expected_size=expected_size,
-                overwrite=overwrite,
-            )
-            result.append(Path(dest_path))
-
-        for info in archive.getmembers():
-            if not info.isfile() or not _member_matches(info.name, members):
-                continue
-
-            dest_path = _safe_member_path(outdir, info.name)
-            if dest_path.exists() and dest_path.is_file():
-                if dest_path not in result:
-                    result.append(dest_path)
-
-        return result
+    return result
 
 
 def _extract_gzip(
@@ -268,7 +252,7 @@ def _extract_gzip(
     dest_path = outdir / src_file.stem
     dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if _complete_destination_exists(dest_path):
+    if not overwrite and _gzip_output_matches(src_file, dest_path):
         return [dest_path]
 
     fd, temp_name = tempfile.mkstemp(
@@ -309,8 +293,23 @@ def p_f_extract(
     decompressed to a temporary file before atomic publication.
 
     Extraction is serialized per source/output pair using an inter-process
-    file lock. Existing files are reused when their size matches the archive
-    member size.
+    file lock.
+
+    With ``overwrite=True`` every selected member is extracted again and
+    replaces any existing output.
+
+    With ``overwrite=False`` an existing output is reused only when it is a
+    regular file that passes the cheapest check the format allows; otherwise
+    it is extracted again and replaced:
+
+    - ZIP: size and CRC32 match the member's central-directory entry.
+    - GZIP: size (modulo 2**32) and CRC32 match the GZIP trailer.
+    - TAR, TAR.GZ, TGZ: size matches the member header. TAR records no
+      checksum of member contents, so a same-size file with different
+      contents is reused. Use ``overwrite=True`` to force a refresh.
+
+    The ZIP and GZIP checks read the existing output once to compute its
+    CRC32, which is much cheaper than decompressing and rewriting it.
 
     Args:
         src_file: Archive or compressed file.
@@ -318,7 +317,7 @@ def p_f_extract(
         members: Optional filename/pattern filters. Matching is performed
             against both the member path and basename. When None, all regular
             archive members are extracted.
-        overwrite: Force replacement of existing output files.
+        overwrite: Always re-extract and replace existing output files.
 
     Returns:
         List of extracted or reused output paths.
