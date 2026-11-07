@@ -27,7 +27,7 @@ import pyproj
 
 from fetchez import spatial
 from fetchez import utils
-from fetchez.core import Fetch
+from fetchez.core import Fetch, FetchCancelled
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,8 @@ class FetchModule:
     ):
         self.region = src_region.copy() if src_region else None
         self.wgs_region = None
-        self._execution_context = None
+        self.context = None
+        self.instance_id = None
 
         if self.region is not None and self.region.valid_p():
             # Generate the WGS region for fetching
@@ -166,6 +167,11 @@ class FetchModule:
 
         self._original_run = self.run
         self.run = self._cached_run
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["context"] = None
+        return state
 
     @property
     def hooks(self):
@@ -549,10 +555,11 @@ class FetchModule:
         return self
 
     def make_fetch(self, url, **kwargs):
-        context = self._execution_context
+        execution = self.context.execution if self.context else None
+
         return Fetch(
             url,
-            cancel_event=context.cancel_event if context else None,
+            cancel_event=execution.cancel_event if execution else None,
             **kwargs,
         )
 
@@ -578,6 +585,8 @@ class FetchModule:
 
             entry["status"] = status
 
+        except FetchCancelled:
+            raise
         except Exception as exc:
             logger.error("Fetch failed for %s: %s", entry["url"], exc)
             entry["status"] = -1

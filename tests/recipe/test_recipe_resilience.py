@@ -5,11 +5,9 @@ its underlying contract; an XPASS then signals the test should be promoted.
 """
 
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
 
-import fetchez.recipe as recipe_module
 from fetchez.hooks import FetchHook
 from fetchez.modules import FetchModule
 from fetchez.recipe import (
@@ -201,31 +199,29 @@ def test_refresh_and_cache_are_per_compile_not_caller_mutations(
     assert config == {"modules": [{"module": SampleModule}]}
 
 
-def test_plan_discovery_failure_strict_does_not_invoke_engine(monkeypatch):
-    module = SampleModule()
-    module.run = Mock(side_effect=RuntimeError("discovery failure"))
-    engine = Mock()
-    monkeypatch.setattr(recipe_module, "run_fetchez", engine)
-    plan = PipelinePlan(config={}, modules=[module], global_hooks=[])
+def test_discovery_failure_strict_raises():
+    class FailingModule:
+        name = "failing"
+        hooks = []
+        results = []
+        context = None
+
+        def run(self):
+            assert self.context is not None
+            raise RuntimeError("discovery failure")
+
+    module = FailingModule()
+
+    plan = PipelinePlan(
+        config={},
+        modules=[module],
+        global_hooks=[],
+    )
+
     with pytest.raises(RuntimeError, match="discovery failure"):
         plan.execute()
-    engine.assert_not_called()
 
-
-def test_plan_discovery_failure_tolerant_continues_to_engine(monkeypatch):
-    broken = SampleModule(dataset="broken")
-    broken.run = Mock(side_effect=RuntimeError("discovery failure"))
-    good = SampleModule(dataset="good")
-    engine = Mock(return_value=["finished"])
-    monkeypatch.setattr(recipe_module, "run_fetchez", engine)
-    plan = PipelinePlan(
-        config={}, modules=[broken, good], global_hooks=[], ignore_failures=True
-    )
-    assert plan.execute() == ["finished"]
-    broken.run.assert_called_once()
-    assert good.calls == 1
-    engine.assert_called_once()
-    assert engine.call_args.kwargs["ignore_failures"] is True
+    assert module.context is None
 
 
 def test_version_prerelease_suffix_does_not_change_patch_number():

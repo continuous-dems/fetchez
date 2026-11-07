@@ -23,7 +23,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from itertools import groupby
 
-from .core import run_fetchez
+from .core import FetchContext, run_fetchez
 from .spatial import yield_parsed_regions, Region
 from .registry import (
     ModuleRegistry,
@@ -112,25 +112,17 @@ class PipelinePlan:
     def threads(self):
         return self.config.get("execution", {}).get("threads", 1)
 
+    @property
+    def modules_by_id(self):
+        """Named module instances in the compiled workflow."""
+        return {
+            module.instance_id: module
+            for module in self.modules
+            if getattr(module, "instance_id", None) is not None
+        }
+
     def execute(self):
         """Execute the prepared workflow."""
-
-        for module in self.modules:
-            try:
-                module.run()
-            except Exception as e:
-                if not self.ignore_failures:
-                    logger.exception(
-                        "Module '%s' failed during discovery",
-                        module.name,
-                    )
-                    raise
-
-                logger.error(
-                    "Module '%s' discovery failed: %s",
-                    module.name,
-                    e,
-                )
 
         tracing_started = not tracemalloc.is_tracing()
 
@@ -143,6 +135,8 @@ class PipelinePlan:
                 threads=self.threads,
                 global_hooks=self.global_hooks,
                 ignore_failures=self.ignore_failures,
+                context=FetchContext(plan=self),
+                discover=True,
             )
 
         finally:
@@ -219,6 +213,91 @@ def load_recipe_config(target):
             logger.info(f"Loaded curated recipe: {target}")
 
     return base_config
+
+
+def _module_entry_ids(definitions):
+    """Validate fixed instance IDs and assign collision-free display IDs."""
+
+    def module_instance(definition):
+        if isinstance(definition, FetchModule):
+            return definition
+        if isinstance(definition, dict):
+            module = definition.get("module")
+            if isinstance(module, FetchModule):
+                return module
+        return None
+
+    def explicit_id(definition):
+        if isinstance(definition, dict) and "id" in definition:
+            return definition["id"]
+
+        module = module_instance(definition)
+        return getattr(module, "instance_id", None) if module else None
+
+    # First pass: reserve user-defined IDs.
+    fixed_ids = []
+    used = set()
+
+    for definition in definitions:
+        label = explicit_id(definition)
+        fixed_ids.append(label)
+
+        if label is None:
+            continue
+
+        if not isinstance(label, str) or not label.strip() or label != label.strip():
+            raise ValueError(
+                "Module instance id must be a non-empty string "
+                "without surrounding whitespace"
+            )
+
+        if label in used:
+            raise ValueError(f"Duplicate module instance id: {label}")
+
+        used.add(label)
+
+    # Second pass: generate IDs only for unnamed declarations.
+    labels = []
+
+    for position, label in enumerate(fixed_ids, 1):
+        if label is not None:
+            labels.append(label)
+            continue
+
+        generated = f"entry_{position}"
+        suffix = 2
+
+        while generated in used:
+            generated = f"entry_{position}_{suffix}"
+            suffix += 1
+
+        used.add(generated)
+        labels.append(generated)
+
+    return labels
+
+
+def _validate_explicit_module_ids(definitions):
+    """Validate user-declared module IDs before expansion."""
+
+    seen = set()
+
+    for definition in definitions:
+        if not isinstance(definition, dict) or "id" not in definition:
+            continue
+
+        label = definition["id"]
+
+        if not isinstance(label, str) or not label.strip() or label != label.strip():
+            raise ValueError(
+                "Module instance id must be a non-empty string "
+                "without surrounding whitespace"
+            )
+
+        if label in seen:
+            raise ValueError(f"Duplicate module instance id: {label}")
+
+        seen.add(label)
 
 
 def _safe_config_copy(value):
@@ -604,6 +683,7 @@ class Recipe:
     def _check_integrity(self):
         """Ensures the fetchez version meets the recipe's minimum requirements."""
 
+        _validate_explicit_module_ids(self.config.get("modules", []))
         conf = self.config.get("config", {})
         min_fz = conf.get("min_fetchez_version")
 
@@ -768,7 +848,9 @@ class Recipe:
     ):
         """Create modules per batch, preserving supplied instances and their state."""
         modules_to_run = []
-        for definition in module_defs:
+        module_defs = list(module_defs)
+        instance_ids = _module_entry_ids(module_defs)
+        for definition, instance_id in zip(module_defs, instance_ids, strict=True):
             if isinstance(definition, dict):
                 ref = definition.get("module")
                 args = dict(definition.get("args", {}))
@@ -785,6 +867,15 @@ class Recipe:
                         f"Module instance '{_component_label(resolved)}' is already configured; "
                         "use a module class with args/hooks for batch-specific configuration."
                     )
+                if any(item is resolved for item in modules_to_run):
+                    raise ValueError(
+                        "The same module object cannot represent two recipe entries; use two module definitions"
+                    )
+                resolved.instance_id_explicit = (
+                    isinstance(definition, dict) and "id" in definition
+                )
+                resolved.instance_id = instance_id
+                # resolved.instance_id = instance_id if resolved.instance_id_explicit else resolved.instance_id
                 modules_to_run.append(resolved)
                 continue
 
@@ -802,7 +893,12 @@ class Recipe:
                 region.srs = mod_region_srs
             kwargs = dict(args)
             kwargs.update(src_region=region, hook=mod_hooks)
-            modules_to_run.append(resolved(**_constructor_kwargs(resolved, kwargs)))
+            module = resolved(**_constructor_kwargs(resolved, kwargs))
+            module.instance_id_explicit = (
+                isinstance(definition, dict) and "id" in definition
+            )
+            module.instance_id = instance_id
+            modules_to_run.append(module)
         return modules_to_run
 
     def _init_modifiers(self, modifier_defs, output_dir=None):
