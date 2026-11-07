@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `p_f_extract()` no longer follows an existing symlink at a member's own output path. The symlink is replaced by the extracted file and is never reused as a cached output. Previously the member was written through a symlink that pointed inside the output directory, and rejected if it pointed outside. Symlinked directories that point outside the output directory are still rejected (#530).
 - `p_f_extract()` rejects members such as `dir/..` that name a directory, instead of failing with `IsADirectoryError` (#530).
 - `p_unzip()` writes each file to a temporary file and moves it into place, so it no longer writes through an existing symlink (which could point outside `outdir`) or replace an existing file with bad data when a member fails its CRC check. Backslashes in member names now count as separators. When members flatten to the same file the last one still wins, but a warning is logged and the path is listed once (#530).
+- GZIP extraction now stages and publishes its output the same way as ZIP and TAR. The output gets the usual umask-derived permissions instead of `0600`, no temporary file is left behind when decompression is interrupted (for example by Ctrl+C), and the returned path is resolved like ZIP and TAR member paths (#530).
+- An empty `.gz` file now raises `gzip.BadGzipFile` instead of publishing an empty output, and a `.gz` file with no name before the suffix (such as `.gz`) raises `ValueError` instead of replacing the source with its own decompressed contents (#530).
 
 ## [0.12.3 - 11-01-26]
 
