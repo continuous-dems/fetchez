@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added per-occurrence module `instance_id` labels in recipes, with explicit YAML id values, Python-instance support, collision-free generated display labels, and compiled-plan lookup through PipelinePlan.modules_by_id.
 - Added shared pipeline execution context for modules and hooks, exposing the compiled plan and cooperative cancellation controls.
 - Added regression coverage for module identity, recipe compilation, discovery lifecycle, cancellation, and context cleanup.
+- Introduced fetchez.utils.identity with make_id(), canonicalize(), and canonical_json() for deterministic, namespaced identity generation across Fetchez and its extensions.
+- `p_f_extract()` (and `p_f_unzip()`, `p_f_untar()`, `p_f_gunzip()`) accept optional keyword-only `max_members` and `max_total_size` limits for untrusted archives. Both default to no limit. The size limit is enforced on the bytes actually decompressed, not only on header sizes (#530).
+- Added `fetchez.utils.UnsafeArchiveError`, a `ValueError` subclass raised when an archive fails a safety check. The `extract` hook now logs these instead of passing the archive through silently as an unsupported format (#530).
 
 ### CHANGED
 - Centralized module discovery in `run_fetchez()` before manifest hooks; PipelinePlan.execute() now delegates to the common core execution path. This is opt-in, so the engine supports `discover=True` to perform discovery in `run_fetchez`, previous behavior is maintained.
@@ -31,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### FIXED
 - `p_f_extract()` (and `p_f_unzip()`, `p_f_untar()`, `p_f_gunzip()`) now re-extracts every selected member when `overwrite=True`. ZIP and TAR previously kept existing files whose size matched, and GZIP ignored `overwrite` (#530).
 - With `overwrite=False`, an existing ZIP output is reused only when its size and CRC32 match the archive entry, and an existing GZIP output only when its size and CRC32 match the GZIP trailer; otherwise it is extracted again. TAR outputs are still matched on size alone, since TAR stores no content checksum (#530).
+- `p_f_extract()` now rejects an archive whose selected members map to the same output path (duplicate names, names that normalise to the same path, a file and a directory with the same name, and case-only collisions where the destination filesystem folds case) before publishing anything. Previously it crashed with `FileNotFoundError` part-way through publishing (#530).
+- `p_f_extract()` no longer follows an existing symlink at a member's own output path. The symlink is replaced by the extracted file and is never reused as a cached output. Previously the member was written through a symlink that pointed inside the output directory, and rejected if it pointed outside. Symlinked directories that point outside the output directory are still rejected (#530).
+- `p_f_extract()` rejects members such as `dir/..` that name a directory, instead of failing with `IsADirectoryError` (#530).
+- `p_unzip()` writes each file to a temporary file and moves it into place, so it no longer writes through an existing symlink (which could point outside `outdir`) or replace an existing file with bad data when a member fails its CRC check. Backslashes in member names now count as separators. When members flatten to the same file the last one still wins, but a warning is logged and the path is listed once (#530).
+- GZIP extraction now stages and publishes its output the same way as ZIP and TAR. The output gets the usual umask-derived permissions instead of `0600`, no temporary file is left behind when decompression is interrupted (for example by Ctrl+C), and the returned path is resolved like ZIP and TAR member paths (#530).
+- An empty `.gz` file now raises `gzip.BadGzipFile` instead of publishing an empty output, and a `.gz` file with no name before the suffix (such as `.gz`) raises `ValueError` instead of replacing the source with its own decompressed contents (#530).
 
 ## [0.12.3 - 11-01-26]
 

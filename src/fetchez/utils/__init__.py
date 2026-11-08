@@ -37,6 +37,7 @@ from .cli import (
 )
 
 from .archives import (
+    UnsafeArchiveError,
     _extract_lock_path,
     p_f_extract,
     p_f_unzip,
@@ -128,6 +129,7 @@ __all__ = [
     "FetchezMainGroup",
     "FetchezMainCommand",
     "_cli_logo",
+    "UnsafeArchiveError",
     "_extract_lock_path",
     "p_f_extract",
     "p_f_unzip",
