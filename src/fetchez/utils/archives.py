@@ -394,32 +394,41 @@ def _extract_gzip(
     modulo 2**32, for the last member only), so max_total_size is enforced
     only on the bytes actually decompressed.
     """
-    dest_path = outdir / src_file.stem
-    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    # The output is named after the source without its ".gz" suffix and is
+    # resolved like a ZIP or TAR member. A name with nothing before ".gz"
+    # would point at the source itself, outdir, or its parent.
+    output_name = src_file.stem
+    if output_name in (src_file.name, ".", ".."):
+        raise ValueError(f"Cannot derive an output name from GZIP file: {src_file}")
+
+    dest_path = _safe_member_path(outdir, output_name)
+
+    # gzip.open() reads an empty file as empty data, while ZIP and TAR reject
+    # an empty archive. Reject it too rather than publish an empty output.
+    if src_file.stat().st_size == 0:
+        raise gzip.BadGzipFile(f"Empty GZIP file: {src_file}")
 
     if not overwrite and _gzip_output_matches(src_file, dest_path):
         _add_to_total(0, dest_path.stat().st_size, max_total_size)
         return [dest_path]
 
-    fd, temp_name = tempfile.mkstemp(
-        prefix=f".{dest_path.name}.",
-        suffix=".tmp",
-        dir=dest_path.parent,
-    )
+    # Stage and publish like ZIP and TAR: the staging directory is removed on
+    # any error, including KeyboardInterrupt, and the output gets the usual
+    # umask-derived permissions (mkstemp() would make it 0600).
+    with tempfile.TemporaryDirectory(
+        prefix=f".{outdir.name}.extract-",
+        dir=outdir,
+    ) as temp_dir_name:
+        temp_path = Path(temp_dir_name) / dest_path.name
 
-    try:
-        with os.fdopen(fd, "wb") as target:
+        with temp_path.open("wb") as target:
             with gzip.open(src_file, "rb") as source:
                 _copy_limited(source, target, 0, max_total_size)
 
             target.flush()
             os.fsync(target.fileno())
 
-        os.replace(temp_name, dest_path)
-
-    except Exception:
-        Path(temp_name).unlink(missing_ok=True)
-        raise
+        _publish_extracted_file(temp_path, dest_path)
 
     return [dest_path]
 
@@ -438,8 +447,10 @@ def p_f_extract(
     Supports ZIP, TAR, TAR.GZ, TGZ, and GZ archives.
 
     ZIP and TAR members are staged in a temporary directory before being
-    atomically published into the destination directory. GZ files are
-    decompressed to a temporary file before atomic publication.
+    atomically published into the destination directory. A GZ file is
+    decompressed the same way, to ``outdir / <name without .gz>``. If
+    decompression fails (a corrupt, truncated or empty GZ file), the error is
+    raised, nothing is published and an existing output is left as it was.
 
     Extraction is serialized per source/output pair using an inter-process
     file lock.
