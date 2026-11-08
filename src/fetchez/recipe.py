@@ -23,7 +23,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from itertools import groupby
 
-from .core import run_fetchez
+from .core import run_fetchez, prepare_final_hooks
 from .spatial import yield_parsed_regions, Region
 from .registry import (
     ModuleRegistry,
@@ -1096,6 +1096,8 @@ class Recipe:
             global_region_srs=config.get("region_srs", context.region_srs),
             output_dir=context.tile_dir,
         )
+
+        global_hooks = prepare_final_hooks(modules, global_hooks)
 
         return PipelinePlan(
             config=config,
