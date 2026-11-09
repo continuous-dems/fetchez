@@ -1366,6 +1366,9 @@ def run_fetchez(
 
         # --- Module Pre-Hooks ---
         for mod in modules:
+            if context.cancelled:
+                raise FetchCancelled("Pipeline cancelled")
+
             mod_pre = [h for h in mod.hooks if h.stage == "manifest"]
             if not mod_pre:
                 continue
@@ -1374,12 +1377,16 @@ def run_fetchez(
 
             try:
                 for hook in mod_pre:
+                    if context.cancelled:
+                        raise FetchCancelled("Pipeline cancelled")
                     try:
                         local_entries = hook.run(local_entries)
                         if local_entries is None:
                             local_entries = []
 
                         utils._log_hook_history(local_entries, hook)
+                    except FetchCancelled:
+                        raise
                     except Exception as exc:
                         err_msg = f'Module "{mod.name}" manifest-hook "{hook.name}" failed: {exc}'
                         if not ignore_failures:
@@ -1399,6 +1406,8 @@ def run_fetchez(
 
         all_entries = []
         for mod in modules:
+            if context.cancelled:
+                raise FetchCancelled("Pipeline cancelled")
             for entry in mod.results:
                 if not isinstance(entry, dict):
                     err_msg = (
@@ -1417,12 +1426,16 @@ def run_fetchez(
         global_pre = [h for h in global_hooks if h.stage == "manifest"]
         try:
             for hook in global_pre:
+                if context.cancelled:
+                    raise FetchCancelled("Pipeline cancelled")
                 try:
                     result = hook.run(all_entries)
                     if isinstance(result, list):
                         all_entries = result
 
                     utils._log_hook_history(all_entries, hook)
+                except FetchCancelled:
+                    raise
                 except Exception as exc:
                     err_msg = f'Global manifest-hook "{hook.name}" failed: {exc}'
                     if not ignore_failures:
@@ -1696,11 +1709,15 @@ def run_fetchez(
                 current_mod_entries = results_by_mod[mod]
                 try:
                     for hook in mod_post:
+                        if context.cancelled:
+                            raise FetchCancelled("Pipeline cancelled")
                         try:
                             current_mod_entries = hook.run(current_mod_entries)
                             if current_mod_entries is None:
                                 current_mod_entries = []
                             utils._log_hook_history(current_mod_entries, hook)
+                        except FetchCancelled:
+                            raise
                         except Exception as exc:
                             err_msg = f'Module "{mod.name}" collection-hook "{hook.name}" failed: {exc}'
                             if not ignore_failures:
@@ -1725,17 +1742,22 @@ def run_fetchez(
         global_post = [h for h in global_hooks if h.stage == "collection"]
         try:
             for hook in global_post:
+                if context.cancelled:
+                    raise FetchCancelled("Pipeline cancelled")
                 try:
                     flat_results = hook.run(flat_results)
                     if flat_results is None:
                         flat_results = []
                     utils._log_hook_history(flat_results, hook)
+                except FetchCancelled:
+                    raise
                 except Exception as exc:
                     err_msg = f'Global collection-hook "{hook.name}" failed: {exc}'
                     if not ignore_failures:
                         logger.critical(f"CRITICAL: {err_msg}")
                         raise RuntimeError(err_msg) from exc
                     logger.error(f"{err_msg} (Skipping...)")
+
         finally:
             _teardown_hooks(
                 [*global_post],
@@ -1747,69 +1769,75 @@ def run_fetchez(
         # Collection processing has completed. Finalizers receive
         # its resulting entries, including any attached artifacts.
 
+        results_by_mod = {}
+
+        for owner, entry in flat_results:
+            results_by_mod.setdefault(owner, []).append((owner, entry))
+
+        # results_by_mod: Dict[Any, Any] = {m: [] for m in modules}
+        # results_by_mod: Dict[Any, Any] = {m: [] for m, _ in flat_results}
+        # for r_tuple in flat_results:
+        #     owner_mod, entry = r_tuple
+        #     if owner_mod in results_by_mod:
+        #         results_by_mod[owner_mod].append((owner_mod, entry))
+
         for mod in modules:
-            mod_final = [h for h in mod.hooks if h.stage == "finalize"]
-            if not mod_final:
-                continue
-
-            mod_entries = [
-                (owner, entry) for owner, entry in flat_results if owner is mod
-            ]
-
-            try:
-                for hook in mod_final:
-                    if context.cancelled:
-                        raise FetchCancelled("Pipeline cancelled")
-
-                    try:
-                        result = hook.run(mod_entries)
-                        mod_entries = [] if result is None else result
-                        utils._log_hook_history(mod_entries, hook)
-                    except FetchCancelled:
-                        raise
-                    except Exception:
-                        if not ignore_failures:
+            mod_finalize = [h for h in mod.hooks if h.stage == "finalize"]
+            if mod_finalize and results_by_mod[mod]:
+                current_mod_entries = results_by_mod[mod]
+                try:
+                    for hook in mod_finalize:
+                        if context.cancelled:
+                            raise FetchCancelled("Pipeline cancelled")
+                        try:
+                            current_mod_entries = hook.run(current_mod_entries)
+                            if current_mod_entries is None:
+                                current_mod_entries = []
+                            utils._log_hook_history(current_mod_entries, hook)
+                        except FetchCancelled:
                             raise
-                        logger.exception(
-                            "Module finalize hook '%s' failed",
-                            hook.name,
-                        )
+                        except Exception as exc:
+                            err_msg = f'Module "{mod.name}" finalize-hook "{hook.name}" failed: {exc}'
+                            if not ignore_failures:
+                                logger.critical(f"CRITICAL: {err_msg}")
+                                raise RuntimeError(err_msg) from exc
+                            logger.error(f"{err_msg} (Skipping...)")
+                finally:
+                    _teardown_hooks(
+                        [*mod_finalize],
+                        ignore_failures=ignore_failures,
+                        seen=seen,
+                    )
 
-                # Preserve results from other modules.
-                flat_results = [
-                    (owner, entry) for owner, entry in flat_results if owner is not mod
-                ] + mod_entries
+                results_by_mod[mod] = current_mod_entries
 
-            finally:
-                _teardown_hooks(
-                    mod_final,
-                    ignore_failures=ignore_failures,
-                    seen=seen,
-                )
+        # Re-flatten the lists after module-level finalize-hooks have modified them
+        flat_results = []
+        for mod_entries in results_by_mod.values():
+            flat_results.extend(mod_entries)
 
-        global_final = [h for h in global_hooks if h.stage == "finalize"]
-
+        # Global-level Finalize-Hooks
+        global_finalize = [h for h in global_hooks if h.stage == "finalize"]
         try:
-            for hook in global_final:
+            for hook in global_finalize:
                 if context.cancelled:
                     raise FetchCancelled("Pipeline cancelled")
-
                 try:
-                    result = hook.run(flat_results)
-                    flat_results = [] if result is None else result
+                    flat_results = hook.run(flat_results)
+                    if flat_results is None:
+                        flat_results = []
                     utils._log_hook_history(flat_results, hook)
                 except FetchCancelled:
                     raise
-                except Exception:
+                except Exception as exc:
+                    err_msg = f'Global finalize-hook "{hook.name}" failed: {exc}'
                     if not ignore_failures:
-                        raise
-                    logger.exception(
-                        "Global finalize hook '%s' failed",
-                        hook.name,
-                    )
+                        logger.critical(f"CRITICAL: {err_msg}")
+                        raise RuntimeError(err_msg) from exc
+                    logger.error(f"{err_msg} (Skipping...)")
         finally:
             _teardown_hooks(
-                global_final,
+                [*global_finalize],
                 ignore_failures=ignore_failures,
                 seen=seen,
             )
