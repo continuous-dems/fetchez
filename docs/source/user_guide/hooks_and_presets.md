@@ -20,16 +20,22 @@ hooks/index
 
 ## The Hook Lifecycle
 
-Hooks run in four stages, in this order:
+Hooks run in five stages, in this order:
 
-| Stage | Name | Runs | Typical use |
-|-------|------|------|-------------|
-| 1 | **PRE / MANIFEST** (`pre`) | Before any data is downloaded | Filter URLs by regex, mask regions, cap file counts, inject auth tokens |
-| 2 | **FILE** | On each file as it is downloaded | Unzip archives, verify checksums, convert formats, pipe paths to stdout |
-| 3 | **STREAM** | After the file stage, once `stream-init` has run | Process chunked data through readers |
-| 4 | **POST / COLLECTION** (`post`) | After all files are downloaded | Merge grids, calculate checksums, write audit manifests, send notifications |
+| Stage | Name                    | Runs                                                     | Typical use                                                             |
+|-------|-------------------------|----------------------------------------------------------|-------------------------------------------------------------------------|
+| 1     | **MANIFEST** (`pre`)    | Before any data is downloaded                            | Filter URLs by regex, mask regions, cap file counts, inject auth tokens |
+| 2     | **FILE**                | On each file as it is downloaded                         | Unzip archives, verify checksums, convert formats, pipe paths to stdout |
+| 3     | **STREAM**              | After the file stage, once `stream-init` has run         | Process chunked data through readers                                    |
+| 4     | **COLLECTION** (`post`) | After all files are downloaded                           | Merge grids, calculate checksums, write audit manifests                 |
+| 5     | **FINALIZE**            | Inspect, validate, report, and publish completed outputs | Generate Reports, send notifications                                    |
+
 
 Each hook declares a default stage, which can be overridden. Overrides don't always behave as expected outside a hook's intended stage — a hook that needs a downloaded file cannot usefully run at `manifest` — so check the hook's documentation before changing it.
+
+Finalize hooks run after module-level and global collection processing has completed. They receive the resulting entries and their associated artifacts, making them suitable for reporting, final validation, catalog generation, publication, and notifications.
+
+Finalizers are ordinary Fetchez hooks and may update entries or attach additional artifacts. They do not replace teardown(), which remains responsible for releasing resources even when processing fails.
 
 ## Understanding Pipeline Entries
 
@@ -57,6 +63,7 @@ As the pipeline executes, the same entry carries information between processing 
 - **File hooks** inspect or transform downloaded files, potentially registering new artifacts.
 - **Readers and stream hooks** decode data and process it incrementally.
 - **Collection hooks** operate on the completed set of entries and their outputs.
+- **Finalize hooks** operate on the final set of entries returned from teh Collection stage.
 
 For example, the `exec` hook introduced in [Usage](usage.md) can run `gdal_translate` on a downloaded raster and register the resulting GeoTIFF under `entry["artifacts"]`. With `update_entry` enabled, the entry's `dst_fn` also points to the processed file, allowing subsequent hooks to work with the result.
 
@@ -183,7 +190,7 @@ A hook's registered stage is its default, and many hooks support overrides. A fi
 
 * At `manifest` stage, to avoid downloading unwanted files
 * At `file` stage, to select files produced by an extraction hook
-* At `collection` stage, to filter finalised entries
+* At `finalize` stage, to filter finalised entries
 
 Changing a hook's stage changes *when* it runs, not necessarily *what* it does.
 
