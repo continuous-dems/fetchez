@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Added documentation in the identity_guide for the new `make_id` utility function.
 - Added per-occurrence module `instance_id` labels in recipes, with explicit YAML id values, Python-instance support, collision-free generated display labels, and compiled-plan lookup through PipelinePlan.modules_by_id.
 - Added shared pipeline execution context for modules and hooks, exposing the compiled plan and cooperative cancellation controls.
 - Added regression coverage for module identity, recipe compilation, discovery lifecycle, cancellation, and context cleanup.
