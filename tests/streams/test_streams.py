@@ -25,6 +25,7 @@ class DummyModule:
                 "dst_fn": "data.bin",
             }
         ]
+        self._discovery_failed = False
 
     def run(self):
         return self

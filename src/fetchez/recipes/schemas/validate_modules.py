@@ -57,6 +57,7 @@ class CheckModules(BaseSchema):
             mod_keys = mod.keys()
             valid_keys = [
                 "module",
+                "id",
                 "bundle",
                 "hooks",
                 "args",

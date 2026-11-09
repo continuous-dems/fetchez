@@ -386,10 +386,14 @@ class FakeModule:
         self.results = results
         self.hooks = []
         self._fetch = fetch
-        self._execution_context = None
+        self.context = None
+        self._discovery_failed = False
 
     def fetch_entry(self, entry, check_size=True, verbose=True):
         return self._fetch(entry)
+
+    def run(self):
+        return self
 
 
 def _run(entries, fetch, *, ignore_failures=False, hooks=()):

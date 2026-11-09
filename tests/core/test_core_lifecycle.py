@@ -29,6 +29,8 @@ class DummyModule:
             }
         ]
         self.events = events
+        self._discovery_failed = False
+        self.context = None
 
     def fetch_entry(
         self,
@@ -39,6 +41,9 @@ class DummyModule:
         self.events.append("fetch")
         entry["fetched"] = True
         return 0
+
+    def run(self):
+        return self
 
 
 class RecordingHook:

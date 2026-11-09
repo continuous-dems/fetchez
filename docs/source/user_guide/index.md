@@ -72,6 +72,7 @@ modules_and_bundles
 hooks_and_presets
 streams
 recipes
+identity_guide
 modifiers
 schemas
 plugins_and_extensions
