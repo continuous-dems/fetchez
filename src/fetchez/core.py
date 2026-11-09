@@ -1451,9 +1451,7 @@ def run_fetchez(
         ]
 
         pre_collection_hooks = [
-            hook
-            for hook in all_hooks
-            if hook.stage != "collection" and hook.stage != "manifest"
+            hook for hook in all_hooks if hook.stage in {"file", "stream"}
         ]
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=threads)
