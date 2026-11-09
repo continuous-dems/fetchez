@@ -1716,12 +1716,12 @@ def run_fetchez(
 
                 results_by_mod[mod] = current_mod_entries
 
-        # Re-flatten the lists after module-level post-hooks have modified them
+        # Re-flatten the lists after module-level collection-hooks have modified them
         flat_results = []
         for mod_entries in results_by_mod.values():
             flat_results.extend(mod_entries)
 
-        # Global-level Post-Hooks
+        # Global-level Collection-Hooks
         global_post = [h for h in global_hooks if h.stage == "collection"]
         try:
             for hook in global_post:
@@ -1739,6 +1739,77 @@ def run_fetchez(
         finally:
             _teardown_hooks(
                 [*global_post],
+                ignore_failures=ignore_failures,
+                seen=seen,
+            )
+
+        # --- Finalize Hooks ---
+        # Collection processing has completed. Finalizers receive
+        # its resulting entries, including any attached artifacts.
+
+        for mod in modules:
+            mod_final = [h for h in mod.hooks if h.stage == "finalize"]
+            if not mod_final:
+                continue
+
+            mod_entries = [
+                (owner, entry) for owner, entry in flat_results if owner is mod
+            ]
+
+            try:
+                for hook in mod_final:
+                    if context.cancelled:
+                        raise FetchCancelled("Pipeline cancelled")
+
+                    try:
+                        result = hook.run(mod_entries)
+                        mod_entries = [] if result is None else result
+                        utils._log_hook_history(mod_entries, hook)
+                    except FetchCancelled:
+                        raise
+                    except Exception:
+                        if not ignore_failures:
+                            raise
+                        logger.exception(
+                            "Module finalize hook '%s' failed",
+                            hook.name,
+                        )
+
+                # Preserve results from other modules.
+                flat_results = [
+                    (owner, entry) for owner, entry in flat_results if owner is not mod
+                ] + mod_entries
+
+            finally:
+                _teardown_hooks(
+                    mod_final,
+                    ignore_failures=ignore_failures,
+                    seen=seen,
+                )
+
+        global_final = [h for h in global_hooks if h.stage == "finalize"]
+
+        try:
+            for hook in global_final:
+                if context.cancelled:
+                    raise FetchCancelled("Pipeline cancelled")
+
+                try:
+                    result = hook.run(flat_results)
+                    flat_results = [] if result is None else result
+                    utils._log_hook_history(flat_results, hook)
+                except FetchCancelled:
+                    raise
+                except Exception:
+                    if not ignore_failures:
+                        raise
+                    logger.exception(
+                        "Global finalize hook '%s' failed",
+                        hook.name,
+                    )
+        finally:
+            _teardown_hooks(
+                global_final,
                 ignore_failures=ignore_failures,
                 seen=seen,
             )
