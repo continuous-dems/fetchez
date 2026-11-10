@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Added ensure-hook modifier to conditially inject hooks into a recipe when another hook requests it.
 - Introduced the finalize hook stage for post-collection operations such as reporting, validation, metadata generation, publishing, and notifications.
 - Added support for scope-specific finalization: module-local hooks operate on post-file/stream source entries, while global hooks operate on completed collection outputs and their artifacts.
 - Added finalize-stage lifecycle and regression tests covering execution ordering, failure handling, cancellation, entry preservation, and teardown.
