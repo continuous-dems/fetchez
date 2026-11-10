@@ -1,10 +1,4 @@
-"""Contract tests for hook-stage normalization and compatibility.
-
-Place in tests/hooks/test_hook_stages.py (or the existing hook test directory).
-These are forward-looking tests: they expect FetchHook.meta_stages,
-FetchHook.normalize_stage and startup validation in core.run_fetchez.
-No network access is required.
-"""
+"""Contract tests for hook-stage normalization and compatibility."""
 
 from dataclasses import dataclass, field
 
