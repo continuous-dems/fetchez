@@ -22,20 +22,34 @@ hooks/index
 
 Hooks run in five stages, in this order:
 
-| Stage | Name                    | Runs                                                     | Typical use                                                             |
-|-------|-------------------------|----------------------------------------------------------|-------------------------------------------------------------------------|
-| 1     | **MANIFEST** (`pre`)    | Before any data is downloaded                            | Filter URLs by regex, mask regions, cap file counts, inject auth tokens |
-| 2     | **FILE**                | On each file as it is downloaded                         | Unzip archives, verify checksums, convert formats, pipe paths to stdout |
-| 3     | **STREAM**              | After the file stage, once `stream-init` has run         | Process chunked data through readers                                    |
-| 4     | **COLLECTION** (`post`) | After all files are downloaded                           | Merge grids, calculate checksums, write audit manifests                 |
-| 5     | **FINALIZE**            | Inspect, validate, report, and publish completed outputs | Generate Reports, send notifications                                    |
+| Stage | Name | Runs | Typical use |
+|-------|------|------|-------------|
+| 1 | **MANIFEST** (`pre`) | Before data is downloaded | Filter discovered entries, limit coverage, or adjust requests |
+| 2 | **FILE** | After each file is acquired | Extract archives, check files, or convert formats |
+| 3 | **STREAM** | After file hooks, as data is read or streamed | Read and transform chunks through compatible readers |
+| 4 | **COLLECTION** (`post`) | After file and stream processing has completed | Merge datasets, aggregate results, or generate final products |
+| 5 | **FINALIZE** | After all module-local and global collection hooks have completed | Report on outputs, archive inputs, publish artifacts, or send notifications |
 
+Each hook declares a default stage, which can be overridden. Overrides are only useful when the hook supports the inputs available at the selected stage: for example, a hook that requires a downloaded file cannot usefully run at `manifest`.
 
-Each hook declares a default stage, which can be overridden. Overrides don't always behave as expected outside a hook's intended stage — a hook that needs a downloaded file cannot usefully run at `manifest` — so check the hook's documentation before changing it.
+### Finalization: source entries versus final outputs
 
-Finalize hooks run after module-level and global collection processing has completed. They receive the resulting entries and their associated artifacts, making them suitable for reporting, final validation, catalog generation, publication, and notifications.
+The `finalize` stage provides a predictable point **after collection processing** for operations that need completed pipeline results. Unlike earlier stages, its input depends on whether the hook is attached to a module or configured globally:
 
-Finalizers are ordinary Fetchez hooks and may update entries or attach additional artifacts. They do not replace teardown(), which remains responsible for releasing resources even when processing fails.
+| Finalize scope | Entries received | Typical use |
+|----------------|------------------|-------------|
+| **Module-local** (`modules[].hooks`) | That module's entries after file and stream processing, even if collection later removes or replaces them | Archive downloaded source files, create source manifests, or manage temporary inputs |
+| **Global** (`global_hooks`) | The entries returned by global collection processing, including any attached artifacts | Validate final products, generate reports and catalogs, publish outputs, or send notifications |
+
+All module-local finalizers run **after collection**, followed by global finalizers. Within each scope, hooks execute in their configured order. A global collection hook may condense many source entries into a single product entry; module-local finalizers can still inspect the earlier source-side entries, while global finalizers see the resulting product.
+
+For example, a DEM-producing extension may reduce many downloaded survey entries to one DEM entry with associated multi-stack and provenance artifacts. A module-local finalizer could archive the survey inputs, while a global finalizer could create a QC report from the completed DEM and its artifacts. Fetchez itself does not require or interpret these domain-specific artifact types.
+
+Module-local finalizers may chain updates to their source entries, but **their returned entry lists do not replace the completed collection outputs**. Global finalizers can update or replace the final collection returned by the pipeline. Entry dictionaries may be shared between these views, so module-local finalization does not receive a deep-frozen snapshot: in-place changes from earlier hooks can remain visible.
+
+Finalization normally follows successful collection processing. In strict mode, an upstream error or cancellation prevents it from running; with `ignore_failures=True`, processing may continue and finalizers can receive entries representing partial failures. Finalizers obey the normal hook failure policy and are not a substitute for `teardown()`, which handles resource cleanup. Finalizers are not run when the pipeline returns early because no entries remain after manifest processing.
+
+A finalizer can inspect paths recorded in `dst_fn` and `artifacts`, but it should not assume that Fetchez independently verifies artifact existence or completeness. Hooks that archive, delete, publish, or notify external services should use appropriate safeguards, especially for user-owned files and shared caches, and should be safe to retry where practical.
 
 ## Understanding Pipeline Entries
 
@@ -63,7 +77,8 @@ As the pipeline executes, the same entry carries information between processing 
 - **File hooks** inspect or transform downloaded files, potentially registering new artifacts.
 - **Readers and stream hooks** decode data and process it incrementally.
 - **Collection hooks** operate on the completed set of entries and their outputs.
-- **Finalize hooks** operate on the final set of entries returned from teh Collection stage.
+- **Module-local finalize hooks** operate on source-side entries after file and stream processing, even if collection replaces those entries.
+- **Global finalize hooks** operate on the completed entries returned by collection processing, including attached artifacts.
 
 For example, the `exec` hook introduced in [Usage](usage.md) can run `gdal_translate` on a downloaded raster and register the resulting GeoTIFF under `entry["artifacts"]`. With `update_entry` enabled, the entry's `dst_fn` also points to the processed file, allowing subsequent hooks to work with the result.
 
@@ -95,6 +110,8 @@ fetchez build \
 `audit` sits before `stac`, so it observes everything. `unzip` and `exec` sit after `stac`, so they act only on the DEM tiles.
 
 The equivalent scoping in YAML uses `global_hooks` versus a module's own `hooks` block — see [Recipes](recipes.md).
+
+For `finalize` hooks, the scope also determines **which view of the pipeline** the hook receives. For example, a module-local finalizer can inspect its original downloaded entries even if global collection processing has reduced them to a single output entry. A global finalizer instead receives that reduced output.
 
 Hooks may also be supplied with `--hook` and `--global-hook` when you need concise or backward-compatible command construction.
 
@@ -190,7 +207,7 @@ A hook's registered stage is its default, and many hooks support overrides. A fi
 
 * At `manifest` stage, to avoid downloading unwanted files
 * At `file` stage, to select files produced by an extraction hook
-* At `finalize` stage, to filter finalised entries
+* At `collection` stage, to filter the assembled entries before final output processing
 
 Changing a hook's stage changes *when* it runs, not necessarily *what* it does.
 
