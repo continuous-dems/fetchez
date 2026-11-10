@@ -37,6 +37,7 @@ import lxml.html as lh
 import filelock
 
 from . import utils
+from .hooks import FetchHook
 from . import __version__
 
 
@@ -1311,6 +1312,20 @@ def _teardown_hooks(hooks, *, ignore_failures=False, seen=None):
         raise RuntimeError("One or more hooks failed during teardown") from first_error
 
 
+def _validate_hook_stage(hook):
+    stage = FetchHook.normalize_stage(hook.stage)
+
+    allowed = getattr(hook, "meta_stages", None)
+
+    if allowed is not None:
+        supported = {FetchHook.normalize_stage(s) for s in allowed}
+
+        if stage not in supported:
+            raise ValueError(f"Hook {hook.name!r} cannot run at stage {stage!r}")
+
+    return stage
+
+
 def run_fetchez(
     modules: List[Any],
     threads: int = 3,
@@ -1340,6 +1355,14 @@ def run_fetchez(
 
     silent = logger.getEffectiveLevel() > logging.INFO
     runtime_hooks = []
+
+    # --- Validate Hook Stages ---
+    for hook in global_hooks:
+        _validate_hook_stage(hook)
+
+    for module in modules:
+        for hook in module.hooks:
+            _validate_hook_stage(hook)
 
     try:
         # -- Context and Discovery --

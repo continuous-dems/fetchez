@@ -13,32 +13,73 @@ This file holds the FetchHook super class
 
 
 class FetchHook:
-    """Base class for all Fetchez Hooks."""
-
     name = "base-hook"
 
     # --- Registry Metadata ---
     meta_desc = "Does something."
     meta_category = "uncategorized"
 
-    # 'manifest':   Runs before downloads, manipulating the URL/metadata list.
-    # 'file':       Runs per-file immediately after download/generation.
-    # 'stream":     Runs on entry['stream'] right after the file stage.
-    # 'collection': Runs once after all per-file operations are finished.
+    # --- Hook Stages ---
     meta_stage = "file"
+    meta_stages = None
+
+    STAGES = (
+        "manifest",
+        "file",
+        "stream",
+        "collection",
+        "finalize",
+    )
+
+    STAGE_ALIASES = {
+        "pre": "manifest",
+        "post": "collection",
+    }
+
+    @classmethod
+    def normalize_stage(cls, stage):
+        if not isinstance(stage, str):
+            raise TypeError(f"Hook stage must be a string, got {type(stage).__name__}")
+
+        stage = stage.lower()
+        stage = cls.STAGE_ALIASES.get(stage, stage)
+
+        if stage not in cls.STAGES:
+            raise ValueError(
+                f"Unknown hook stage {stage!r}; "
+                f"expected one of: {', '.join(cls.STAGES)}"
+            )
+
+        return stage
 
     def __init__(self, stage=None, **kwargs):
         self.opts = kwargs
 
-        raw_stage = stage or getattr(self.__class__, "meta_stage", "file")
-        stage_aliases = {"pre": "manifest", "post": "collection"}
-        mapped_stage = stage_aliases.get(raw_stage.lower(), raw_stage.lower())
+        default_stage = self.normalize_stage(self.meta_stage)
+        requested_stage = self.normalize_stage(
+            default_stage if stage is None else stage
+        )
 
-        if mapped_stage in ["manifest", "file", "stream", "collection"]:
-            self.stage = mapped_stage
-        else:
-            self.stage = "file"  # Fallback
+        if self.meta_stages is not None:
+            allowed = {self.normalize_stage(s) for s in self.meta_stages}
 
+            if not allowed:
+                raise ValueError(f"Hook {self.name!r} declares no supported stages")
+
+            if default_stage not in allowed:
+                raise ValueError(
+                    f"Default stage {default_stage!r} is not permitted "
+                    f"by meta_stages for hook {self.name!r}"
+                )
+
+            if requested_stage not in allowed:
+                raise ValueError(
+                    f"Hook {self.name!r} does not support stage "
+                    f"{requested_stage!r}; supported stages: "
+                    f"{', '.join(sorted(allowed))}"
+                )
+
+        self.stage = requested_stage
         self.context = None
         self.instance_id = None
 

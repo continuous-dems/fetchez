@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `fetchez.utils.UnsafeArchiveError`, a `ValueError` subclass raised when an archive fails a safety check. The `extract` hook now logs these instead of passing the archive through silently as an unsupported format (#530).
 
 ### CHANGED
+- Updated the base FetchHook class to normalize the incoming stage and allow for hooks to set `meta_stages` to declare compatible stages they can run in.
 - Updated hook lifecycle handling and documentation to support five stages (manifest, file, stream, collection, finalize) while preserving existing hook interfaces and execution semantics.
 - Centralized module discovery in `run_fetchez()` before manifest hooks; PipelinePlan.execute() now delegates to the common core execution path. This is opt-in, so the engine supports `discover=True` to perform discovery in `run_fetchez`, previous behavior is maintained.
 - Kept workflow instance labels separate from deterministic module/cache identity and source, dataset, and contribution provenance.
