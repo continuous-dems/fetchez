@@ -183,7 +183,7 @@ def test_strict_collection_failure_skips_finalize_and_tears_down_collection():
     collection = Hook("collection", "bad-collection", events, fail=True)
     finalizer = Hook("finalize", "report", events)
 
-    with pytest.raises(RuntimeError, match="bad-collection"):
+    with pytest.raises(core.HookExecutionError, match="bad-collection"):
         execute([mod], [collection, finalizer])
 
     assert finalizer.runs == 0
@@ -201,7 +201,7 @@ def test_strict_finalize_failure_tears_down_after_run(local):
     else:
         configured = [failing]
 
-    with pytest.raises(RuntimeError, match="bad-finalize"):
+    with pytest.raises(core.HookExecutionError, match="bad-finalize"):
         execute([mod], configured)
 
     assert events == ["run:bad-finalize", "teardown:bad-finalize"]
@@ -258,7 +258,7 @@ def test_cancellation_between_collection_and_finalize_skips_finalize():
         )
 
     assert finalizer.runs == 0
-    assert finalizer.teardowns == 1
+    assert finalizer.teardowns == 0
     assert ctx.cancelled
 
 
@@ -270,9 +270,13 @@ def test_finalize_not_torn_down_before_run():
     assert events == ["run:finalize", "teardown:finalize"]
 
 
-def test_no_entries_skips_finalize_as_current_contract():
+# def test_no_entries_skips_finalize_as_current_contract():
+def test_no_entries_still_runs_finalize():
     events = []
     mod = Module("empty", [])
     hook = Hook("finalize", "report", events)
     assert execute([mod], [hook]) == []
-    assert hook.runs == 0
+    assert hook.runs == 1
+    assert hook.teardowns == 1
+    # assert execute([mod], [hook]) == []
+    # assert hook.runs == 0

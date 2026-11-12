@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from fetchez.core import run_fetchez
+from fetchez.core import run_fetchez, HookExecutionError
 
 
 class DummyModule:
@@ -391,7 +391,7 @@ def test_auto_stream_init_failure_honors_ignore_failures_false(monkeypatch):
         ],
     )
 
-    with pytest.raises(RuntimeError, match="stream-init"):
+    with pytest.raises(HookExecutionError, match="stream-init"):
         run_fetchez(
             [module],
             threads=1,
