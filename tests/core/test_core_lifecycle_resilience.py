@@ -82,13 +82,15 @@ def test_download_failure_tolerant_marks_entry_and_returns_it(failure):
     assert result[0][1]["error_message"]
 
 
-@pytest.mark.parametrize("stage", ["manifest", "file", "stream", "collection"])
+@pytest.mark.parametrize(
+    "stage", ["manifest", "file", "stream", "collection", "finalize"]
+)
 def test_failing_hook_strict_raises(stage):
     hook = FakeHook(
         stage, name="stream-init" if stage == "stream" else "fake-hook", fail=True
     )
     mod = FakeModule(results=[entry()], hooks=[hook])
-    with pytest.raises(RuntimeError, match=stage):
+    with pytest.raises(core.HookExecutionError, match=stage):
         core.run_fetchez([mod], threads=1, ignore_failures=False)
 
 
@@ -153,7 +155,7 @@ def test_collection_failure_still_tears_down_only_after_hook_runs():
 
     hook = FailingCollection("collection")
     mod = FakeModule(results=[entry()], hooks=[hook])
-    with pytest.raises(RuntimeError, match="collection"):
+    with pytest.raises(core.HookExecutionError, match="collection"):
         core.run_fetchez([mod], threads=1, ignore_failures=False)
     assert events == ["run", "teardown"]
 
@@ -191,7 +193,7 @@ def test_manifest_failure_still_tears_down_hooks():
     hook = ManifestHook("manifest")
     mod = FakeModule(results=[entry()], hooks=[hook])
 
-    with pytest.raises(RuntimeError, match="manifest failed"):
+    with pytest.raises(core.HookExecutionError, match="manifest failed"):
         core.run_fetchez([mod], threads=1, ignore_failures=False)
 
     assert events == ["run", "teardown"]

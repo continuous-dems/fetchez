@@ -1326,6 +1326,456 @@ def _validate_hook_stage(hook):
     return stage
 
 
+def _run_hook_chain(
+    hooks,
+    entries,
+    *,
+    context,
+    stage,
+    scope,
+    ignore_failures=False,
+    seen=None,
+):
+    try:
+        for hook in hooks:
+            if context.cancelled:
+                raise FetchCancelled("Pipeline cancelled")
+
+            try:
+                result = hook.run(entries)
+
+                if result is None:
+                    entries = []
+                elif isinstance(result, list):
+                    entries = result
+                else:
+                    raise TypeError(
+                        f"Hook {hook.name!r} returned "
+                        f"{type(result).__name__}; expected list or None"
+                    )
+
+                utils._log_hook_history(entries, hook)
+
+            except FetchCancelled:
+                raise
+
+            except Exception as exc:
+                if not ignore_failures:
+                    raise HookExecutionError(
+                        f"{scope} {stage} hook {hook.name!r} failed: {exc}"
+                    ) from exc
+
+                logger.exception(
+                    "%s %s hook %r failed",
+                    scope,
+                    stage,
+                    hook.name,
+                )
+
+    finally:
+        _teardown_hooks(
+            hooks,
+            ignore_failures=ignore_failures,
+            seen=seen,
+        )
+
+    return entries
+
+
+def _run_grouped_stage(
+    stage,
+    modules,
+    global_hooks,
+    *,
+    source_entries,
+    global_entries=None,
+    merge_local=True,
+    skip_empty_local=False,
+    context=None,
+    ignore_failures=False,
+    update_module_results=False,
+    seen=None,
+):
+    modules = modules or []
+    global_hooks = global_hooks or []
+    source_entries = source_entries if source_entries is not None else []
+
+    context = normalize_context(context)
+
+    if seen is None:
+        seen = set()
+
+    if not merge_local and global_entries is None:
+        raise ValueError("global_entries is required when merge_local=False")
+
+    # Group source entries by owning module, preserving order.
+    entries_by_mod = {mod: [] for mod in modules}
+
+    for owner, entry in source_entries:
+        if not isinstance(entry, dict):
+            err_msg = (
+                f"Malformed entry in module "
+                f"{getattr(owner, 'name', owner)!r}: "
+                f"expected dict, got {type(entry).__name__}"
+            )
+
+            if ignore_failures:
+                logger.warning(err_msg)
+                continue
+
+            raise ValueError(err_msg)
+
+        if owner in entries_by_mod:
+            entries_by_mod[owner].append((owner, entry))
+        else:
+            raise ValueError(f"Unknown Module Owner {owner}")
+
+    # Execute module-local hooks.
+    local_results = []
+
+    for mod in modules:
+        if context.cancelled:
+            raise FetchCancelled("Pipeline cancelled")
+
+        mod_hooks = [hook for hook in mod.hooks if hook.stage == stage]
+
+        mod_entries = entries_by_mod[mod]
+
+        if mod_hooks and not (skip_empty_local and not mod_entries):
+            mod_entries = _run_hook_chain(
+                mod_hooks,
+                mod_entries,
+                context=context,
+                stage=stage,
+                scope=f"module {mod.name!r}",
+                ignore_failures=ignore_failures,
+                seen=seen,
+            )
+
+        if update_module_results:
+            mod.results = [entry for owner, entry in mod_entries if owner is mod]
+
+        local_results.extend(mod_entries)
+
+    # Manifest and collection:
+    # Feed module-local output into global hooks.
+    #
+    # Finalize:
+    # Use the independently supplied collection output.
+    if merge_local:
+        stage_entries = local_results
+    else:
+        stage_entries = global_entries
+
+    global_stage_hooks = [hook for hook in global_hooks if hook.stage == stage]
+
+    return _run_hook_chain(
+        global_stage_hooks,
+        stage_entries,
+        context=context,
+        stage=stage,
+        scope="global",
+        ignore_failures=ignore_failures,
+        seen=seen,
+    )
+
+
+def _process_acquired_entry(
+    mod,
+    entry,
+    *,
+    global_hooks,
+    context,
+    runtime_hooks,
+    ignore_failures=False,
+) -> list[tuple[Any, dict]]:
+    """Apply file and stream hooks to one acquired entry.
+
+    Return the resulting (module, entry) pairs.
+    """
+    original_entry = entry
+    file_name = Path(entry.get("dst_fn", "item")).name
+
+    gf_hooks = [h for h in global_hooks if h.stage == "file"]
+    lf_hooks = [h for h in mod.hooks if h.stage == "file"]
+
+    active_file_hooks = utils.merge_hooks(lf_hooks, gf_hooks)
+    current_entries = [(mod, original_entry)]
+
+    hook_failed = False
+    for hook in active_file_hooks:
+        if context.cancelled:
+            raise FetchCancelled("Pipeline cancelled")
+        try:
+            current_entries = hook.run(current_entries)
+            if current_entries is None:
+                current_entries = []
+            utils._log_hook_history(current_entries, hook)
+        except FetchCancelled:
+            raise
+        except Exception as exc:
+            err_msg = f'File hook "{hook.name}" failed on {file_name}: {exc}'
+            if not ignore_failures:
+                logger.critical(f"CRITICAL: [{mod.name}] {err_msg}")
+                context.cancel()
+                raise HookExecutionError(err_msg) from exc
+
+            logger.error(f"[{mod.name}] {err_msg}")
+            mark_entry_failed(
+                original_entry,
+                exc,
+                stage="file",
+                hook=hook.name,
+            )
+            hook_failed = True
+            break
+
+    if hook_failed:
+        return [(mod, original_entry)]
+
+    # --- Stream Hooks ---
+    gs_hooks = [h for h in global_hooks if h.stage == "stream"]
+    ls_hooks = [h for h in mod.hooks if h.stage == "stream"]
+
+    active_stream_hooks = utils.merge_hooks(ls_hooks, gs_hooks)
+
+    stream_init_names = {"stream-init", "stream_data"}
+
+    # Ensure explicit stream initializers run before other stream hooks.
+    active_stream_hooks.sort(key=lambda hook: hook.name not in stream_init_names)
+
+    if active_stream_hooks:
+        has_stream = any(item.get("stream") is not None for _, item in current_entries)
+
+        has_stream_init = any(
+            hook.name in stream_init_names for hook in active_stream_hooks
+        )
+
+        if not has_stream and not has_stream_init:
+            try:
+                from fetchez.hooks.stream_init import DataStream
+
+                init_hook_cls = DataStream
+                logger.debug(f"Auto-initializing stream for {mod.name}")
+                init_hook = init_hook_cls()
+                init_hook.context = context
+                active_stream_hooks.insert(0, init_hook)
+                runtime_hooks.append(init_hook)
+            except FetchCancelled:
+                raise
+            except Exception as exc:
+                logger.warning(f"Could not auto-initialize stream: {exc}")
+
+        # Run the stream transforms.
+        for hook in active_stream_hooks:
+            if context.cancelled:
+                raise FetchCancelled("Pipeline cancelled")
+            try:
+                current_entries = hook.run(current_entries)
+                if current_entries is None:
+                    current_entries = []
+                utils._log_hook_history(current_entries, hook)
+            except FetchCancelled:
+                raise
+            except Exception as exc:
+                err_msg = f'Stream hook "{hook.name}" failed on {file_name}: {exc}'
+                if not ignore_failures:
+                    logger.critical(f"CRITICAL: [{mod.name}] {err_msg}")
+                    context.cancel()
+                    raise HookExecutionError(err_msg) from exc
+
+                logger.error(f"[{mod.name}] {err_msg}")
+                mark_entry_failed(
+                    original_entry,
+                    exc,
+                    stage="stream",
+                    hook=hook.name,
+                )
+                hook_failed = True
+                break
+
+    if hook_failed:
+        return [(mod, original_entry)]
+
+    # --- Stream Exhaustion ---
+    processed_entries = []
+    for owner, item in current_entries:
+        stream = item.get("stream")
+        if stream and isinstance(
+            stream,
+            (collections.abc.Iterator, collections.abc.Generator),
+        ):
+            try:
+                logger.debug(
+                    f"Exhausting stream for {Path(item.get('dst_fn', '')).name}..."
+                )
+                collections.deque(stream, maxlen=0)
+            except FetchCancelled:
+                raise
+            except Exception as exc:
+                err_msg = f"Stream processing error in {Path(item.get('dst_fn', '')).name}: {exc}"
+                if not ignore_failures:
+                    logger.critical(f"CRITICAL: [{mod.name}] {err_msg}")
+                    context.cancel()
+                    raise RuntimeError(err_msg) from exc
+
+                logger.error(f"[{mod.name}] {err_msg}")
+                mark_entry_failed(
+                    item,
+                    exc,
+                    stage="stream",
+                )
+
+        processed_entries.append((owner, item))
+
+    return processed_entries
+
+
+def _run_acquisition(
+    entries,
+    *,
+    modules,
+    global_hooks,
+    threads,
+    context,
+    ignore_failures=False,
+    seen=None,
+):
+    """Fetch and process manifest entries.
+
+    Return post-file/stream entries with module ownership.
+    """
+    silent = logger.getEffectiveLevel() > logging.INFO
+    all_entries = entries
+    runtime_hooks = []
+
+    total_files = len(all_entries)
+    if total_files == 0:
+        logger.debug("No files to fetch.")
+        return []
+
+    logger.debug(
+        f"Starting parallel fetch: {total_files} files with {threads} threads."
+    )
+    final_results_with_owner = []
+    all_hooks = [
+        *global_hooks,
+        *(hook for module in modules for hook in module.hooks),
+    ]
+
+    pre_collection_hooks = [
+        hook for hook in all_hooks if hook.stage in {"file", "stream"}
+    ]
+
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=threads)
+
+    aborted = False
+
+    try:
+        futures = {
+            executor.submit(
+                _fetch_worker,
+                mod,
+                entry,
+                verbose=True,
+                context=context,
+            ): (mod, entry)
+            for mod, entry in all_entries
+        }
+
+        with tqdm(
+            total=total_files,
+            unit="file",
+            desc="Starting Pipeline...",
+            position=0,
+            leave=False,
+            disable=silent,
+        ) as pbar:
+            for future in concurrent.futures.as_completed(futures):
+                if context.cancelled:
+                    raise FetchCancelled("Pipeline cancelled")
+
+                mod, original_entry = futures[future]
+
+                file_name = Path(original_entry.get("dst_fn", "item")).name
+
+                short_name = (
+                    file_name[:30] + "..." if len(file_name) > 30 else file_name
+                )
+
+                pbar.set_description(f"[{mod.name}] {short_name}")
+                pbar.update(1)
+
+                try:
+                    result = future.result()
+
+                    if result != 0:
+                        raise FetchError(
+                            f"Module '{mod.name}' returned unexpected fetch result "
+                            f"{result!r} for '{file_name}'. Expected 0 on success; "
+                            f"failures must raise an exception."
+                        )
+
+                except FetchCancelled:
+                    context.cancel()
+                    raise
+
+                except Exception as exc:
+                    err_msg = f"Failed to fetch {file_name}: {exc}"
+
+                    if not ignore_failures:
+                        logger.critical(
+                            "CRITICAL: [%s] %s",
+                            mod.name,
+                            err_msg,
+                        )
+                        context.cancel()
+                        # raise PipelineExecutionError(err_msg) from exc
+                        raise RuntimeError(err_msg) from exc
+
+                    logger.error("[%s] %s (Continuing...)", mod.name, err_msg)
+                    mark_entry_failed(
+                        original_entry,
+                        exc,
+                        stage="fetch",
+                    )
+
+                    final_results_with_owner.append((mod, original_entry))
+                    continue
+
+                processed_entries = _process_acquired_entry(
+                    mod,
+                    original_entry,
+                    global_hooks=global_hooks,
+                    context=context,
+                    runtime_hooks=runtime_hooks,
+                    ignore_failures=ignore_failures,
+                )
+                final_results_with_owner.extend(processed_entries)
+
+        return final_results_with_owner
+
+    except BaseException:
+        aborted = True
+        context.cancel()
+
+        logger.warning("Cancelling Fetchez pipeline...")
+        raise
+
+    finally:
+        try:
+            _teardown_hooks(
+                [*runtime_hooks, *pre_collection_hooks],
+                ignore_failures=ignore_failures,
+                seen=seen,
+            )
+        finally:
+            executor.shutdown(
+                wait=not aborted,
+                cancel_futures=aborted,
+            )
+
+
 def run_fetchez(
     modules: List[Any],
     threads: int = 3,
@@ -1333,6 +1783,10 @@ def run_fetchez(
     ignore_failures: bool = False,
     context=None,
     discover=False,
+    discover_only=False,
+    # When True, process prepared module results through manifest
+    # and finalize only. Module discovery occurs if discover=True.
+    # No data acquisition or collection hooks are executed.
 ):
     """Run Fetchez in parallel with hooks.
 
@@ -1345,6 +1799,8 @@ def run_fetchez(
         context: The FetchContext for the plan and execution context.
         discover: Execute module.run directly, if False, module results discovery should have
                   already taken place (historical usage).
+        discover_only: Only run the manifest and finalize stages, skipping file, stream
+                       and collection
     """
 
     context = normalize_context(context)
@@ -1352,9 +1808,6 @@ def run_fetchez(
 
     if global_hooks is None:
         global_hooks = []
-
-    silent = logger.getEffectiveLevel() > logging.INFO
-    runtime_hooks = []
 
     # --- Validate Hook Stages ---
     for hook in global_hooks:
@@ -1387,494 +1840,65 @@ def run_fetchez(
                         getattr(mod, "name", type(mod).__name__),
                     )
 
-        # --- Module Pre-Hooks ---
-        for mod in modules:
-            if context.cancelled:
-                raise FetchCancelled("Pipeline cancelled")
+        discovered_entries = [(mod, entry) for mod in modules for entry in mod.results]
 
-            mod_pre = [h for h in mod.hooks if h.stage == "manifest"]
-            if not mod_pre:
-                continue
-
-            local_entries = [(mod, e) for e in mod.results]
-
-            try:
-                for hook in mod_pre:
-                    if context.cancelled:
-                        raise FetchCancelled("Pipeline cancelled")
-                    try:
-                        local_entries = hook.run(local_entries)
-                        if local_entries is None:
-                            local_entries = []
-
-                        utils._log_hook_history(local_entries, hook)
-                    except FetchCancelled:
-                        raise
-                    except Exception as exc:
-                        err_msg = f'Module "{mod.name}" manifest-hook "{hook.name}" failed: {exc}'
-                        if not ignore_failures:
-                            logger.critical(f"CRITICAL: {err_msg}")
-                            raise RuntimeError(err_msg) from exc
-                        logger.error(
-                            f"{err_msg} (Skipping due to ignore_failures=True)"
-                        )
-            finally:
-                _teardown_hooks(
-                    [*mod_pre],
-                    ignore_failures=ignore_failures,
-                    seen=seen,
-                )
-            # Update the mod.results
-            mod.results = [e for m, e in local_entries]
-
-        all_entries = []
-        for mod in modules:
-            if context.cancelled:
-                raise FetchCancelled("Pipeline cancelled")
-            for entry in mod.results:
-                if not isinstance(entry, dict):
-                    err_msg = (
-                        f"Skipping malformed entry in module '{mod.name}': "
-                        f"Expected dict, got {type(entry).__name__} -> {entry}"
-                    )
-                    if ignore_failures:
-                        logger.warning(err_msg)
-                        continue
-                    else:
-                        raise ValueError(err_msg)
-
-                all_entries.append((mod, entry))
-
-        # --- Global Pre-Hooks ---
-        global_pre = [h for h in global_hooks if h.stage == "manifest"]
-        try:
-            for hook in global_pre:
-                if context.cancelled:
-                    raise FetchCancelled("Pipeline cancelled")
-                try:
-                    result = hook.run(all_entries)
-                    if isinstance(result, list):
-                        all_entries = result
-
-                    utils._log_hook_history(all_entries, hook)
-                except FetchCancelled:
-                    raise
-                except Exception as exc:
-                    err_msg = f'Global manifest-hook "{hook.name}" failed: {exc}'
-                    if not ignore_failures:
-                        logger.critical(f"CRITICAL: {err_msg}")
-                        raise RuntimeError(err_msg) from exc
-                    logger.error(f"{err_msg} (Skipping due to ignore_failures=True)")
-        finally:
-            _teardown_hooks(
-                [*global_pre],
-                ignore_failures=ignore_failures,
-                seen=seen,
-            )
-
-        total_files = len(all_entries)
-        if total_files == 0:
-            logger.debug("No files to fetch.")
-            return []
-
-        logger.debug(
-            f"Starting parallel fetch: {total_files} files with {threads} threads."
+        # --- Manifest Stage ---
+        manifest_entries = _run_grouped_stage(
+            "manifest",
+            modules,
+            global_hooks,
+            source_entries=discovered_entries,
+            merge_local=True,
+            skip_empty_local=False,
+            update_module_results=True,
+            ignore_failures=ignore_failures,
+            context=context,
+            seen=seen,
         )
-        final_results_with_owner = []
-        all_hooks = [
-            *global_hooks,
-            *(hook for module in modules for hook in module.hooks),
-        ]
 
-        pre_collection_hooks = [
-            hook for hook in all_hooks if hook.stage in {"file", "stream"}
-        ]
-
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=threads)
-
-        aborted = False
-
-        try:
-            futures = {
-                executor.submit(
-                    _fetch_worker,
-                    mod,
-                    entry,
-                    verbose=True,
-                    context=context,
-                ): (mod, entry)
-                for mod, entry in all_entries
-            }
-
-            with tqdm(
-                total=total_files,
-                unit="file",
-                desc="Starting Pipeline...",
-                position=0,
-                leave=False,
-                disable=silent,
-            ) as pbar:
-                for future in concurrent.futures.as_completed(futures):
-                    if context.cancelled:
-                        raise FetchCancelled("Pipeline cancelled")
-
-                    mod, original_entry = futures[future]
-
-                    file_name = Path(original_entry.get("dst_fn", "item")).name
-
-                    short_name = (
-                        file_name[:30] + "..." if len(file_name) > 30 else file_name
-                    )
-
-                    pbar.set_description(f"[{mod.name}] {short_name}")
-                    pbar.update(1)
-
-                    try:
-                        result = future.result()
-
-                        if result != 0:
-                            raise FetchError(
-                                f"Module '{mod.name}' returned unexpected fetch result "
-                                f"{result!r} for '{file_name}'. Expected 0 on success; "
-                                f"failures must raise an exception."
-                            )
-
-                    except FetchCancelled:
-                        context.cancel()
-                        raise
-
-                    except Exception as exc:
-                        err_msg = f"Failed to fetch {file_name}: {exc}"
-
-                        if not ignore_failures:
-                            logger.critical(
-                                "CRITICAL: [%s] %s",
-                                mod.name,
-                                err_msg,
-                            )
-                            context.cancel()
-                            # raise PipelineExecutionError(err_msg) from exc
-                            raise RuntimeError(err_msg) from exc
-
-                        logger.error("[%s] %s (Continuing...)", mod.name, err_msg)
-                        mark_entry_failed(
-                            original_entry,
-                            exc,
-                            stage="fetch",
-                        )
-
-                        final_results_with_owner.append((mod, original_entry))
-                        continue
-
-                    # --- File Hooks ---
-                    gf_hooks = [h for h in global_hooks if h.stage == "file"]
-                    lf_hooks = [h for h in mod.hooks if h.stage == "file"]
-
-                    active_file_hooks = utils.merge_hooks(lf_hooks, gf_hooks)
-                    current_entries = [(mod, original_entry)]
-
-                    hook_failed = False
-                    for hook in active_file_hooks:
-                        if context.cancelled:
-                            raise FetchCancelled("Pipeline cancelled")
-                        try:
-                            current_entries = hook.run(current_entries)
-                            if current_entries is None:
-                                current_entries = []
-                            utils._log_hook_history(current_entries, hook)
-                        except Exception as exc:
-                            err_msg = (
-                                f'File hook "{hook.name}" failed on {file_name}: {exc}'
-                            )
-                            if not ignore_failures:
-                                logger.critical(f"CRITICAL: [{mod.name}] {err_msg}")
-                                context.cancel()
-                                executor.shutdown(wait=False, cancel_futures=True)
-                                raise RuntimeError(err_msg) from exc
-
-                            logger.error(f"[{mod.name}] {err_msg}")
-                            original_entry["status"] = "failed"
-                            original_entry["error_message"] = str(exc)
-                            hook_failed = True
-                            break
-
-                    if hook_failed:
-                        final_results_with_owner.append((mod, original_entry))
-                        continue
-
-                    # --- Stream Hooks ---
-                    gs_hooks = [h for h in global_hooks if h.stage == "stream"]
-                    ls_hooks = [h for h in mod.hooks if h.stage == "stream"]
-
-                    active_stream_hooks = utils.merge_hooks(ls_hooks, gs_hooks)
-
-                    stream_init_names = {"stream-init", "stream_data"}
-
-                    # Ensure explicit stream initializers run before other stream hooks.
-                    active_stream_hooks.sort(
-                        key=lambda hook: hook.name not in stream_init_names
-                    )
-
-                    if active_stream_hooks:
-                        has_stream = any(
-                            item.get("stream") is not None
-                            for _, item in current_entries
-                        )
-
-                        has_stream_init = any(
-                            hook.name in stream_init_names
-                            for hook in active_stream_hooks
-                        )
-
-                        if not has_stream and not has_stream_init:
-                            try:
-                                from fetchez.hooks.stream_init import DataStream
-
-                                init_hook_cls = DataStream
-                                logger.debug(f"Auto-initializing stream for {mod.name}")
-                                init_hook = init_hook_cls()
-                                init_hook.context = context
-                                active_stream_hooks.insert(0, init_hook)
-                                runtime_hooks.append(init_hook)
-
-                            except Exception as exc:
-                                logger.warning(
-                                    f"Could not auto-initialize stream: {exc}"
-                                )
-
-                        # Run the stream transforms.
-                        for hook in active_stream_hooks:
-                            if context.cancelled:
-                                raise FetchCancelled("Pipeline cancelled")
-                            try:
-                                current_entries = hook.run(current_entries)
-                                if current_entries is None:
-                                    current_entries = []
-                                utils._log_hook_history(current_entries, hook)
-                            except Exception as exc:
-                                err_msg = f'Stream hook "{hook.name}" failed on {file_name}: {exc}'
-                                if not ignore_failures:
-                                    logger.critical(f"CRITICAL: [{mod.name}] {err_msg}")
-                                    context.cancel()
-                                    executor.shutdown(wait=False, cancel_futures=True)
-                                    raise RuntimeError(err_msg) from exc
-
-                                logger.error(f"[{mod.name}] {err_msg}")
-                                original_entry["status"] = "failed"
-                                original_entry["error_message"] = str(exc)
-                                hook_failed = True
-                                break
-
-                    if hook_failed:
-                        final_results_with_owner.append((mod, original_entry))
-                        continue
-
-                    # --- Stream Exhaustion ---
-                    processed_entries = []
-                    for owner, item in current_entries:
-                        stream = item.get("stream")
-                        if stream and isinstance(
-                            stream,
-                            (collections.abc.Iterator, collections.abc.Generator),
-                        ):
-                            try:
-                                logger.debug(
-                                    f"Exhausting stream for {Path(item.get('dst_fn', '')).name}..."
-                                )
-                                collections.deque(stream, maxlen=0)
-                            except Exception as exc:
-                                err_msg = f"Stream processing error in {Path(item.get('dst_fn', '')).name}: {exc}"
-                                if not ignore_failures:
-                                    logger.critical(f"CRITICAL: [{mod.name}] {err_msg}")
-                                    context.cancel()
-                                    executor.shutdown(wait=False, cancel_futures=True)
-                                    raise RuntimeError(err_msg) from exc
-
-                                logger.error(f"[{mod.name}] {err_msg}")
-                                item["status"] = "failed"
-                                item["error_message"] = str(exc)
-
-                        processed_entries.append((owner, item))
-
-                    final_results_with_owner.extend(processed_entries)
-
-        except BaseException:
-            aborted = True
-            context.cancel()
-
-            logger.warning("Cancelling Fetchez pipeline...")
-            raise
-
-        finally:
-            try:
-                _teardown_hooks(
-                    [*runtime_hooks, *pre_collection_hooks],
-                    ignore_failures=ignore_failures,
-                    seen=seen,
-                )
-            finally:
-                executor.shutdown(
-                    wait=not aborted,
-                    cancel_futures=aborted,
-                )
-
-        # --- Collection Hooks (post) ---
-        # Module-level Collection-Hooks (post)
-        results_by_mod: Dict[Any, Any] = {m: [] for m in modules}
-        for r_tuple in final_results_with_owner:
-            owner_mod, entry = r_tuple
-            if owner_mod in results_by_mod:
-                results_by_mod[owner_mod].append((owner_mod, entry))
-
-        for mod in modules:
-            mod_post = [h for h in mod.hooks if h.stage == "collection"]
-            if mod_post and results_by_mod[mod]:
-                current_mod_entries = results_by_mod[mod]
-                try:
-                    for hook in mod_post:
-                        if context.cancelled:
-                            raise FetchCancelled("Pipeline cancelled")
-                        try:
-                            current_mod_entries = hook.run(current_mod_entries)
-                            if current_mod_entries is None:
-                                current_mod_entries = []
-                            utils._log_hook_history(current_mod_entries, hook)
-                        except FetchCancelled:
-                            raise
-                        except Exception as exc:
-                            err_msg = f'Module "{mod.name}" collection-hook "{hook.name}" failed: {exc}'
-                            if not ignore_failures:
-                                logger.critical(f"CRITICAL: {err_msg}")
-                                raise RuntimeError(err_msg) from exc
-                            logger.error(f"{err_msg} (Skipping...)")
-                finally:
-                    _teardown_hooks(
-                        [*mod_post],
-                        ignore_failures=ignore_failures,
-                        seen=seen,
-                    )
-
-                results_by_mod[mod] = current_mod_entries
-
-        # Re-flatten the lists after module-level collection-hooks have modified them
-        flat_results = []
-        for mod_entries in results_by_mod.values():
-            flat_results.extend(mod_entries)
-
-        # Global-level Collection-Hooks
-        global_post = [h for h in global_hooks if h.stage == "collection"]
-        try:
-            for hook in global_post:
-                if context.cancelled:
-                    raise FetchCancelled("Pipeline cancelled")
-                try:
-                    flat_results = hook.run(flat_results)
-                    if flat_results is None:
-                        flat_results = []
-                    utils._log_hook_history(flat_results, hook)
-                except FetchCancelled:
-                    raise
-                except Exception as exc:
-                    err_msg = f'Global collection-hook "{hook.name}" failed: {exc}'
-                    if not ignore_failures:
-                        logger.critical(f"CRITICAL: {err_msg}")
-                        raise RuntimeError(err_msg) from exc
-                    logger.error(f"{err_msg} (Skipping...)")
-
-        finally:
-            _teardown_hooks(
-                [*global_post],
+        if discover_only:
+            source_entries = manifest_entries
+            collection_entries = manifest_entries
+        else:
+            # --- Acquisition - File & Stream Stage ---
+            source_entries = _run_acquisition(
+                manifest_entries,
+                modules=modules,
+                global_hooks=global_hooks,
+                threads=threads,
+                context=context,
                 ignore_failures=ignore_failures,
                 seen=seen,
             )
 
-        # --- Finalize Hooks ---
-        # Module-local finalizers operate on post-file/stream entries.
-        # Global finalizers operate on completed collection outputs.
-
-        source_results = final_results_with_owner
-
-        for mod in modules:
-            mod_finalize = [h for h in mod.hooks if h.stage == "finalize"]
-
-            if not mod_finalize:
-                continue
-
-            mod_entries = [
-                (owner, entry) for owner, entry in source_results if owner is mod
-            ]
-
-            try:
-                for hook in mod_finalize:
-                    if context.cancelled:
-                        raise FetchCancelled("Pipeline cancelled")
-
-                    try:
-                        result = hook.run(mod_entries)
-                        mod_entries = [] if result is None else result
-
-                        utils._log_hook_history(mod_entries, hook)
-
-                    except FetchCancelled:
-                        raise
-
-                    except Exception as exc:
-                        if not ignore_failures:
-                            raise RuntimeError(
-                                f'Module "{mod.name}" finalize-hook '
-                                f'"{hook.name}" failed: {exc}'
-                            ) from exc
-
-                        logger.exception(
-                            'Module "%s" finalize-hook "%s" failed',
-                            mod.name,
-                            hook.name,
-                        )
-
-            finally:
-                _teardown_hooks(
-                    mod_finalize,
-                    ignore_failures=ignore_failures,
-                    seen=seen,
-                )
-
-        # Global finalizers operate on the final collection outputs.
-        global_finalize = [h for h in global_hooks if h.stage == "finalize"]
-
-        try:
-            for hook in global_finalize:
-                if context.cancelled:
-                    raise FetchCancelled("Pipeline cancelled")
-
-                try:
-                    flat_results = hook.run(flat_results)
-                    if flat_results is None:
-                        flat_results = []
-
-                    utils._log_hook_history(flat_results, hook)
-
-                except FetchCancelled:
-                    raise
-
-                except Exception as exc:
-                    if not ignore_failures:
-                        raise RuntimeError(
-                            f'Global finalize-hook "{hook.name}" failed: {exc}'
-                        ) from exc
-
-                    logger.exception(
-                        'Global finalize-hook "%s" failed',
-                        hook.name,
-                    )
-
-        finally:
-            _teardown_hooks(
-                global_finalize,
+            # --- Collection Stage ---
+            collection_entries = _run_grouped_stage(
+                "collection",
+                modules,
+                global_hooks,
+                source_entries=source_entries,
+                merge_local=True,
+                skip_empty_local=True,
                 ignore_failures=ignore_failures,
+                context=context,
                 seen=seen,
             )
 
-        return flat_results
+        # --- Finalize Stage ---
+        final_entries = _run_grouped_stage(
+            "finalize",
+            modules,
+            global_hooks,
+            source_entries=source_entries,
+            global_entries=collection_entries,
+            merge_local=False,
+            skip_empty_local=False,
+            ignore_failures=ignore_failures,
+            context=context,
+            seen=seen,
+        )
+
+        return final_entries
 
     finally:
-        clear_context(modules, [*global_hooks, *runtime_hooks])
+        clear_context(modules, global_hooks)

@@ -11,6 +11,7 @@ import pytest
 from fetchez.core import (
     FetchCancelled,
     FetchExecutionContext,
+    HookExecutionError,
     normalize_context,
     run_fetchez,
 )
@@ -252,7 +253,9 @@ def test_manifest_hook_failure_cleans_context_and_runs_teardown():
 
     hook = FailingHook()
     module = StubModule(entries=[_sample_entry()])
-    with pytest.raises(RuntimeError, match="manifest-hook"):
+    with pytest.raises(
+        HookExecutionError, match="global manifest hook 'observer' failed: bad manifest"
+    ):
         run_fetchez([module], global_hooks=[hook], threads=1)
     assert hook.teardown_calls == 1
     assert hook.teardown_context is hook.seen_context
