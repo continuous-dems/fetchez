@@ -1,7 +1,7 @@
 # Credits
 
 ## Maintainers
-* Matthew Love <matthew.love@colorado.edu>
+* Matthew Love (@matth-love) - <matthew.love@colorado.edu>
 
 ## Contributors
 * Elliot Lim (@e1im)
@@ -13,3 +13,4 @@
 * Jay (@jay23606)
 * Aykut Güney (@KeuqS)
 * Roman Claudiu (@RClaudiuM)
+* OpenDeer (@OpenDeernet)
