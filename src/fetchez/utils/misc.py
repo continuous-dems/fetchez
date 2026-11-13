@@ -270,6 +270,15 @@ def wgs84_to_utm_zone(region):
 
     crosses_zones = zone_min != zone_max
 
+    # The primary zone is the one holding the region's centre, so a region
+    # that crosses a zone boundary still gets a usable EPSG code.
+    if crosses_zones:
+        east = lon_max + 360 if lon_max < lon_min else lon_max
+        center_lon = ((lon_min + east) / 2 + 180) % 360 - 180
+        primary_zone = min(int(math.floor((center_lon + 180) / 6)) + 1, 60)
+    else:
+        primary_zone = zone_min
+
     result = {
         "zone_min": zone_min,
         "zone_max": zone_max,
@@ -277,10 +286,8 @@ def wgs84_to_utm_zone(region):
         "crosses_zones": crosses_zones,
         "epsg_min": make_epsg_code(zone_min, is_north),
         "epsg_max": make_epsg_code(zone_max, is_north),
+        "primary_zone": primary_zone,
+        "primary_epsg": make_epsg_code(primary_zone, is_north),
     }
-
-    if not crosses_zones:
-        result["primary_zone"] = zone_min
-        result["primary_epsg"] = f"EPSG:{326 if is_north else 327}{zone_min:02d}"
 
     return result
