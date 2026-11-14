@@ -45,6 +45,10 @@ ENTRY_KEYS = frozenset(
         "artifacts",
         "status",
         "contribution_id",
+        "geometry",
+        "geometry_crs",
+        "geometry_source",
+        "geometry_kind",
     }
 )
 
@@ -279,6 +283,133 @@ def dataset_id(entry, **kwargs):
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
     return f"{base}|{digest}"
+
+
+# =============================================================================
+# Reversible entry persistence (separate from identity canonicalization)
+# =============================================================================
+
+_ENTRY_TYPE_TAG = "__fetchez_type__"
+
+
+def _serialize_value(value: Any) -> Any:
+    """Convert supported entry values to JSON data without losing geometry."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+
+    if isinstance(value, Path):
+        # Paths in cached entries have historically been stored as strings.
+        return str(value)
+
+    if type(value).__name__ == "Region":
+        return {
+            _ENTRY_TYPE_TAG: "Region",
+            "w": value.w,
+            "e": value.e,
+            "s": value.s,
+            "n": value.n,
+            "srs": value.srs,
+        }
+
+    # Optional Shapely dependency: nonspatial entries do not import it.
+    if hasattr(value, "__geo_interface__"):
+        try:
+            from shapely.geometry.base import BaseGeometry
+        except ImportError:
+            pass
+        else:
+            if isinstance(value, BaseGeometry):
+                return {
+                    _ENTRY_TYPE_TAG: "ShapelyGeometry",
+                    "geometry": _serialize_value(value.__geo_interface__),
+                }
+
+    if isinstance(value, Mapping):
+        return {str(k): _serialize_value(v) for k, v in value.items()}
+
+    if isinstance(value, (list, tuple)):
+        return [_serialize_value(v) for v in value]
+
+    # NumPy scalar values are common in geospatial metadata.
+    if hasattr(value, "item") and callable(value.item):
+        converted = value.item()
+        if converted is not value:
+            return _serialize_value(converted)
+
+    if hasattr(value, "isoformat") and callable(value.isoformat):
+        return value.isoformat()
+
+    raise TypeError(f"Cannot serialize entry value of type {type(value).__name__}")
+
+
+def _deserialize_value(value: Any) -> Any:
+    """Reconstruct tagged values recursively, leaving ordinary JSON untouched."""
+    if isinstance(value, list):
+        return [_deserialize_value(item) for item in value]
+
+    if not isinstance(value, dict):
+        return value
+
+    tag = value.get(_ENTRY_TYPE_TAG)
+    if tag == "ShapelyGeometry" and set(value) == {_ENTRY_TYPE_TAG, "geometry"}:
+        from shapely.geometry import shape
+
+        return shape(value["geometry"])
+
+    if tag == "Region" and set(value) == {_ENTRY_TYPE_TAG, "w", "e", "s", "n", "srs"}:
+        from fetchez.spatial import Region
+
+        return Region(value["w"], value["e"], value["s"], value["n"], srs=value["srs"])
+
+    # Historical module caches used this Region marker.
+    if value.get("__type__") == "Region" and {"w", "e", "s", "n"} <= value.keys():
+        from fetchez.spatial import Region
+
+        return Region(
+            value["w"], value["e"], value["s"], value["n"], srs=value.get("srs")
+        )
+
+    return {key: _deserialize_value(item) for key, item in value.items()}
+
+
+def serialize_entry(entry: Mapping[str, Any]) -> dict[str, Any]:
+    """Return a JSON-safe copy of an entry for caching or interchange.
+
+    This is *not* identity canonicalization. Supported spatial objects retain
+    explicit tags so they can be reconstructed by :func:`deserialize_entry`.
+    Unsupported runtime objects raise TypeError rather than silently becoming
+    misleading strings. The input is not mutated.
+    """
+    validate_entry(entry, require=False)
+    return _serialize_value(entry)
+
+
+def deserialize_entry(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Rehydrate a serialized entry, including legacy cached WKT geometry."""
+    if not isinstance(data, Mapping):
+        raise TypeError("Serialized Fetchez entry must be a mapping")
+
+    result = _deserialize_value(data)
+
+    # Old _cached_run() stringified Shapely geometries. Restrict migration to
+    # the canonical geometry field, never arbitrary metadata strings.
+    geometry = result.get("geometry")
+    if isinstance(geometry, str) and geometry.lstrip().upper().startswith(
+        (
+            "POLYGON ",
+            "MULTIPOLYGON ",
+            "POINT ",
+            "MULTIPOINT ",
+            "LINESTRING ",
+            "MULTILINESTRING ",
+            "GEOMETRYCOLLECTION ",
+        )
+    ):
+        from shapely import wkt
+
+        result["geometry"] = wkt.loads(geometry)
+
+    return result
 
 
 # =============================================================================
