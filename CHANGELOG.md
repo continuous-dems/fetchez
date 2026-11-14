@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Added `discover_only` run-mode that only runs the module discovery, manifest hooks and finalize hooks, skipping fetching, file, stream and collection hooks.
+
+## [0.13.0 - 11-13-26]
+### ADDED
 - Added ensure-hook modifier to conditially inject hooks into a recipe when another hook requests it.
 - Introduced the finalize hook stage for post-collection operations such as reporting, validation, metadata generation, publishing, and notifications.
 - Added support for scope-specific finalization: module-local hooks operate on post-file/stream source entries, while global hooks operate on completed collection outputs and their artifacts.

@@ -389,6 +389,7 @@ def run_recipe(
     modifiers: Optional[List[str | Dict]] = None,
     schemas: Optional[List[str]] = None,
     ignore_failures: bool = False,
+    discover_only: bool | None = None,
 ) -> bool:
     """Execute a YAML recipe.
 
@@ -427,7 +428,14 @@ def run_recipe(
 
     try:
         # Recipe.from_file(base_config).run()
-        [r for r in Recipe(base_config).run(ignore_failures=ignore_failures)]
+        # [r for r in Recipe(base_config).run(ignore_failures=ignore_failures)]
+        [
+            r
+            for r in Recipe(base_config).run(
+                ignore_failures=ignore_failures,
+                discover_only=discover_only,
+            )
+        ]
         return True
     except Exception as e:
         logger.error(f"Failed to run recipe '{target}': {e}")
@@ -481,7 +489,12 @@ class Pipeline:
         return self
 
     def execute(
-        self, threads=4, shared_cache=None, ignore_failures=False, refresh=False
+        self,
+        threads=4,
+        shared_cache=None,
+        ignore_failures=False,
+        refresh=False,
+        discover_only=None,
     ):
         """Execute the configured pipeline through the Recipe engine."""
 
@@ -493,6 +506,7 @@ class Pipeline:
                 shared_cache=shared_cache,
                 refresh=refresh,
                 ignore_failures=ignore_failures,
+                discover_only=discover_only,
             )
         ]
 

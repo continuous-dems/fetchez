@@ -858,3 +858,37 @@ def test_modifier_execution_threads_are_taken_from_final_config(
     assert plan.config["execution"]["threads"] == 7
     assert plan.threads == 7
     assert recipe.config["execution"]["threads"] == 2
+
+
+def test_pipeline_plan_forwards_discover_only(monkeypatch):
+    import fetchez.recipe as recipe_module
+    from fetchez.recipe import PipelinePlan
+
+    received = {}
+
+    def fake_run_fetchez(modules, **kwargs):
+        received.update(kwargs)
+        return []
+
+    monkeypatch.setattr(
+        recipe_module,
+        "run_fetchez",
+        fake_run_fetchez,
+    )
+
+    plan = PipelinePlan(
+        config={
+            "execution": {
+                "threads": 2,
+                "discover_only": True,
+            }
+        },
+        modules=[],
+        global_hooks=[],
+    )
+
+    plan.execute()
+
+    assert received["threads"] == 2
+    assert received["discover"] is True
+    assert received["discover_only"] is True
