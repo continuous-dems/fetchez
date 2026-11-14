@@ -66,6 +66,11 @@ Bounding box (W/E/S/N)
     "Failed entries are reported instead of aborting the pipeline.",
 )
 @click.option(
+    "--discover-only/--no-discover-only",
+    default=None,
+    help="Override the recipe's discovery-only execution setting.",
+)
+@click.option(
     "--fail-fast",
     is_flag=True,
     default=False,
@@ -84,6 +89,7 @@ def run_recipe(
     refresh,
     ignore_failures,
     fail_fast,
+    discover_only,
 ):
     """Execute a Fetchez recipe.
 
@@ -194,6 +200,7 @@ def run_recipe(
                 shared_cache=shared_cache,
                 refresh=refresh,
                 ignore_failures=ignore_failures,
+                discover_only=discover_only,
             )
         ]
 
