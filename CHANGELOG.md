@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0 - 11-13-26]
 ### ADDED
 - Added ensure-hook modifier to conditially inject hooks into a recipe when another hook requests it.
 - Introduced the finalize hook stage for post-collection operations such as reporting, validation, metadata generation, publishing, and notifications.
