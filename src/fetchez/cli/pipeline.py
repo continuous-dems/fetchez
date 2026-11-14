@@ -212,6 +212,7 @@ def make_pipeline_config(
     modifiers=None,
     schemas=None,
     threads=1,
+    discover_only=False,
 ):
     config = {
         "project": {
@@ -229,10 +230,10 @@ def make_pipeline_config(
     if schemas:
         config["schemas"] = schemas
 
-    if threads:
-        config["execution"] = {
-            "threads": threads,
-        }
+    config["execution"] = {
+        "threads": threads,
+        "discover_only": discover_only,
+    }
 
     return config
 
@@ -398,6 +399,15 @@ Bounding box (W/E/S/N)
     help="Centralized directory to cache fetched data.",
 )
 @click.option(
+    "--discover-only",
+    is_flag=True,
+    default=False,
+    help=(
+        "Run discovery, manifest, and finalize hooks without "
+        "downloading data or running file, stream, or collection hooks."
+    ),
+)
+@click.option(
     "--refresh", is_flag=True, help="Force fresh API fetch, bypassing local cache."
 )
 @click.option(
@@ -429,6 +439,7 @@ def pipeline_group(
     refresh,
     ignore_failures,
     fail_fast,
+    discover_only,
 ):
     """Build and optionally execute an ad-hoc Fetchez pipeline.
 
@@ -477,6 +488,7 @@ def process_pipeline(
     refresh,
     ignore_failures,
     fail_fast,
+    discover_only,
 ):
     """Executes after all chained commands have returned their dictionaries."""
 
@@ -530,6 +542,7 @@ def process_pipeline(
         modifiers=parsed_modifiers,
         schemas=parsed_schemas,
         threads=threads,
+        discover_only=discover_only,
     )
 
     if export:
