@@ -113,6 +113,10 @@ class PipelinePlan:
         return self.config.get("execution", {}).get("threads", 1)
 
     @property
+    def discover_only(self):
+        return self.config.get("execution", {}).get("discover_only", False)
+
+    @property
     def modules_by_id(self):
         """Named module instances in the compiled workflow."""
         return {
@@ -137,6 +141,7 @@ class PipelinePlan:
                 ignore_failures=self.ignore_failures,
                 context=FetchContext(plan=self),
                 discover=True,
+                discover_only=self.discover_only,
             )
 
         finally:
@@ -536,6 +541,8 @@ class Recipe:
             cmd_parts.append(f"--region-srs {self.config['region_srs']}")
         if "execution" in self.config and "threads" in self.config["execution"]:
             cmd_parts.append(f"--threads {self.config['execution']['threads']}")
+        if self.config.get("execution", {}).get("discover_only", False):
+            cmd_parts.append("--discover-only")
 
         # Global Hooks
         for hook in self.config.get("global_hooks", []):
@@ -1244,6 +1251,7 @@ class Recipe:
         overwrite: bool = False,
         refresh: bool = False,
         ignore_failures: bool = False,
+        discover_only: bool | None = None,
     ):
 
         original_cwd = Path.cwd()
@@ -1261,8 +1269,24 @@ class Recipe:
             abs_cache.mkdir(parents=True, exist_ok=True)
             logger.info(f"Shared cache enabled: {abs_cache}")
 
+        # Discovery only (manifest+finalize)
+        recipe_discover_only = self.config.get("execution", {}).get(
+            "discover_only", False
+        )
+
+        effective_discover_only = (
+            recipe_discover_only if discover_only is None else discover_only
+        )
+
         # State Tracking
-        state_file = Path(base_outdir / "fetchez_batch_state.json")
+        state_filename = (
+            "fetchez_batch_state_discover_only.json"
+            if effective_discover_only
+            else "fetchez_batch_state.json"
+        )
+
+        state_file = Path(base_outdir) / state_filename
+
         completed_tiles = []
         if state_file.exists() and not overwrite:
             try:
@@ -1301,6 +1325,9 @@ class Recipe:
                     plan = self.compile(
                         context,
                         ignore_failures=ignore_failures,
+                    )
+                    plan.config.setdefault("execution", {})["discover_only"] = (
+                        effective_discover_only
                     )
                 except Exception:
                     if not ignore_failures:
