@@ -91,7 +91,7 @@ def test_json_handles_shapely_and_nested_metadata(tmp_path, module):
 
 
 def test_unknown_crs_with_out_of_range_geometry_fails(tmp_path, module):
-    with pytest.raises(ValueError, match="geometry_crs"):
+    with pytest.raises(ValueError, match="Entry geometry exceeds WGS84"):
         Inventory(output=tmp_path / "invalid.geojson").run(
             [(module, {"geometry": box(500000, 3700000, 501000, 3701000)})]
         )

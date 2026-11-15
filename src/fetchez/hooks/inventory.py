@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fetchez.hooks import FetchHook
 from fetchez.spatial import entry_geometry
-from fetchez.entry import json_safe
+from fetchez.entry import _json_safe
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ class Inventory(FetchHook):
                     "geometry_crs": "EPSG:4326" if geometry is not None else None,
                 }
             )
-            ready = json_safe(record)
+            ready = _json_safe(record)
             if self.out_format in {"gpkg", "geojson"}:
                 # Make vector attributes predictable; preserve the complete metadata
                 # in one JSON column/property rather than a schema per provider.
