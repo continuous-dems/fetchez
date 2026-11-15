@@ -7,6 +7,10 @@ import json
 import logging
 from pathlib import Path
 
+import numpy as np
+from shapely import to_wkb
+from pyogrio.raw import write
+
 from fetchez.hooks import FetchHook
 from fetchez.spatial import entry_geometry
 from fetchez.entry import _json_safe
@@ -139,14 +143,6 @@ class Inventory(FetchHook):
                 encoding="utf-8",
             )
         else:
-            try:
-                import geopandas as gpd
-            except ImportError as exc:
-                raise ImportError(
-                    "GeoPackage inventory requires geopandas and pyogrio (fetchez[raster] or your geospatial extras)"
-                ) from exc
-            import pandas as pd
-
             columns = (
                 "module",
                 "instance_id",
@@ -160,17 +156,37 @@ class Inventory(FetchHook):
                 "geometry_crs",
                 "metadata_json",
             )
-            table = pd.DataFrame(rows, columns=columns)
-            frame = gpd.GeoDataFrame(
-                table,
-                geometry=gpd.GeoSeries(geometries, crs="EPSG:4326"),
-                crs="EPSG:4326",
+
+            # Existing inventory rows already contain these attributes.
+            field_data = [
+                np.asarray(
+                    [row.get(column) for row in rows],
+                    dtype=object,
+                )
+                for column in columns
+            ]
+
+            # Pyogrio raw I/O expects WKB geometries.
+            geometry_wkb = np.asarray(
+                [
+                    to_wkb(geometry) if geometry is not None else None
+                    for geometry in geometries
+                ],
+                dtype=object,
             )
-            # Replace the entire GPKG so old layers cannot survive an overwrite.
+
             if self.output.exists():
                 self.output.unlink()
-            frame.to_file(
-                self.output, layer=self.layer, driver="GPKG", engine="pyogrio"
+
+            write(
+                str(self.output),
+                geometry=geometry_wkb,
+                field_data=field_data,
+                fields=np.asarray(columns),
+                layer=self.layer,
+                driver="GPKG",
+                geometry_type="Unknown",
+                crs="EPSG:4326",
             )
 
         logger.info(
