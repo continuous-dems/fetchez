@@ -5,81 +5,13 @@
 import csv
 import json
 import logging
-import math
-from datetime import date, datetime
 from pathlib import Path
 
 from fetchez.hooks import FetchHook
+from fetchez.spatial import entry_geometry
+from fetchez.entry import json_safe
 
 logger = logging.getLogger(__name__)
-
-
-def _json_ready(value):
-    """Convert common metadata types without mutating the source entry."""
-    if value is None or isinstance(value, (str, bool, int)):
-        return value
-    if isinstance(value, float):
-        return value if math.isfinite(value) else None
-    if isinstance(value, (date, datetime, Path)):
-        return str(value) if isinstance(value, Path) else value.isoformat()
-    if isinstance(value, dict):
-        return {str(key): _json_ready(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple, set)):
-        return [_json_ready(item) for item in value]
-    if hasattr(value, "__geo_interface__"):
-        return _json_ready(value.__geo_interface__)
-    if hasattr(value, "item"):
-        try:
-            return _json_ready(value.item())
-        except (TypeError, ValueError):
-            pass
-    return str(value)
-
-
-def _wgs84_geometry(entry):
-    """Normalize entry geometry and reproject when geometry_crs is explicit.
-
-    Without geometry_crs, the existing manifest convention is WGS84. The
-    range check catches obvious violations but cannot infer an unknown CRS.
-    """
-    raw = entry.get("geometry")
-    if raw is None:
-        return None
-
-    from shapely.geometry import shape
-    from shapely.geometry.base import BaseGeometry
-
-    if isinstance(raw, BaseGeometry):
-        geometry = raw
-    elif isinstance(raw, dict):
-        geometry = shape(raw)
-    elif hasattr(raw, "__geo_interface__"):
-        geometry = shape(raw.__geo_interface__)
-    else:
-        raise TypeError("Inventory geometry must be Shapely or GeoJSON-compatible")
-
-    source_crs = entry.get("geometry_crs")
-    if source_crs:
-        from pyproj import CRS, Transformer
-        from shapely.ops import transform
-
-        if CRS.from_user_input(source_crs) != CRS.from_epsg(4326):
-            geometry = transform(
-                Transformer.from_crs(source_crs, 4326, always_xy=True).transform,
-                geometry,
-            )
-
-    if geometry.is_empty:
-        return None
-    if not geometry.is_valid:
-        raise ValueError(f"Invalid inventory geometry: {geometry.geom_type}")
-    xmin, ymin, xmax, ymax = geometry.bounds
-    if not (-180 <= xmin <= xmax <= 180 and -90 <= ymin <= ymax <= 90):
-        raise ValueError(
-            "Geometry is outside WGS84 longitude/latitude limits; "
-            "set entry['geometry_crs'] in its manifest hook"
-        )
-    return geometry
 
 
 class Inventory(FetchHook):
@@ -116,30 +48,32 @@ class Inventory(FetchHook):
 
         for mod, entry in entries:
             geometry = (
-                _wgs84_geometry(entry)
+                entry_geometry(entry)
                 if self.out_format in {"gpkg", "geojson"}
                 else None
             )
             if self.geometry_required and geometry is None:
                 continue
 
-            record = {
-                "module": getattr(mod, "name", type(mod).__name__),
-                "instance_id": getattr(mod, "instance_id", None),
-                "filename": entry.get("dst_fn"),
-                "url": entry.get("url"),
-                "data_type": entry.get("data_type"),
-                "date": entry.get("date", ""),
-                "geometry_type": geometry.geom_type if geometry is not None else None,
-                "geometry_kind": entry.get("geometry_kind"),
-                "geometry_source": entry.get("geometry_source"),
-                "geometry_crs": "EPSG:4326" if geometry is not None else None,
-            }
-            # Keep legacy JSON/CSV keys and values, but make them serializable.
+            record = {key: value for key, value in entry.items() if key != "stream"}
+
             record.update(
-                {key: value for key, value in entry.items() if key != "stream"}
+                {
+                    "module": getattr(mod, "name", type(mod).__name__),
+                    "instance_id": getattr(mod, "instance_id", None),
+                    "filename": entry.get("dst_fn"),
+                    "url": entry.get("url"),
+                    "data_type": entry.get("data_type"),
+                    "date": entry.get("date", ""),
+                    "geometry_type": geometry.geom_type
+                    if geometry is not None
+                    else None,
+                    "geometry_kind": entry.get("geometry_kind"),
+                    "geometry_source": entry.get("geometry_source"),
+                    "geometry_crs": "EPSG:4326" if geometry is not None else None,
+                }
             )
-            ready = _json_ready(record)
+            ready = json_safe(record)
             if self.out_format in {"gpkg", "geojson"}:
                 # Make vector attributes predictable; preserve the complete metadata
                 # in one JSON column/property rather than a schema per provider.

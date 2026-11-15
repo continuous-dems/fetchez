@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+from datetime import datetime, date
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -146,6 +148,28 @@ def validate_entry(
 
     if not entry.get("data_type"):
         raise ValueError("Fetchez entry requires a non-empty 'data_type'.")
+
+
+def _json_safe(value):
+    """Convert common metadata types without mutating the source entry."""
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, (date, datetime, Path)):
+        return str(value) if isinstance(value, Path) else value.isoformat()
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(item) for item in value]
+    if hasattr(value, "__geo_interface__"):
+        return _json_safe(value.__geo_interface__)
+    if hasattr(value, "item"):
+        try:
+            return _json_safe(value.item())
+        except (TypeError, ValueError):
+            pass
+    return str(value)
 
 
 # =============================================================================

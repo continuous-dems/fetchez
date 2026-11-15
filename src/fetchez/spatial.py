@@ -1570,3 +1570,30 @@ def normalize_geometry(value, *, src_crs=None, dst_crs=None):
                 raise ValueError("Geometry became invalid during reprojection")
 
     return result
+
+
+def entry_geometry(entry, dst_crs="EPSG:4326"):
+    """Return an entry's geometry normalized to the requested CRS.
+
+    Entries without geometry return None. Missing geometry_crs
+    follows the Fetchez convention of EPSG:4326.
+    """
+    raw = entry.get("geometry")
+    if raw is None:
+        return None
+
+    geometry = normalize_geometry(
+        raw,
+        src_crs=entry.get("geometry_crs") or "EPSG:4326",
+        dst_crs=dst_crs,
+    )
+
+    if geometry is None:
+        return None
+
+    if CRS.from_user_input(dst_crs).equals(CRS.from_epsg(4326), ignore_axis_order=True):
+        xmin, ymin, xmax, ymax = geometry.bounds
+        if not (-180 <= xmin <= xmax <= 180 and -90 <= ymin <= ymax <= 90):
+            raise ValueError("Entry geometry exceeds WGS84 coordinate limits")
+
+    return geometry
