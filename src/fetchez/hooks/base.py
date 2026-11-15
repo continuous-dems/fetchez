@@ -21,6 +21,7 @@ class FetchHook:
 
     # --- Hook Stages ---
     meta_stage = "file"
+    meta_stages = None
 
     STAGES = (
         "manifest",

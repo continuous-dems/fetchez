@@ -1523,15 +1523,20 @@ def normalize_geometry(value, *, src_crs=None, dst_crs=None):
         }:
             result = shape(value)
         else:
-            result = esri_geometry_to_shapely(value)
-            spatial_reference = value.get("spatialReference") or {}
-            discovered_crs = (
-                spatial_reference.get("latestWkid")
-                or spatial_reference.get("wkid")
-                or spatial_reference.get("wkt")
-            )
-            if isinstance(discovered_crs, int):
-                discovered_crs = f"EPSG:{discovered_crs}"
+            try:
+                result = esri_geometry_to_shapely(value)
+                spatial_reference = value.get("spatialReference") or {}
+                discovered_crs = (
+                    spatial_reference.get("latestWkid")
+                    or spatial_reference.get("wkid")
+                    or spatial_reference.get("wkt")
+                )
+                if isinstance(discovered_crs, int):
+                    discovered_crs = f"EPSG:{discovered_crs}"
+            except Exception:
+                # logger.warning("Failed to parse esri geometry")
+                result = None
+
     elif hasattr(value, "__geo_interface__"):
         result = shape(value.__geo_interface__)
     elif isinstance(value, str):
