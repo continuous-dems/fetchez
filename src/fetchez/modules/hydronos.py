@@ -14,7 +14,7 @@ Fetch NOS Hydrographic Surveys (BAGs and XYZ soundings) from NOAA.
 import os
 import json
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 # from shapely.geometry import Polygon, Point
 from shapely.geometry import LinearRing, Polygon, MultiPolygon
@@ -23,6 +23,7 @@ from fetchez import core
 from fetchez.modules import FetchModule
 from fetchez import utils
 from fetchez import cli
+from fetchez.spatial import normalize_geometry
 
 logger = logging.getLogger(__name__)
 
@@ -153,13 +154,7 @@ class HydroNOS(FetchModule):
         geom = {}
         for feature in features:
             attrs = feature.get("attributes", {})
-            geom = feature.get("geometry", {})
-            self.geom = esri_rings_to_shapely(geom)
-            # print(geom.geom_type)  # Output: Polygon (or MultiPolygon if multiple islands exist)
-
-            # rings = geom['rings']
-            # self.geom = Polygon(rings[0])
-            # self.geom = polygon_dict = {k: Polygon(v) for k, v in geom.items()}
+            geom = normalize_geometry(feature.get("geometry", {}))
 
             # Filter by Year
             year_val = attrs.get("SURVEY_YEAR")
@@ -174,7 +169,7 @@ class HydroNOS(FetchModule):
                 continue
 
             # Process Download Links
-            self._process_download(attrs, year)
+            self._process_download(attrs, year, geom)
 
         if self._unchecked:
             logger.error(
@@ -207,7 +202,7 @@ class HydroNOS(FetchModule):
             self._flag(f"could not check {url}; keeping it")
         return status != "missing"
 
-    def _process_download(self, attrs: Dict, year: int):
+    def _process_download(self, attrs: Dict, year: int, geom: Any):
         """Process download URL."""
 
         survey_id = attrs.get("SURVEY_ID")
@@ -260,7 +255,10 @@ class HydroNOS(FetchModule):
                             agency="NOAA NOS",
                             date=str(year),
                             license="Public Domain",
-                            geometry=self.geom,
+                            geometry=geom,
+                            geometry_kind="footprint",
+                            geometry_source="provider",
+                            geometry_crs="EPSG:4326",
                         )
 
         # Fetch XYZ (GEODAS Soundings)
@@ -308,7 +306,10 @@ class HydroNOS(FetchModule):
                             agency="NOAA NOS",
                             date=str(year),
                             license="Public Domain",
-                            geometry=self.geom,
+                            geometry=geom,
+                            geometry_kind="footprint",
+                            geometry_source="provider",
+                            geometry_crs="EPSG:4326",
                         )
                 # if geodas_links:
                 #     # Construct standard filename: {SURVEY}.xyz.gz
@@ -362,5 +363,8 @@ class HydroNOS(FetchModule):
                                     agency="NOAA NOS",
                                     date=str(year),
                                     license="Public Domain",
-                                    geometry=self.geom,
+                                    geometry=geom,
+                                    geometry_kind="footprint",
+                                    geometry_source="provider",
+                                    geometry_crs="EPSG:4326",
                                 )

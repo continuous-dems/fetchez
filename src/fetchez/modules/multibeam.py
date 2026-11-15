@@ -489,7 +489,7 @@ class MBDB(FetchModule):
             "outSR": 4326,
             "geometryType": "esriGeometryEnvelope",
             "f": "pjson",
-            "returnGeometry": "false",
+            "returnGeometry": "true",
         }
 
         logger.debug("Querying MBDB ArcGIS Server...")
@@ -501,6 +501,10 @@ class MBDB(FetchModule):
             attrs = feature.get("attributes", {})
             data_file = attrs.get("DATA_FILE")
             survey_id = attrs.get("SURVEY_NAME")
+            geom = feature.get("geometry", {})
+            # print(geom)
+            geom = spatial.normalize_geometry(geom)
+            # print(geom)
 
             if not data_file:
                 continue
@@ -526,13 +530,16 @@ class MBDB(FetchModule):
                 logger.warning(f"MBDB could not check {download_url}; keeping it.")
                 unverified.append(download_url)
 
-            _, mask_geom = self.check_inf_region(download_url)
-            try:
-                results_geom = mask_geom.export_to_wkt()
-            except Exception:
-                results_geom = None
+            # _, mask_geom = self.check_inf_region(download_url)
+            # try:
+            # results_geom = mask_geom.export_to_wkt()
+            # results_geom = spatial.normalize_geometry(mask_geom)
+            # except Exception:
+            #    results_geom = None
 
+            # print(mask_geom)
             # Pass the geometry to the entry
+            # results_geom = spatial.norm
             self.add_entry_to_results(
                 url=download_url,
                 dst_fn=os.path.basename(download_url),
@@ -540,7 +547,7 @@ class MBDB(FetchModule):
                 survey_id=survey_id,
                 agency="NOAA NCEI",
                 license="Public Domain",
-                geometry=results_geom,
+                geometry=geom,
             )
             if self.want_inf:
                 # Add Metadata File

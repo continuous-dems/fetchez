@@ -37,7 +37,7 @@ def _json_ready(value):
 
 
 def _wgs84_geometry(entry):
-    """Validate a footprint and reproject when geometry_crs is explicit.
+    """Normalize entry geometry and reproject when geometry_crs is explicit.
 
     Without geometry_crs, the existing manifest convention is WGS84. The
     range check catches obvious violations but cannot infer an unknown CRS.
@@ -71,14 +71,12 @@ def _wgs84_geometry(entry):
 
     if geometry.is_empty:
         return None
-    if geometry.geom_type not in {"Polygon", "MultiPolygon"}:
-        raise ValueError(f"Expected polygon footprint, got {geometry.geom_type}")
-    if not geometry.is_valid or geometry.area <= 0:
-        raise ValueError("Invalid inventory footprint polygon")
+    if not geometry.is_valid:
+        raise ValueError(f"Invalid inventory geometry: {geometry.geom_type}")
     xmin, ymin, xmax, ymax = geometry.bounds
     if not (-180 <= xmin <= xmax <= 180 and -90 <= ymin <= ymax <= 90):
         raise ValueError(
-            "Footprint is outside WGS84 longitude/latitude limits; "
+            "Geometry is outside WGS84 longitude/latitude limits; "
             "set entry['geometry_crs'] in its manifest hook"
         )
     return geometry
@@ -132,6 +130,10 @@ class Inventory(FetchHook):
                 "url": entry.get("url"),
                 "data_type": entry.get("data_type"),
                 "date": entry.get("date", ""),
+                "geometry_type": geometry.geom_type if geometry is not None else None,
+                "geometry_kind": entry.get("geometry_kind"),
+                "geometry_source": entry.get("geometry_source"),
+                "geometry_crs": "EPSG:4326" if geometry is not None else None,
             }
             # Keep legacy JSON/CSV keys and values, but make them serializable.
             record.update(
@@ -149,6 +151,10 @@ class Inventory(FetchHook):
                         "url": _string_or_none(record["url"]),
                         "data_type": _string_or_none(record["data_type"]),
                         "date": _string_or_none(record["date"]),
+                        "geometry_type": _string_or_none(record["geometry_type"]),
+                        "geometry_kind": _string_or_none(record["geometry_kind"]),
+                        "geometry_source": _string_or_none(record["geometry_source"]),
+                        "geometry_crs": _string_or_none(record["geometry_crs"]),
                         "metadata_json": json.dumps(
                             {
                                 key: value
@@ -214,6 +220,10 @@ class Inventory(FetchHook):
                 "url",
                 "data_type",
                 "date",
+                "geometry_type",
+                "geometry_kind",
+                "geometry_source",
+                "geometry_crs",
                 "metadata_json",
             )
             table = pd.DataFrame(rows, columns=columns)
@@ -230,7 +240,7 @@ class Inventory(FetchHook):
             )
 
         logger.info(
-            "Entry inventory written to %s (%d entries, %d footprints)",
+            "Entry inventory written to %s (%d entries, %d geometries)",
             self.output,
             len(rows),
             sum(g is not None for g in geometries),

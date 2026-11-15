@@ -49,6 +49,7 @@ ENTRY_KEYS = frozenset(
         "geometry_crs",
         "geometry_source",
         "geometry_kind",
+        "geometry_type",
     }
 )
 
