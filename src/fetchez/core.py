@@ -1245,6 +1245,83 @@ class EntryStash:
         return tuple(self._entries)
 
 
+@dataclass(frozen=True)
+class Artifact:
+    """An output registered during a Fetchez execution."""
+
+    name: str
+    path: str
+    owner: str | None = None
+    metadata: dict = field(default_factory=dict)
+
+
+class ArtifactCatalog:
+    """Execution-scoped registry of generated artifacts."""
+
+    def __init__(self):
+        self._artifacts = []
+        self._lock = threading.RLock()
+
+    def publish(self, name, path, *, owner=None, metadata=None):
+        """Register an artifact and return its record."""
+
+        artifact = Artifact(
+            name=name,
+            path=str(path),
+            owner=owner,
+            metadata=dict(metadata or {}),
+        )
+
+        with self._lock:
+            for existing in self._artifacts:
+                if (
+                    existing.name == artifact.name
+                    and existing.path == artifact.path
+                    and existing.owner == artifact.owner
+                ):
+                    return existing
+
+            self._artifacts.append(artifact)
+
+        return artifact
+
+    add = publish
+
+    def find(self, name=None, *, owner=None):
+        """Find matching artifacts in publication order."""
+
+        with self._lock:
+            return [
+                artifact
+                for artifact in self._artifacts
+                if (name is None or artifact.name == name)
+                and (owner is None or artifact.owner == owner)
+            ]
+
+    def get(self, name, *, owner=None):
+        """Return a unique matching artifact."""
+
+        matches = self.find(name, owner=owner)
+
+        if not matches:
+            raise KeyError(f"Artifact {name!r} not found")
+
+        if len(matches) > 1:
+            raise ValueError(
+                f"Artifact {name!r} is ambiguous: {len(matches)} matching records"
+            )
+
+        return matches[0]
+
+    def names(self):
+        with self._lock:
+            return tuple(dict.fromkeys(artifact.name for artifact in self._artifacts))
+
+    def clear(self):
+        with self._lock:
+            self._artifacts.clear()
+
+
 @dataclass
 class FetchContext:
     """Shared context for one Fetchez pipeline execution."""
@@ -1252,6 +1329,7 @@ class FetchContext:
     plan: Any | None = None
     execution: FetchExecutionContext = field(default_factory=FetchExecutionContext)
     stashes: EntryStash = field(default_factory=EntryStash)
+    artifacts: ArtifactCatalog = field(default_factory=ArtifactCatalog)
 
     @property
     def cancelled(self):
