@@ -8,7 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Expanded the inventory hook to generate geospatial resource inventories in GeoPackage and GeoJSON formats, alongside existing JSON and CSV outputs.
+- Added support for mixed geometry types (points, lines, polygons, and multipart geometries), geometry metadata, and entries without spatial geometry.
+- Added shared entry serialization and geometry normalization utilities, supporting Shapely geometries, Fetchez Regions, and Esri REST geometries.
+- Added support for generating spatial inventories directly from discovery results using --discover-only.
 - Added `discover_only` run-mode that only runs the module discovery, manifest hooks and finalize hooks, skipping fetching, file, stream and collection hooks.
+
+### Changed
+- Improved inventory metadata handling and CRS-aware geometry export.
+- Updated module discovery caching to preserve structured entry metadata and geometries across runs.
+
+### Fixed
+
+- Fixed loss of Shapely geometry types when restoring cached module discovery results.
+- Improved compatibility with previously cached geometry representations.
 
 ## [0.13.0 - 11-13-26]
 ### ADDED

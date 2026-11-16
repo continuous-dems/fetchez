@@ -26,6 +26,7 @@ from typing import List, Dict, Any, Mapping
 import pyproj
 
 from fetchez import spatial
+from fetchez.entry import serialize_entry, deserialize_entry
 from fetchez import utils
 from fetchez.core import Fetch, FetchCancelled
 
@@ -441,17 +442,10 @@ class FetchModule:
                         f"[{self.name}] Using cached API response from {file_age_days} days ago."
                     )
 
-                # Custom decoder to rebuild the Region object with its SRS
-                def _json_object_hook(d):
-                    if d.get("__type__") == "Region":
-                        from fetchez.spatial import Region
-
-                        return Region(d["w"], d["e"], d["s"], d["n"], srs=d.get("srs"))
-                    return d
-
-                cached_results = []
-                with open(cache_file, "r") as f:
-                    cached_results = json.load(f, object_hook=_json_object_hook)
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cached_results = [
+                        deserialize_entry(entry) for entry in json.load(f)
+                    ]
 
                 # Empty cache_results are useful, not sure if we should re-generate...
                 # if cached_results:
@@ -481,21 +475,6 @@ class FetchModule:
             logger.debug(f"[{self.name}] Discovery failed; results not cached.")
             return self
 
-        def _json_fallback(obj):
-            """Safely serialize custom objects like Region."""
-            if type(obj).__name__ == "Region":
-                return {
-                    "__type__": "Region",
-                    "w": obj.w,
-                    "e": obj.e,
-                    "s": obj.s,
-                    "n": obj.n,
-                    "srs": obj.srs,
-                }
-            if hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes)):
-                return list(obj)
-            return str(obj)
-
         tmp_path = None
 
         try:
@@ -512,7 +491,7 @@ class FetchModule:
                     except ValueError:
                         pass
 
-                portable_results.append(portable_entry)
+                portable_results.append(serialize_entry(portable_entry))
 
             with tempfile.NamedTemporaryFile(
                 mode="w",
@@ -528,7 +507,7 @@ class FetchModule:
                     portable_results,
                     tmp_file,
                     indent=2,
-                    default=_json_fallback,
+                    allow_nan=False,
                 )
                 tmp_file.flush()
                 os.fsync(tmp_file.fileno())

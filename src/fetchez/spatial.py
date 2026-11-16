@@ -1386,3 +1386,219 @@ def transform_increment(dst_inc_x, dst_inc_y, transformer, region_center):
     src_inc_y = abs(src_off_y - cy)
 
     return src_inc_x, src_inc_y
+
+
+# =============================================================================
+# Resource footprint geometry normalization
+# =============================================================================
+
+
+def esri_geometry_to_shapely(geometry):
+    """Convert ArcGIS REST feature geometry to Shapely (source CRS preserved).
+
+    Supports point, multipoint, polyline, polygon and envelope geometries.
+    Esri polygon rings use clockwise exterior rings and counterclockwise holes;
+    unlike naive sequential ring grouping, holes are associated by containment.
+    An unknown/invalid ring topology raises rather than dropping geometry.
+    """
+
+    from shapely.geometry import (
+        LineString,
+        LinearRing,
+        MultiLineString,
+        MultiPoint,
+        MultiPolygon,
+        Point,
+        Polygon,
+    )
+
+    if not isinstance(geometry, dict):
+        raise TypeError("Esri geometry must be a mapping")
+
+    if "rings" in geometry:
+        rings = geometry["rings"]
+        if not rings:
+            return None
+        shells = []
+        holes = []
+        for coords in rings:
+            ring = LinearRing(coords)
+            poly = Polygon(ring)
+            if (
+                ring.is_empty
+                or not ring.is_simple
+                or not poly.is_valid
+                or poly.area <= 0
+            ):
+                raise ValueError("Invalid Esri polygon ring")
+
+            (holes if ring.is_ccw else shells).append(poly)
+
+        if not shells:
+            raise ValueError("Esri polygon has no clockwise exterior rings")
+
+        assigned = [[] for _ in shells]
+        for hole in holes:
+            candidates = [
+                (index, shell.area)
+                for index, shell in enumerate(shells)
+                if shell.covers(hole)
+            ]
+            if not candidates:
+                raise ValueError(
+                    "Esri polygon contains a hole without an enclosing shell"
+                )
+
+            index = min(candidates, key=lambda pair: pair[1])[0]
+            assigned[index].append(list(hole.exterior.coords))
+
+        polygons = [
+            Polygon(list(shell.exterior.coords), assigned[index])
+            for index, shell in enumerate(shells)
+        ]
+        result = polygons[0] if len(polygons) == 1 else MultiPolygon(polygons)
+    elif "paths" in geometry:
+        paths = geometry["paths"]
+        if not paths:
+            return None
+        result = LineString(paths[0]) if len(paths) == 1 else MultiLineString(paths)
+    elif "points" in geometry:
+        points = geometry["points"]
+        result = MultiPoint(points) if points else None
+    elif "x" in geometry and "y" in geometry:
+        result = Point(geometry["x"], geometry["y"])
+    elif all(key in geometry for key in ("xmin", "ymin", "xmax", "ymax")):
+        result = box(
+            geometry["xmin"],
+            geometry["ymin"],
+            geometry["xmax"],
+            geometry["ymax"],
+        )
+    else:
+        raise ValueError("Unsupported Esri REST geometry structure")
+
+    if result is not None and not result.is_valid:
+        raise ValueError("Invalid Esri geometry topology")
+
+    return result
+
+
+def normalize_geometry(value, *, src_crs=None, dst_crs=None):
+    """Normalize supported spatial representations to a Shapely geometry.
+
+    Accepts Shapely geometries, Fetchez Region, GeoJSON geometries/features,
+    Esri REST geometries, WKT text, and WKB bytes. `None` returns `None`.
+    The source coordinates are unchanged unless `dst_crs` is specified.
+    Esri `spatialReference` is used when present; otherwise callers must
+    provide `src_crs` for reprojection. Plain four-number sequences are
+    intentionally not accepted (ambiguous bbox order).
+
+    This function converts *geometry representations*, not serialized Fetchez
+    entry tags; deserialize_entry() owns persistence-format decoding.
+    """
+    from shapely import from_wkb, from_wkt
+    from shapely.geometry.base import BaseGeometry
+    from shapely.ops import transform as shapely_transform
+
+    if value is None:
+        return None
+
+    discovered_crs = None
+    if isinstance(value, BaseGeometry):
+        result = value
+    elif isinstance(value, Region):
+        result = value.to_shapely()
+        discovered_crs = value.srs
+    elif isinstance(value, dict):
+        if value.get("type") == "Feature":
+            result = shape(value.get("geometry")) if value.get("geometry") else None
+        elif value.get("type") in {
+            "Point",
+            "MultiPoint",
+            "LineString",
+            "MultiLineString",
+            "Polygon",
+            "MultiPolygon",
+            "GeometryCollection",
+        }:
+            result = shape(value)
+        else:
+            try:
+                result = esri_geometry_to_shapely(value)
+                spatial_reference = value.get("spatialReference") or {}
+                discovered_crs = (
+                    spatial_reference.get("latestWkid")
+                    or spatial_reference.get("wkid")
+                    or spatial_reference.get("wkt")
+                )
+                if isinstance(discovered_crs, int):
+                    discovered_crs = f"EPSG:{discovered_crs}"
+            except Exception:
+                # logger.warning("Failed to parse esri geometry")
+                result = None
+
+    elif hasattr(value, "__geo_interface__"):
+        result = shape(value.__geo_interface__)
+    elif isinstance(value, str):
+        result = from_wkt(value)
+    elif isinstance(value, bytes):
+        result = from_wkb(value)
+    else:
+        raise TypeError(f"Unsupported geometry representation: {type(value).__name__}")
+
+    if result is None or result.is_empty:
+        return None
+
+    if not result.is_valid:
+        raise ValueError("Invalid geometry")
+
+    if src_crs is not None and discovered_crs is not None:
+        if not CRS.from_user_input(src_crs).equals(
+            CRS.from_user_input(discovered_crs), ignore_axis_order=True
+        ):
+            raise ValueError(
+                "Explicit source CRS conflicts with geometry spatialReference"
+            )
+
+    actual_crs = src_crs or discovered_crs
+    if dst_crs is not None:
+        if actual_crs is None:
+            raise ValueError("Source CRS is required for geometry reprojection")
+
+        source = CRS.from_user_input(actual_crs)
+        target = CRS.from_user_input(dst_crs)
+        if not source.equals(target, ignore_axis_order=True):
+            transformer = Transformer.from_crs(source, target, always_xy=True)
+            result = shapely_transform(transformer.transform, result)
+
+            if result.is_empty or not result.is_valid:
+                raise ValueError("Geometry became invalid during reprojection")
+
+    return result
+
+
+def entry_geometry(entry, dst_crs="EPSG:4326"):
+    """Return an entry's geometry normalized to the requested CRS.
+
+    Entries without geometry return None. Missing geometry_crs
+    follows the Fetchez convention of EPSG:4326.
+    """
+    raw = entry.get("geometry")
+    if raw is None:
+        return None
+
+    geometry = normalize_geometry(
+        raw,
+        src_crs=entry.get("geometry_crs") or "EPSG:4326",
+        dst_crs=dst_crs,
+    )
+
+    if geometry is None:
+        return None
+
+    if CRS.from_user_input(dst_crs).equals(CRS.from_epsg(4326), ignore_axis_order=True):
+        xmin, ymin, xmax, ymax = geometry.bounds
+        if not (-180 <= xmin <= xmax <= 180 and -90 <= ymin <= ymax <= 90):
+            raise ValueError("Entry geometry exceeds WGS84 coordinate limits")
+
+    return geometry
