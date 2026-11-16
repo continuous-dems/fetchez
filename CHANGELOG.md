@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Added an execution-scoped ArtifactCatalog to FetchContext, allowing modules and hooks to register and discover generated artifacts independently of active pipeline entries.
+- Introduced Artifact records with names, paths, optional ownership, and metadata, along with thread-safe publication, lookup, filtering, and duplicate handling.
 - Expanded the inventory hook to generate geospatial resource inventories in GeoPackage and GeoJSON formats, alongside existing JSON and CSV outputs.
 - Added support for mixed geometry types (points, lines, polygons, and multipart geometries), geometry metadata, and entries without spatial geometry.
 - Added shared entry serialization and geometry normalization utilities, supporting Shapely geometries, Fetchez Regions, and Esri REST geometries.
