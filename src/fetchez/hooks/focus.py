@@ -88,11 +88,10 @@ class FocusSink(FetchHook):
 
 
 class StashEntries(FetchHook):
-    """Saves the current pipeline entries state to memory for later restoration."""
-
     name = "stash-entries"
     meta_desc = "Save the current pipeline state for branching"
-    meta_stage = "post"
+    meta_stage = "collection"
+    meta_stages = ("manifest", "collection", "finalize")
     meta_category = "pipeline"
     meta_aliases = ["stash_entries"]
     meta_effects = ["consumes-entries", "modifies-entries"]
@@ -102,27 +101,16 @@ class StashEntries(FetchHook):
         self.key = key
 
     def run(self, entries):
-        if not entries:
-            return entries
-
-        # We store the stash dictionary on the first module in the pipeline
-        first_mod = entries[0][0]
-        if not hasattr(first_mod, "_pipeline_stash"):
-            first_mod._pipeline_stash = {}
-
-        # Save a shallow copy of the entries list
-        first_mod._pipeline_stash[self.key] = list(entries)
+        self.context.stashes.save(self.key, entries)
         logger.debug(f"Stashed {len(entries)} entries under key '{self.key}'.")
-
         return entries
 
 
 class RestoreEntries(FetchHook):
-    """Restores previously stashed pipeline entries, allowing pipeline branching."""
-
     name = "restore-entries"
     meta_desc = "Restore a previously saved pipeline stash"
-    meta_stage = "post"
+    meta_stage = "collection"
+    meta_stages = ("manifest", "collection", "finalize")
     meta_category = "pipeline"
     meta_aliases = ["restore_entries"]
     meta_effects = ["modifies-entries", "creates-entries"]
@@ -130,29 +118,23 @@ class RestoreEntries(FetchHook):
     def __init__(self, key="default", merge=False, **kwargs):
         super().__init__(**kwargs)
         self.key = key
-        self.merge = str(merge).lower() in ["true", "1", "t", "yes"]
+        self.merge = str(merge).lower() in ("true", "1", "t", "yes")
 
     def run(self, entries):
-        # Scan the current modules to find the stashed dictionary
-        stashed_entries = None
-        for mod, _ in entries:
-            if hasattr(mod, "_pipeline_stash") and self.key in mod._pipeline_stash:
-                stashed_entries = mod._pipeline_stash[self.key]
-                break
-
-        if stashed_entries is None:
+        if not self.context.stashes.has(self.key):
             logger.warning(
-                f"Could not find stashed entries with key '{self.key}'. Ignoring."
+                "Entry stash %r not found. Ignoring.",
+                self.key,
             )
             return entries
 
+        restored = self.context.stashes.get(self.key)
+
         if self.merge:
             logger.debug(
-                f"Merged {len(stashed_entries)} stashed entries from '{self.key}' into pipeline."
+                f"Merged {len(restored)} stashed entries from '{self.key}' into pipeline."
             )
-            return entries + stashed_entries
+            return entries + restored
 
-        logger.debug(
-            f"Restored pipeline to {len(stashed_entries)} entries from '{self.key}'."
-        )
-        return stashed_entries
+        logger.debug(f"Restored pipeline to {len(restored)} entries from '{self.key}'.")
+        return restored

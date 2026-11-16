@@ -1223,12 +1223,35 @@ class FetchExecutionContext:
         return self.cancel_event.is_set()
 
 
+class EntryStash:
+    """Execution-scoped storage for pipeline entry snapshots."""
+
+    def __init__(self):
+        self._entries = {}
+
+    def save(self, key, entries):
+        self._entries[key] = [(mod, entry.copy()) for mod, entry in entries]
+
+    def get(self, key):
+        if key not in self._entries:
+            raise KeyError(f"Unknown entry stash: {key!r}")
+
+        return [(mod, entry.copy()) for mod, entry in self._entries[key]]
+
+    def has(self, key):
+        return key in self._entries
+
+    def keys(self):
+        return tuple(self._entries)
+
+
 @dataclass
 class FetchContext:
     """Shared context for one Fetchez pipeline execution."""
 
     plan: Any | None = None
     execution: FetchExecutionContext = field(default_factory=FetchExecutionContext)
+    stashes: EntryStash = field(default_factory=EntryStash)
 
     @property
     def cancelled(self):
