@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `discover_only` run-mode that only runs the module discovery, manifest hooks and finalize hooks, skipping fetching, file, stream and collection hooks.
 
 ### Changed
+- Migrated stash-entries and restore-entries to execution-scoped storage through FetchContext, replacing legacy module-attached pipeline state.
+- Added EntryStash for named pipeline entry snapshots and restoration across the manifest, collection, and finalize stages.
 - Improved inventory metadata handling and CRS-aware geometry export.
 - Updated module discovery caching to preserve structured entry metadata and geometries across runs.
 
 ### Fixed
-
+- Fixed entry restoration failures when pipeline filtering or focusing removed the module previously holding the stash.
 - Fixed loss of Shapely geometry types when restoring cached module discovery results.
 - Improved compatibility with previously cached geometry representations.
 

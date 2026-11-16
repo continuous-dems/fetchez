@@ -13,9 +13,10 @@ For an introduction to hook stages, presets, and usage, see [Hooks and Presets](
 
 exec
 filename_filter
+set_entry
+focus
 remote_archive_footprint
 remote_raster_footprint
-set_entry
 ```
 
 ## Discovering available hooks
