@@ -125,8 +125,13 @@ class PipelinePlan:
             if getattr(module, "instance_id", None) is not None
         }
 
-    def execute(self):
+    def execute(self, *, context=None):
         """Execute the prepared workflow."""
+
+        if context is None:
+            context = FetchContext(plan=self)
+        elif context.plan is not self:
+            raise ValueError("Execution context must reference this PipelinePlan")
 
         tracing_started = not tracemalloc.is_tracing()
 
@@ -139,7 +144,7 @@ class PipelinePlan:
                 threads=self.threads,
                 global_hooks=self.global_hooks,
                 ignore_failures=self.ignore_failures,
-                context=FetchContext(plan=self),
+                context=context,
                 discover=True,
                 discover_only=self.discover_only,
             )
