@@ -1331,6 +1331,8 @@ class FetchContext:
     stashes: EntryStash = field(default_factory=EntryStash)
     artifacts: ArtifactCatalog = field(default_factory=ArtifactCatalog)
 
+    scratch: Any | None = None
+
     @property
     def cancelled(self):
         return self.execution.cancelled
@@ -1509,8 +1511,14 @@ def _run_grouped_stage(
     if not merge_local and global_entries is None:
         raise ValueError("global_entries is required when merge_local=False")
 
+    runtime_modules = list(modules)
+
+    scratch = getattr(context, "scratch", None)
+    if scratch is not None and scratch not in runtime_modules:
+        runtime_modules.append(scratch)
+
     # Group source entries by owning module, preserving order.
-    entries_by_mod = {mod: [] for mod in modules}
+    entries_by_mod = {mod: [] for mod in runtime_modules}
 
     for owner, entry in source_entries:
         if not isinstance(entry, dict):
@@ -1534,7 +1542,7 @@ def _run_grouped_stage(
     # Execute module-local hooks.
     local_results = []
 
-    for mod in modules:
+    for mod in runtime_modules:
         if context.cancelled:
             raise FetchCancelled("Pipeline cancelled")
 
@@ -1884,10 +1892,10 @@ def run_fetchez(
     ignore_failures: bool = False,
     context=None,
     discover=False,
-    discover_only=False,
     # When True, process prepared module results through manifest
     # and finalize only. Module discovery occurs if discover=True.
     # No data acquisition or collection hooks are executed.
+    discover_only=False,
 ):
     """Run Fetchez in parallel with hooks.
 
@@ -1905,6 +1913,11 @@ def run_fetchez(
     """
 
     context = normalize_context(context)
+    if context.scratch is None:
+        from fetchez.modules.scratch import Scratch
+
+        context.scratch = Scratch(use_cache=False)
+
     seen: set[Any] = set()
 
     if global_hooks is None:
