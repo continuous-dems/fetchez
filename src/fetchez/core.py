@@ -1360,15 +1360,22 @@ def bind_context(context, modules, global_hooks):
         for hook in module.hooks:
             hook.context = context
 
+    scratch = context.scratch
+    if scratch is not None:
+        scratch.context = context
+
     for hook in global_hooks or []:
         hook.context = context
 
 
-def clear_context(modules, global_hooks):
+def clear_context(modules, global_hooks, context=None):
     for module in modules:
         module.context = None
         for hook in module.hooks:
             hook.context = None
+
+    if context is not None and context.scratch is not None:
+        context.scratch.context = None
 
     for hook in global_hooks or []:
         hook.context = None
@@ -2015,4 +2022,4 @@ def run_fetchez(
         return final_entries
 
     finally:
-        clear_context(modules, global_hooks)
+        clear_context(modules, global_hooks, context=context)

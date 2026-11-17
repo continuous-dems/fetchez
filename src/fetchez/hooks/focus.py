@@ -124,7 +124,7 @@ class FocusSink(FetchHook):
                             artifact.owner,
                         )
 
-                        append(mod, artifact.path, artifact=artifact)
+                append(mod, artifact.path, artifact=artifact)
 
         if not new_entries:
             logger.warning(
