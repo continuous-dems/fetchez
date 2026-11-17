@@ -22,6 +22,7 @@ import subprocess
 
 from fetchez.hooks import FetchHook
 from fetchez.utils import output_name, atomic_output
+from fetchez.utils.artifacts import publish
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +147,7 @@ class Exec(FetchHook):
         else:
             paths = [None] * len(eligible)
 
-        for (_mod, entry), destination in zip(eligible, paths, strict=True):
+        for (mod, entry), destination in zip(eligible, paths, strict=True):
             if not entry.get("dst_fn"):
                 raise ValueError("Exec requires entry['dst_fn']")
             source = Path(os.fspath(entry["dst_fn"]))
@@ -187,7 +188,7 @@ class Exec(FetchHook):
                     raise FileNotFoundError(f"Exec did not produce {temporary}")
 
             artifact_id = cfg.get("artifact_id") or self.artifact_id or self.name
-            entry.setdefault("artifacts", {})[artifact_id] = destination
+            publish(self, mod, entry, artifact_id, destination)
             should_update = cfg.get("update_entry", self.update_entry)
             if should_update is None or should_update:
                 entry["dst_fn"] = destination

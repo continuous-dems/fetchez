@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `discover_only` run-mode that only runs the module discovery, manifest hooks and finalize hooks, skipping fetching, file, stream and collection hooks.
 
 ### Changed
+- Migrated artifact-using hooks to use the new ArtifactCatalog system of publishing sleecting artifacts.
 - Migrated stash-entries and restore-entries to execution-scoped storage through FetchContext, replacing legacy module-attached pipeline state.
 - Added EntryStash for named pipeline entry snapshots and restoration across the manifest, collection, and finalize stages.
 - Improved inventory metadata handling and CRS-aware geometry export.

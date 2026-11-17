@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 fetchez.hooks.sidecar
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 Generates a 'sidecar' metadata file for each entry
 
@@ -18,6 +17,7 @@ from datetime import datetime
 
 from fetchez.hooks import FetchHook
 from fetchez import cli
+from fetchez.utils.artifacts import publish
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class Sidecar(FetchHook):
                     json.dump(meta_data, f, indent=2)
 
                 # Add sidecar as an artifact to the entry
-                entry.setdefault("artifacts", {})[self.name] = meta_fn
+                publish(self, mod, entry, self.name, meta_fn)
             except Exception as e:
                 logger.warning(f"Failed to write sidecar for {filepath}: {e}")
 

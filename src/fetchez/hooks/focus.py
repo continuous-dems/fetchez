@@ -3,7 +3,7 @@
 
 """
 fetchez.hooks.focus
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 Pipeline control hooks for artifact focus.
 
@@ -13,6 +13,7 @@ Pipeline control hooks for artifact focus.
 
 import logging
 from fetchez.hooks import FetchHook
+from fetchez.utils.artifacts import artifact_owner, paths
 
 logger = logging.getLogger(__name__)
 
@@ -48,41 +49,71 @@ class FocusSink(FetchHook):
 
         new_entries = []
         seen_paths = set()
-        found_target = False
+        owners = {}
+        for mod, _entry in entries:
+            owner = artifact_owner(mod)
+            if owner is not None:
+                owners.setdefault(owner, mod)
 
+        # A recipe plan can resolve producers even after their source entries
+        # have been removed from the active collection.
+        plan = getattr(getattr(self, "context", None), "plan", None)
+        plan_modules = getattr(plan, "modules_by_id", None)
+        if isinstance(plan_modules, dict):
+            for owner, module in plan_modules.items():
+                owners.setdefault(owner, module)
+
+        def append(mod, path, artifacts=None):
+            path = str(path)
+            if path in seen_paths:
+                return
+            seen_paths.add(path)
+            focused = {
+                "url": f"file://{path}",
+                "dst_fn": path,
+                "status": 0,
+                "data_type": f"{self.target}_artifact",
+                "artifacts": artifacts
+                if artifacts is not None
+                else {self.target: path},
+            }
+            new_entries.append((mod, focused))
+
+        # Retain entry-level ownership and metadata for legacy producers.
         for mod, entry in entries:
-            artifacts = entry.get("artifacts", {})
+            artifacts = entry.get("artifacts") or {}
+            for path in paths(artifacts.get(self.target)):
+                append(mod, path, artifacts)
 
-            if self.target in artifacts:
-                found_target = True
+        # Catalog artifacts survive filtering or replacement of entry lists.
+        catalog = getattr(getattr(self, "context", None), "artifacts", None)
+        if catalog is not None:
+            for artifact in catalog.find(self.target):
+                if artifact.path in seen_paths:
+                    continue
+                mod = owners.get(artifact.owner) if artifact.owner else None
+                if mod is None and artifact.owner is None and len(owners) == 1:
+                    mod = next(iter(owners.values()))
+                if mod is None:
+                    logger.warning(
+                        "Cannot focus catalog artifact %r (%s): unresolved module owner %r",
+                        artifact.name,
+                        artifact.path,
+                        artifact.owner,
+                    )
+                    continue
+                append(mod, artifact.path)
 
-                # Artifacts can be a single path or a list of paths
-                artifact_paths = artifacts[self.target]
-                if isinstance(artifact_paths, str):
-                    artifact_paths = [artifact_paths]
-
-                for path in artifact_paths:
-                    if path not in seen_paths:
-                        seen_paths.add(path)
-
-                        focused_entry = {
-                            "url": f"file://{path}",
-                            "dst_fn": path,
-                            "status": 0,
-                            "data_type": f"{self.target}_artifact",
-                            "artifacts": artifacts,
-                        }
-                        new_entries.append((mod, focused_entry))
-
-        if not found_target:
+        if not new_entries:
             logger.warning(
-                f"Artifact target '{self.target}' was not found in any pipeline entries! "
-                f"Ignoring focus request and passing original entry onward."
+                "Artifact target %r was not found with resolvable ownership; "
+                "passing original entries onward.",
+                self.target,
             )
             return entries
 
         logger.debug(
-            f"Shrunk pipeline to {len(new_entries)} '{self.target}' artifacts."
+            "Shrunk pipeline to %d %r artifacts.", len(new_entries), self.target
         )
         return new_entries
 

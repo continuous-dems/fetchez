@@ -96,7 +96,6 @@ from .misc import (
     wgs84_to_utm_zone,
 )
 
-
 __all__ = [
     "canonicalize",
     "canonical_json",
