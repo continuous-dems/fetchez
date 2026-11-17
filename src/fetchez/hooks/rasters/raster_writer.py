@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Write Fetchez raster-stream chunks to GeoTIFFs.
+"""
+fetchez.hooks.rasters.raster_writer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Write Fetchez raster-stream chunks to GeoTIFFs.
 
 Chunks use source-relative ``window`` and ``read_window`` coordinates. The
 shared ``RasterContext.profile`` defines the destination grid, while
@@ -9,6 +13,9 @@ shared ``RasterContext.profile`` defines the destination grid, while
 In inline mode writing is *lazy*: a file is published and the artifact is
 registered only after the upstream stream is fully consumed. In drain mode
 this hook immediately consumes the stream and updates the entry's ``dst_fn``.
+
+:copyright: (c) 2010-2026 Regents of the University of Colorado
+:license: MIT, see LICENSE for more details.
 """
 
 import itertools
@@ -22,6 +29,7 @@ from rasterio.windows import Window
 
 from fetchez.hooks import FetchHook
 from fetchez.utils import str2bool
+from fetchez.utils.artifacts import publish
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +177,7 @@ class RasterWrite(FetchHook):
 
             written.add(target)
 
-    def _write_stream(self, stream, dst_fn, entry):
+    def _write_stream(self, stream, dst_fn, entry, module):
         """Consume and forward *every* chunk, publishing only on exhaustion."""
         iterator = iter(stream)
         first = next(iterator, None)
@@ -231,7 +239,7 @@ class RasterWrite(FetchHook):
 
             os.replace(tmp, dst_fn)
             published = True
-            entry.setdefault("artifacts", {})[self.artifact_id] = dst_fn
+            publish(self, module, entry, self.artifact_id, dst_fn)
             logger.info("Wrote raster stream to %s", dst_fn)
         finally:
             if not published and tmp.exists():
@@ -243,7 +251,7 @@ class RasterWrite(FetchHook):
             (mod, entry) for mod, entry in result if entry.get("stream") is not None
         ]
         paths = set()
-        for idx, (_mod, entry) in enumerate(rasters):
+        for idx, (mod, entry) in enumerate(rasters):
             if entry.get("stream_type") != "raster-stream":
                 raise TypeError(
                     f"{self.name}: expected raster-stream, got "
@@ -255,7 +263,7 @@ class RasterWrite(FetchHook):
                 raise ValueError(f"Raster output collision: {path}")
 
             paths.add(path)
-            writer = self._write_stream(entry["stream"], path, entry)
+            writer = self._write_stream(entry["stream"], path, entry, mod)
             if self.drain:
                 for _ in writer:
                     pass
