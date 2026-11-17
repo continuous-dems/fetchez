@@ -95,7 +95,7 @@ def test_focus_unresolved_owner_preserves_input(tmp_path, caplog):
     ctx.artifacts.publish("dem", tmp_path / "stray.tif", owner="unknown")
     original = [(mod, {"dst_fn": "input"})]
     assert bind(FocusSink(target="dem"), ctx).run(original) is original
-    assert "unresolved module owner" in caplog.text
+    assert "Cannot focus artifact" in caplog.text
 
 
 def test_copy_artifact_combines_catalog_and_legacy(tmp_path):

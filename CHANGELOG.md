@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `discover_only` run-mode that only runs the module discovery, manifest hooks and finalize hooks, skipping fetching, file, stream and collection hooks.
 
 ### Changed
+- Promoted scratch to a standalone generic module, providing execution-scoped runtime ownership for pipeline-generated entries without requiring a single originating source module.
+- Updated focus-sink to resolve catalog artifact ownership through known source modules or fall back to the runtime Scratch module, while preserving artifact provenance.
+- Extended FetchContext and pipeline execution to recognize Scratch-owned entries without including Scratch in normal discovery or acquisition.
 - Migrated artifact-using hooks to use the new ArtifactCatalog system of publishing sleecting artifacts.
 - Migrated stash-entries and restore-entries to execution-scoped storage through FetchContext, replacing legacy module-attached pipeline state.
 - Added EntryStash for named pipeline entry snapshots and restoration across the manifest, collection, and finalize stages.
@@ -24,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated module discovery caching to preserve structured entry metadata and geometries across runs.
 
 ### Fixed
+- Fixed artifact focusing for collection-level outputs with no identifiable source module, including artifacts whose original entries have been filtered or removed from the pipeline.
 - Fixed entry restoration failures when pipeline filtering or focusing removed the module previously holding the stash.
 - Fixed loss of Shapely geometry types when restoring cached module discovery results.
 - Improved compatibility with previously cached geometry representations.

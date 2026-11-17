@@ -632,21 +632,21 @@ class HttpDataset(FetchModule):
             self.add_entry_to_results(self.url, Path(self.url).name, "https")
 
 
-class Scratch(FetchModule):
-    """Scratch module that populates results directly from arguments."""
+# class Scratch(FetchModule):
+#     """Scratch module that populates results directly from arguments."""
 
-    name = "scratch"
-    meta_category = "Reference"
-    meta_desc = "Testing module that injects direct arguments into the pipeline."
-    meta_resolution = "N/A"
-    meta_license = "N/A"
+#     name = "scratch"
+#     meta_category = "Reference"
+#     meta_desc = "Testing module that injects direct arguments into the pipeline."
+#     meta_resolution = "N/A"
+#     meta_license = "N/A"
 
-    def __init__(self, url=None, path=None, datatype=None, **kwargs):
-        super().__init__(**kwargs)
-        self.url = url
-        self.path = path
-        self.datatype = datatype
+#     def __init__(self, url=None, path=None, datatype=None, **kwargs):
+#         super().__init__(**kwargs)
+#         self.url = url
+#         self.path = path
+#         self.datatype = datatype
 
-    def run(self):
-        if self.url and self.path and self.datatype:
-            self.add_entry_to_results(self.url, self.path, self.datatype)
+#     def run(self):
+#         if self.url and self.path and self.datatype:
+#             self.add_entry_to_results(self.url, self.path, self.datatype)

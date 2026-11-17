@@ -63,20 +63,28 @@ class FocusSink(FetchHook):
             for owner, module in plan_modules.items():
                 owners.setdefault(owner, module)
 
-        def append(mod, path, artifacts=None):
+        def append(mod, path, artifacts=None, artifact=None):
             path = str(path)
+
             if path in seen_paths:
                 return
+
             seen_paths.add(path)
+
             focused = {
                 "url": f"file://{path}",
                 "dst_fn": path,
                 "status": 0,
                 "data_type": f"{self.target}_artifact",
-                "artifacts": artifacts
-                if artifacts is not None
-                else {self.target: path},
+                "artifacts": (
+                    artifacts if artifacts is not None else {self.target: path}
+                ),
             }
+
+            if artifact is not None:
+                focused["artifact_name"] = artifact.name
+                focused["artifact_owner"] = artifact.owner
+
             new_entries.append((mod, focused))
 
         # Retain entry-level ownership and metadata for legacy producers.
@@ -86,23 +94,37 @@ class FocusSink(FetchHook):
                 append(mod, path, artifacts)
 
         # Catalog artifacts survive filtering or replacement of entry lists.
-        catalog = getattr(getattr(self, "context", None), "artifacts", None)
+        catalog = getattr(self.context, "artifacts", None)
+
         if catalog is not None:
             for artifact in catalog.find(self.target):
                 if artifact.path in seen_paths:
                     continue
-                mod = owners.get(artifact.owner) if artifact.owner else None
-                if mod is None and artifact.owner is None and len(owners) == 1:
-                    mod = next(iter(owners.values()))
+
+                # Prefer an explicitly identified source module.
+                mod = owners.get(artifact.owner) if artifact.owner is not None else None
+
+                # Otherwise use the designated runtime owner.
                 if mod is None:
-                    logger.warning(
-                        "Cannot focus catalog artifact %r (%s): unresolved module owner %r",
-                        artifact.name,
-                        artifact.path,
-                        artifact.owner,
-                    )
-                    continue
-                append(mod, artifact.path)
+                    mod = getattr(self.context, "scratch", None)
+
+                    if mod is None:
+                        logger.warning(
+                            "Cannot focus artifact %r: no runtime "
+                            "Scratch owner is available.",
+                            artifact.name,
+                        )
+                        continue
+
+                    if artifact.owner is not None:
+                        logger.warning(
+                            "Artifact %r declares unknown producer %r; "
+                            "using Scratch for runtime ownership.",
+                            artifact.name,
+                            artifact.owner,
+                        )
+
+                append(mod, artifact.path, artifact=artifact)
 
         if not new_entries:
             logger.warning(

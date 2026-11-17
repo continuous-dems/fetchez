@@ -2,7 +2,7 @@
 
 Fetchez provides three related hooks for working with the active entries in a workflow:
 
-- **`focus-sink`** replaces the active entries with file entries for artifacts produced by an earlier hook.
+- **`focus-sink`** replaces the active entries with file entries for named artifacts, discovered from active entries or the execution-wide artifact catalog.
 - **`stash-entries`** saves a snapshot of the current entries under a named key.
 - **`restore-entries`** replaces or extends the active entries using a previously saved snapshot.
 
@@ -12,7 +12,7 @@ These hooks are useful when a workflow generates intermediate products, needs su
 
 | Hook | Default stage | Other supported stages | Purpose |
 | --- | --- | --- | --- |
-| `focus-sink` (`focus_sink`) | `collection` | No additional stages declared | Focus on artifacts registered in the current entries |
+| `focus-sink` (`focus_sink`) | `collection` | No additional stages declared | Focus on named entry-level or catalog artifacts |
 | `stash-entries` (`stash_entries`) | `collection` | `manifest`, `finalize` | Save the current entry list |
 | `restore-entries` (`restore_entries`) | `collection` | `manifest`, `finalize` | Restore or merge a saved entry list |
 
@@ -68,15 +68,17 @@ Nested dictionaries, lists, and live objects such as streams are **not deep-copi
 
 ## Focus on generated artifacts
 
-`focus-sink` selects a named artifact from the `artifacts` mappings attached to the **currently active** entries. It is typically used after an earlier hook produces one or more outputs without making those outputs the primary entries.
+`focus-sink` selects a named artifact and turns its path into an active file entry for subsequent hooks. It discovers matches from **both** the `artifacts` mappings of currently active entries and `self.context.artifacts`, the execution-scoped artifact catalog. Catalog entries remain discoverable even after an earlier hook has filtered out or replaced their originating pipeline entries.
 
-For example, an earlier hook may register:
+### Register and focus an entry-level artifact
+
+Existing hooks can continue to register artifacts directly on an entry:
 
 ```python
 entry.setdefault("artifacts", {})["processed_raster"] = "/data/processed.tif"
 ```
 
-A subsequent collection hook can select it:
+A subsequent collection-stage hook can focus on that output:
 
 ```yaml
 - name: focus-sink
@@ -84,15 +86,59 @@ A subsequent collection hook can select it:
     target: processed_raster
 ```
 
-The focused entry has `dst_fn` set to the artifact path, a `file://` URL, `status: 0`, and a `data_type` derived from the target name (for example, `processed_raster_artifact`). Its `artifacts` mapping is retained. Any subsequent hook in the same stage sees the focused entries rather than the original ones.
+The original module association and `artifacts` mapping are retained for these legacy entry-level artifacts. A single artifact key may contain one path or a list of paths.
 
-One target may contain a single path or a list of paths. Duplicate paths are emitted only once, retaining the first matching module association. If no active entry exposes the target, the hook logs a warning and returns the original entries. If `target` is omitted, it also passes entries through unchanged.
+### Register and focus a collection-level artifact
 
-**Current limitation:** `focus-sink` reads `entry["artifacts"]`; it does not yet look up artifacts in an execution-wide catalog. If a prior hook has removed the entry holding an artifact, `focus-sink` cannot discover that artifact from the active entries alone. The planned artifact catalog will address this separately.
+A custom hook that generates a product from several source modules can publish that output to the shared catalog, without claiming that an individual input module produced it:
+
+```python
+# After the output file has been successfully produced:
+self.context.artifacts.publish(
+    "final-dem",
+    "/outputs/coastal_dem.tif",
+)
+```
+
+A later global collection hook can then focus on it:
+
+```yaml
+- name: focus-sink
+  args:
+    target: final-dem
+```
+
+The artifact remains available even if there are **no active source entries** at that point. No `scratch` module needs to be added explicitly to the recipe: `run_fetchez()` creates a designated runtime Scratch instance for this purpose.
+
+### How focused entries are represented
+
+For each distinct selected path, `focus-sink` constructs an entry with:
+
+- `dst_fn` set to the artifact path, `url` set to `file://` plus that path, and `status: 0`.
+- `data_type` derived from the selected key, such as `final-dem_artifact`.
+- An `artifacts` mapping: preserved from the originating active entry for entry-level artifacts, or `{target: path}` for catalog-only artifacts.
+- For catalog-derived entries, `artifact_name` and `artifact_owner` fields recording the catalog metadata (`artifact_owner` can be `None`).
+
+Duplicate paths are emitted once. The hook processes active entry artifacts first, followed by catalog records; the first occurrence establishes the resulting entry and runtime owner. If `target` is omitted, or no matching usable artifact is found, it warns and passes the original entries through unchanged.
+
+### Artifact producer versus runtime owner
+
+The artifact catalog's `owner` field describes an **identified producer**; a missing owner (`None`) is meaningful and is not silently replaced with `"scratch"`. Fetchez still requires an owning module object for each active `(module, entry)` pair, however. When a catalog artifact becomes a focused entry, `focus-sink` resolves that *runtime entry owner* as follows:
+
+| Artifact source / producer | Runtime owner of focused entry |
+| --- | --- |
+| Artifact attached to an active entry | That entry's module |
+| Catalog record with a recognized module owner ID | The corresponding source module (from active entries or the compiled plan) |
+| Catalog record with `owner=None` | Execution's designated `Scratch` instance |
+| Catalog record with an unknown module owner ID | Execution's `Scratch` instance, with a warning |
+
+`Scratch` is a valid owner during subsequent grouped-stage processing, but is **not** included in ordinary module discovery or acquisition. Its job here is to carry an already-generated entry through the pipeline, **not** to assert that it created the underlying artifact. The original catalog record remains unchanged.
+
+Known producer IDs can be resolved from active entries or a compiled plan's module lookup. For direct Python executions without that mapping, a catalog artifact whose source entries have disappeared may use Scratch as its runtime owner even if it declares a producer ID. If no designated Scratch exists (for example, when calling the hook manually without a fully initialized execution), an unresolved catalog artifact is skipped with a warning.
 
 ## Example: focus, then restore the original inputs
 
-The following illustrates an ordering pattern for collection-stage hooks. `processed_raster` must already have been registered in `entry["artifacts"]` by an upstream hook; this snippet does not generate the raster itself.
+The following illustrates an ordering pattern for collection-stage hooks. `processed_raster` must already have been registered by an upstream hook, either in an entry's `artifacts` mapping or in the execution catalog; this snippet does not generate the raster itself.
 
 ```yaml
 global_hooks:
@@ -118,7 +164,7 @@ Hook ordering matters: the stash must execute before the focus operation, and th
 
 ## Python hook usage
 
-In custom hooks, the shared execution context exposes named stashes directly:
+In custom hooks, the shared execution context exposes named stashes and the artifact catalog directly:
 
 ```python
 self.context.stashes.save("before_processing", entries)
@@ -128,6 +174,19 @@ if self.context.stashes.has("before_processing"):
     entries = self.context.stashes.get("before_processing")
 ```
 
+For generated outputs, publish only after successful completion; `focus-sink` can retrieve the registered path even if the producing entry has since left the active pipeline:
+
+```python
+self.context.artifacts.publish(
+    "qc-report", "/outputs/quality_report.json", metadata={"kind": "qc"}
+)
+
+reports = self.context.artifacts.find("qc-report")
+# Each result is an Artifact record with .name, .path, .owner, .metadata.
+```
+
+The catalog also provides `get(name, owner=...)` for an unambiguous single result; it raises `KeyError` if none match and `ValueError` if several match. Artifacts are execution-scoped, not a durable cross-run index. Publication does not verify that a file exists, so producer hooks should register outputs only after they have been successfully created.
+
 The context storage API also supports `keys()` to inspect saved names. Direct calls to `get()` with an unknown key raise `KeyError`; the `restore-entries` hook instead warns and passes entries through unchanged.
 
 At present, these hooks receive and return lists of `(module, entry)` pairs under Fetchez's existing collection-hook interface. The module association is preserved when entries are stashed and restored. The Python context example assumes execution has bound `self.context` to the hook; manually instantiated hooks require equivalent context setup.
@@ -136,7 +195,7 @@ At present, these hooks receive and return lists of `(module, entry)` pairs unde
 
 | Hook | Argument | Default | Behavior |
 | --- | --- | --- | --- |
-| `focus-sink` | `target` | `None` | Artifact key to select from active `entry["artifacts"]` mappings |
+| `focus-sink` | `target` | `None` | Artifact name to select from active entries and `context.artifacts` |
 | `stash-entries` | `key` | `default` | Name under which to save the current entries |
 | `restore-entries` | `key` | `default` | Name of the saved entries to retrieve |
 | `restore-entries` | `merge` | `false` | Append saved entries to current entries instead of replacing them |
