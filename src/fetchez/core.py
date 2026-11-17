@@ -105,6 +105,10 @@ class FetchRetryExhausted(FetchError):
         )
 
 
+class RecursivePipelineError(PipelineExecutionError):
+    """A pipeline attempted to invoke itself recursively."""
+
+
 # =============================================================================
 # Helper Functions
 # =============================================================================
@@ -1323,6 +1327,18 @@ class ArtifactCatalog:
 
 
 @dataclass
+class PipelineResult:
+    """Result of a completed pipeline execution."""
+
+    entries: list
+    context: "FetchContext"
+
+    @property
+    def artifacts(self):
+        return self.context.artifacts
+
+
+@dataclass
 class FetchContext:
     """Shared context for one Fetchez pipeline execution."""
 
@@ -1332,13 +1348,44 @@ class FetchContext:
     artifacts: ArtifactCatalog = field(default_factory=ArtifactCatalog)
 
     scratch: Any | None = None
+    parent: "FetchContext | None" = None
 
     @property
     def cancelled(self):
-        return self.execution.cancelled
+        return self.execution.cancelled or (
+            self.parent is not None and self.parent.cancelled
+        )
 
     def cancel(self):
         self.execution.cancel()
+
+    def child(self, *, plan=None):
+        return FetchContext(
+            plan=plan,
+            parent=self,
+        )
+
+    def execute(self, plan):
+        """Execute a compiled pipeline in an isolated child context."""
+
+        current = self
+
+        while current is not None:
+            if current.plan is plan:
+                raise RecursivePipelineError(
+                    "Cannot execute a pipeline already active "
+                    "in the parent execution chain"
+                )
+            current = current.parent
+
+        child_context = self.child(plan=plan)
+
+        entries = plan.execute(context=child_context)
+
+        return PipelineResult(
+            entries=entries,
+            context=child_context,
+        )
 
 
 def normalize_context(context=None) -> FetchContext:
@@ -1943,7 +1990,7 @@ def run_fetchez(
         bind_context(context, modules, global_hooks)
         if discover:
             for mod in modules:
-                if context.execution.cancelled:
+                if context.cancelled:
                     raise FetchCancelled("Pipeline cancelled")
 
                 try:

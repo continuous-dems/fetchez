@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Introduced nested pipeline execution through FetchContext.child() and FetchContext.execute(), allowing compiled Fetchez workflows to run within other pipelines.
+- Added hierarchical execution contexts with isolated entry stashes, artifact catalogs, and cancellation state, including parent-to-child cancellation propagation.
+- Added PipelineResult to expose nested pipeline outputs, execution context, and generated artifacts.
+- Added RecursivePipelineError to prevent cyclic invocation of active compiled pipeline plans.
 - Added an execution-scoped ArtifactCatalog to FetchContext, allowing modules and hooks to register and discover generated artifacts independently of active pipeline entries.
 - Introduced Artifact records with names, paths, optional ownership, and metadata, along with thread-safe publication, lookup, filtering, and duplicate handling.
 - Expanded the inventory hook to generate geospatial resource inventories in GeoPackage and GeoJSON formats, alongside existing JSON and CSV outputs.
@@ -17,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `discover_only` run-mode that only runs the module discovery, manifest hooks and finalize hooks, skipping fetching, file, stream and collection hooks.
 
 ### Changed
+- Updated PipelinePlan.execute() to accept an optional execution context, enabling nested execution while preserving the existing standalone API.
+- Added context validation and regression tests for nested execution, state isolation, cancellation, and lifecycle cleanup.
 - Promoted scratch to a standalone generic module, providing execution-scoped runtime ownership for pipeline-generated entries without requiring a single originating source module.
 - Updated focus-sink to resolve catalog artifact ownership through known source modules or fall back to the runtime Scratch module, while preserving artifact provenance.
 - Extended FetchContext and pipeline execution to recognize Scratch-owned entries without including Scratch in normal discovery or acquisition.
