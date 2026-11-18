@@ -38,6 +38,7 @@ import filelock
 
 from . import utils
 from .hooks import FetchHook
+from .entry import entry_copy
 from . import __version__
 
 
@@ -1365,7 +1366,7 @@ class FetchContext:
             parent=self,
         )
 
-    def execute(self, plan):
+    def execute(self, plan, inputs=None):
         """Execute a compiled pipeline in an isolated child context."""
 
         current = self
@@ -1380,7 +1381,7 @@ class FetchContext:
 
         child_context = self.child(plan=plan)
 
-        entries = plan.execute(context=child_context)
+        entries = plan.execute(context=child_context, inputs=inputs)
 
         return PipelineResult(
             entries=entries,
@@ -1803,22 +1804,29 @@ def _run_acquisition(
     context,
     ignore_failures=False,
     seen=None,
+    prepared_entries=None,
 ):
     """Fetch and process manifest entries.
 
     Return post-file/stream entries with module ownership.
     """
     silent = logger.getEffectiveLevel() > logging.INFO
-    all_entries = entries
+    # all_entries = entries
     runtime_hooks = []
 
-    total_files = len(all_entries)
-    if total_files == 0:
-        logger.debug("No files to fetch.")
+    prepared_entries = prepared_entries or []
+
+    if not entries and not prepared_entries:
+        logger.debug("No entries to process.")
         return []
 
+    total_files = len([*entries, *prepared_entries])
+    # if total_files == 0:
+    #     logger.debug("No files to fetch.")
+    #     return []
+
     logger.debug(
-        f"Starting parallel fetch: {total_files} files with {threads} threads."
+        f"Processing {len(entries)} discovered and {len(prepared_entries)} prepared entries"
     )
     final_results_with_owner = []
     all_hooks = [
@@ -1843,7 +1851,7 @@ def _run_acquisition(
                 verbose=True,
                 context=context,
             ): (mod, entry)
-            for mod, entry in all_entries
+            for mod, entry in entries
         }
 
         with tqdm(
@@ -1916,6 +1924,35 @@ def _run_acquisition(
                 )
                 final_results_with_owner.extend(processed_entries)
 
+            for mod, entry in prepared_entries:
+                if context.cancelled:
+                    raise FetchCancelled("Pipeline cancelled")
+
+                path = Path(entry["dst_fn"])
+
+                if not path.is_file():
+                    raise FileNotFoundError(f"Prepared input does not exist: {path}")
+
+                file_name = Path(entry.get("dst_fn", "item")).name
+
+                short_name = (
+                    file_name[:30] + "..." if len(file_name) > 30 else file_name
+                )
+
+                pbar.set_description(f"[{mod.name}] {short_name}")
+                pbar.update(1)
+
+                processed_entries = _process_acquired_entry(
+                    mod,
+                    entry,
+                    global_hooks=global_hooks,
+                    context=context,
+                    runtime_hooks=runtime_hooks,
+                    ignore_failures=ignore_failures,
+                )
+
+                final_results_with_owner.extend(processed_entries)
+
         return final_results_with_owner
 
     except BaseException:
@@ -1950,6 +1987,8 @@ def run_fetchez(
     # and finalize only. Module discovery occurs if discover=True.
     # No data acquisition or collection hooks are executed.
     discover_only=False,
+    *,
+    inputs=None,
 ):
     """Run Fetchez in parallel with hooks.
 
@@ -1964,6 +2003,9 @@ def run_fetchez(
                   already taken place (historical usage).
         discover_only: Only run the manifest and finalize stages, skipping file, stream
                        and collection
+        inputs: Perpared entry inputs, accepts (module, entry) pairs representing already-materialized
+                entries and begins processing at the file stage, skipping the manifest stage and
+                discovery.
     """
 
     context = normalize_context(context)
@@ -1971,6 +2013,15 @@ def run_fetchez(
         from fetchez.modules.scratch import Scratch
 
         context.scratch = Scratch(use_cache=False)
+
+    prepared_entries = []
+
+    for _mod, entry in inputs or []:
+        copied_entry = entry_copy(entry)
+
+        # Preserve source metadata in the copied entry.
+        # The original module is not the child's execution owner.
+        prepared_entries.append((context.scratch, copied_entry))
 
     seen: set[Any] = set()
 
@@ -2037,6 +2088,7 @@ def run_fetchez(
                 context=context,
                 ignore_failures=ignore_failures,
                 seen=seen,
+                prepared_entries=prepared_entries,
             )
 
             # --- Collection Stage ---

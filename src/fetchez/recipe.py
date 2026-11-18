@@ -125,7 +125,7 @@ class PipelinePlan:
             if getattr(module, "instance_id", None) is not None
         }
 
-    def execute(self, *, context=None):
+    def execute(self, *, context=None, inputs=None):
         """Execute the prepared workflow."""
 
         if context is None:
@@ -147,6 +147,7 @@ class PipelinePlan:
                 context=context,
                 discover=True,
                 discover_only=self.discover_only,
+                inputs=inputs,
             )
 
         finally:
