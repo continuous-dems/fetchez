@@ -93,6 +93,7 @@ class PipelinePlan:
     batch_name: str | None = None
     tile_dir: Path | None = None
     shared_cache: Path | None = None
+    recipe_context: "RecipeContext | None" = None
 
     @property
     def region(self):
@@ -1214,6 +1215,7 @@ class Recipe:
             batch_name=context.batch_name,
             tile_dir=context.tile_dir,
             shared_cache=context.shared_cache,
+            recipe_context=context,
         )
 
     def _iter_batches(self):
