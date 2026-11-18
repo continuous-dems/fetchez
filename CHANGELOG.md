@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Added inputs= support to nested pipeline execution, allowing existing Fetchez entries to be passed into compiled workflows without repeating discovery or acquisition.
+- Introduced entry_copy() for safely copying entry dictionaries and nested metadata between independent execution contexts.
+- Added support for prepared-only and mixed-input pipelines, combining previously acquired entries with newly discovered data sources.
+- Added regression tests for injected-entry processing, source identity preservation, state isolation, and pipeline lifecycle behavior.
 - Introduced nested pipeline execution through FetchContext.child() and FetchContext.execute(), allowing compiled Fetchez workflows to run within other pipelines.
 - Added hierarchical execution contexts with isolated entry stashes, artifact catalogs, and cancellation state, including parent-to-child cancellation propagation.
 - Added PipelineResult to expose nested pipeline outputs, execution context, and generated artifacts.
@@ -21,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `discover_only` run-mode that only runs the module discovery, manifest hooks and finalize hooks, skipping fetching, file, stream and collection hooks.
 
 ### Changed
+- Extended FetchContext.execute(), PipelinePlan.execute(), and run_fetchez() to accept prepared entries while preserving existing execution behavior.
+- Updated acquisition handling to process injected entries through the standard file, stream, collection, and finalize stages without re-fetching them.
+- Isolated injected entries under the child execution context's scratch module, preventing unintended execution of parent module-local hooks.
 - Updated PipelinePlan.execute() to accept an optional execution context, enabling nested execution while preserving the existing standalone API.
 - Added context validation and regression tests for nested execution, state isolation, cancellation, and lifecycle cleanup.
 - Promoted scratch to a standalone generic module, providing execution-scoped runtime ownership for pipeline-generated entries without requiring a single originating source module.
