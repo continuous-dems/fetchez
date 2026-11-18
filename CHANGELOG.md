@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Added a generic pipeline hook for executing embedded Fetchez recipes as isolated child workflows, enabling composable pipelines directly from YAML.
+- Added optional forwarding of existing entries into child pipelines through inputs, allowing previously acquired data to be processed without repeated discovery or downloading.
+- Added explicit artifact promotion between child and parent pipelines, enabling nested workflows to generate reusable intermediate products.
+- Added inheritance and override support for child pipeline configuration, including geographic region, CRS, output directories, shared cache, and refresh settings.
+- Added nested execution safeguards and regression tests for context inheritance, entry forwarding, artifact publication, and pipeline isolation.
 - Added inputs= support to nested pipeline execution, allowing existing Fetchez entries to be passed into compiled workflows without repeating discovery or acquisition.
 - Introduced entry_copy() for safely copying entry dictionaries and nested metadata between independent execution contexts.
 - Added support for prepared-only and mixed-input pipelines, combining previously acquired entries with newly discovered data sources.
@@ -25,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `discover_only` run-mode that only runs the module discovery, manifest hooks and finalize hooks, skipping fetching, file, stream and collection hooks.
 
 ### Changed
+- Extended PipelinePlan to retain its compilation RecipeContext, making workflow configuration available to nested pipelines and extensions.
+- Improved support for modular recipe composition, allowing independent processing workflows to reuse the existing Fetchez execution engine rather than implementing custom orchestration.
 - Extended FetchContext.execute(), PipelinePlan.execute(), and run_fetchez() to accept prepared entries while preserving existing execution behavior.
 - Updated acquisition handling to process injected entries through the standard file, stream, collection, and finalize stages without re-fetching them.
 - Isolated injected entries under the child execution context's scratch module, preventing unintended execution of parent module-local hooks.
