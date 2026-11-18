@@ -21,10 +21,11 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import copy
 from datetime import datetime, date
 from pathlib import Path
-from typing import Any, Mapping
-
+from typing import Any
+from collections.abc import Mapping
 
 # =============================================================================
 # Entry vocabulary
@@ -444,3 +445,17 @@ def deserialize_entry(data: Mapping[str, Any]) -> dict[str, Any]:
 
 def set_contribution_id(entry, name, value):
     entry.setdefault("contribution_id", {})[name] = value
+
+
+def entry_copy(entry):
+    """Create an independent copy of an entry for pipeline execution.
+
+    Copy nested metadata and container values while preserving immutable
+    scalar values. Active streams are not supported for injection.
+    """
+    validate_entry(entry, require=True)
+
+    if entry.get("stream") is not None:
+        raise ValueError("Cannot copy an entry with an active stream")
+
+    return copy.deepcopy(dict(entry))
