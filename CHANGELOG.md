@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1 - 11-18-26]
 ### ADDED
 - Added a generic pipeline hook for executing embedded Fetchez recipes as isolated child workflows, enabling composable pipelines directly from YAML.
 - Added optional forwarding of existing entries into child pipelines through inputs, allowing previously acquired data to be processed without repeated discovery or downloading.
