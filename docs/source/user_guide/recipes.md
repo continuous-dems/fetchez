@@ -32,6 +32,31 @@ import fetchez
 fetchez.run_recipe("san_diego_dem.yaml")
 ```
 
+
+Or run a recipe inside a hook!:
+```python
+from fetchez.recipe import Recipe
+
+# Inside a Fetchez hook, with self.context bound
+child_plan = Recipe.from_dict({
+    "project": {"name": "secondary_processing"},
+    "modules": [],
+    "global_hooks": [
+        {"name": "enrich"},
+        # Additional processing hooks
+    ],
+}).compile()
+
+result = self.context.execute(
+    child_plan,
+    inputs=entries,
+)
+
+# Access processed entries and child artifacts.
+processed_entries = result.entries
+artifacts = result.artifacts
+```
+
 ## Anatomy of a Recipe
 
 A Fetchez YAML configuration is organized into specific operational blocks. Here is the general structure for a project that downloads Topography and Boundary data, unzips it, and audits the result:
