@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Retries now back off exponentially with full jitter (up to 5 minutes between attempts) instead of a short linear wait, so parallel processes no longer retry in lockstep, and the default number of tries is 10 (`core.DEFAULT_TRIES`), enough to outlast a short block by the remote host. A `Retry-After` header on a 429 is still honored.
+- Added a `tries` argument to `run_fetchez()` and `fetchez.get()` so callers can raise or lower the number of attempts per file.
 
 ## [0.13.1 - 11-18-26]
 ### ADDED
