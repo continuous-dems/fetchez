@@ -9,4 +9,5 @@ Fetchez supports more than 100 distinct data modules.
 :maxdepth: 1
 
 tnm
+earthaccess
 ```
