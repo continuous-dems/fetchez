@@ -224,6 +224,11 @@ Registry metadata can reveal a hook's default stage, effects, accepted and produ
 
 Presets are YAML files defining a reusable group of hooks — essentially macros for the processing layer.
 
+Use `fetchez hooks presets list --group-by category` to browse them.
+`fetchez hooks presets list --search dry-run` finds `list-only` for previewing
+source URLs. Use `--search checksum` to find `audit-full` for hashing,
+enrichment, and JSON audit logs.
+
 Instead of this:
 
 ```bash
