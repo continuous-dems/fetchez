@@ -19,7 +19,7 @@ from fetchez import cli, fred
 
 @cli.cli_opts(
     help_text="Query a custom/local FRED index",
-    index="Name or path of the FRED index (json) to load",
+    index="Name or path of the FRED GeoJSON index to load",
     mode=' "reference" (default) to point to existing files, or "copy" to stage them to outdir',
 )
 class Local(FetchModule):
@@ -49,15 +49,17 @@ class Local(FetchModule):
         if not self.index_name:
             return []
 
-        # We check if it's a path, otherwise look in standard storage
-        is_path = Path(self.index_name).exists()
-        idx = fred.FRED(self.index_name, local=is_path)
+        index_path = Path(self.index_name).expanduser()
+        idx = fred.FRED(
+            self.index_name, path=index_path if index_path.is_file() else None
+        )
 
         # fred.search handles the spatial logic
-        results = idx.search(region=self.wgs_region)
-
-        for item in results:
+        for feature in idx.search(region=self.wgs_region, return_features=True):
+            item = feature.get("properties", {})
             url = item.get("DataLink")
+            if not url:
+                continue
 
             # Handle destination filename
             if self.mode == "reference" and url.startswith("file://"):
@@ -71,6 +73,7 @@ class Local(FetchModule):
                 data_type=item.get("DataType", "local"),
                 agency=item.get("Agency", "Local"),
                 title=item.get("Name", "Local File"),
+                **fred.entry_geometry_fields(feature.get("geometry")),
             )
 
         return self

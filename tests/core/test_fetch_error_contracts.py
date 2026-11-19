@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ftplib
 import io
+import os
 from pathlib import Path
 from unittest.mock import Mock
 import logging
@@ -533,6 +534,20 @@ def test_missing_local_source_raises(fetcher, tmp_path):
     with pytest.raises(Exception) as caught:
         fetcher.fetch_file(absent, verbose=False)
     assert str(absent) in _error_text(caught.value)
+
+
+@pytest.mark.parametrize("native_uri", [False, True])
+def test_local_file_with_literal_percent_and_spaces(fetcher, tmp_path, native_uri):
+    if native_uri and os.name != "nt":
+        pytest.skip("exercise the canonical Windows drive URI")
+    source = tmp_path / "100% # café.nc"
+    source.write_bytes(b"local bathymetry")
+    fetcher.url = source.as_uri() if native_uri else f"file://{source}"
+
+    assert fetcher.fetch_file(source, verbose=False) == 0
+    destination = tmp_path / "copy.nc"
+    assert fetcher.fetch_file(destination, verbose=False) == 0
+    assert destination.read_bytes() == b"local bathymetry"
 
 
 def test_pre_cancelled_http_is_not_status_minus_one(fetcher, tmp_path):

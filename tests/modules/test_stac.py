@@ -3,12 +3,16 @@
 Uses normal package imports; no external catalog or network traffic.
 """
 
+import json
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from shapely.geometry import Polygon, shape
 
+from fetchez.hooks.inventory import Inventory
 from fetchez.modules.stac import STACModule, STAC_3DEP_Seamless, STAC_3DEP_Lidar
 
 
@@ -24,6 +28,7 @@ class FakeItem:
     collection_id = "cop-dem-glo-30"
     datetime = datetime(2025, 1, 2, tzinfo=timezone.utc)
     bbox = [-118, 32, -117, 33]
+    geometry = None
     properties = {"proj:epsg": 4326}
     assets = {
         "data": FakeAsset("https://example.org/dem.tif?token=123"),
@@ -90,7 +95,7 @@ def test_filename_and_metadata(monkeypatch):
     monkeypatch.setattr(
         module, "add_entry_to_results", lambda **kw: recorded.append(kw)
     )
-    module._asset_to_entry(FakeItem(), "data", FakeItem.assets["data"])
+    module._asset_to_entry(FakeItem(), "data", FakeItem.assets["data"], {})
     entry = recorded[0]
     assert entry["dst_fn"].endswith("_data.tif")
     assert "?" not in entry["dst_fn"]
@@ -109,6 +114,7 @@ def test_non_raster_type(monkeypatch):
         FakeItem(),
         "points",
         FakeAsset("https://a.org/points.copc.laz", "application/vnd.laszip+copc"),
+        {},
     )
     assert recorded[0]["data_type"] == "point_cloud"
     assert recorded[0]["dst_fn"].endswith(".copc.laz")
@@ -138,6 +144,79 @@ def test_run_uses_catalog_search(monkeypatch):
     assert len(entries) == 1
     assert catalog.search.call_args.kwargs["collections"] == ["cop-dem-glo-30"]
     assert "bbox" not in catalog.search.call_args.kwargs
+
+
+def test_item_footprint_survives_discovery_cache_and_inventory(monkeypatch, tmp_path):
+    import fetchez.modules.stac as stac_mod
+
+    item = FakeItem()
+    item.geometry = {
+        "type": "Polygon",
+        "coordinates": [[[-118, 32], [-117, 32], [-117, 33], [-118, 32]]],
+    }
+    item.properties = {"proj:epsg": 32611}
+    footprint = Polygon(item.geometry["coordinates"][0])
+    catalog = MagicMock()
+    catalog.search.return_value.items.return_value = [item]
+    monkeypatch.setattr(stac_mod, "pystac_client", SimpleNamespace())
+    module_options = {
+        "collections": "cop-dem-glo-30",
+        "assets": "all",
+        "sign": "none",
+        "outdir": tmp_path,
+        "use_cache": True,
+    }
+
+    first = make_module(**module_options)
+    monkeypatch.setattr(first, "_open_catalog", lambda: catalog)
+    first.run()
+    assert len(first.results) == 2
+    for entry in first.results:
+        assert entry["geometry"].equals(footprint)
+        assert entry["geometry_crs"] == "EPSG:4326"
+        assert entry["geometry_source"] == "stac_item_geometry"
+        assert entry["geometry_kind"] == "footprint"
+        assert entry["geometry_type"] == "Polygon"
+
+    cached = make_module(**module_options)
+    open_catalog = MagicMock(side_effect=AssertionError("Expected a cache hit"))
+    monkeypatch.setattr(cached, "_open_catalog", open_catalog)
+    cached.run()
+    open_catalog.assert_not_called()
+    assert all(not Path(entry["dst_fn"]).exists() for entry in cached.results)
+
+    output = tmp_path / "stac.geojson"
+    Inventory(output=output, geometry_required=True).run(
+        [(cached, entry) for entry in cached.results]
+    )
+    features = json.loads(output.read_text(encoding="utf-8"))["features"]
+    assert len(features) == 2
+    for feature in features:
+        assert shape(feature["geometry"]).equals(footprint)
+        assert feature["properties"]["geometry_source"] == "stac_item_geometry"
+
+
+def test_run_omits_missing_or_invalid_footprints(monkeypatch):
+    import fetchez.modules.stac as stac_mod
+
+    nonspatial = FakeItem()
+    nonspatial.bbox = None
+    malformed = FakeItem()
+    malformed.geometry = {"type": "Polygon"}
+    valid = FakeItem()
+    valid.geometry = {"type": "Point", "coordinates": [-118, 32]}
+    catalog = MagicMock()
+    catalog.search.return_value.items.return_value = [nonspatial, malformed, valid]
+    module = make_module(collections="test", sign="none")
+    monkeypatch.setattr(module, "_open_catalog", lambda: catalog)
+    monkeypatch.setattr(stac_mod, "pystac_client", SimpleNamespace())
+    module.run()
+
+    assert module._discovery_failed is False
+    assert len(module.results) == 3
+    assert "geometry" not in module.results[0]
+    assert "geometry" not in module.results[1]
+    assert module.results[2]["geometry_type"] == "Point"
 
 
 def test_missing_dependency_fails_discovery(monkeypatch):

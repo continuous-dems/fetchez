@@ -120,6 +120,15 @@ querying large catalogs.
   `time_start`, `time_end`, `accept`, `coverage`, etc., as supported by the server.
 - `data_type`: override the default Fetchez entry data type.
 
+## Discovery inventories
+
+For HTTPServer and OPeNDAP, a dataset's own `geospatialCoverage` becomes a
+WGS84 bounding polygon when its extent fits the conventional longitude and
+latitude ranges. The inventory hook can use it with `--discover-only` using
+just the catalog response. Inherited bounds still help filter results.
+NCSS and WCS subset coverage depends on the request, so those entries leave
+the geometry unset.
+
 **Not implemented:** discovery of temporal coverage, automatic time-series sampling,
 NCSS point/profile requests, authentication, or reading OPeNDAP payloads. These can
 be pursued later when the generic readers are ready. Catalog `geospatialCoverage`

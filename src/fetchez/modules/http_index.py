@@ -298,13 +298,25 @@ class HTTPIndex(FetchModule):
 
         return self.wgs_region
 
-    def _emit(self, url, name, metadata=None):
+    def _emit(self, url, name, metadata=None, geometry_fields=None):
         self.add_entry_to_results(
             url=url,
             dst_fn=name,
             data_type=self.data_type,
             metadata={**self.entry_metadata, **(metadata or {})},
+            **(geometry_fields or {}),
         )
+
+    def _emit_indexed(self, index, query_region):
+        for feature in index.search(region=query_region, return_features=True):
+            rec = feature.get("properties", {})
+            url = rec.get("DataLink")
+            if url:
+                self._emit(
+                    url,
+                    rec.get("Name") or Path(urlsplit(url).path).name,
+                    geometry_fields=fred.entry_geometry_fields(feature.get("geometry")),
+                )
 
     def run(self):
         self.results = []
@@ -314,13 +326,7 @@ class HTTPIndex(FetchModule):
             if self.use_index:
                 index = fred.FRED(self.index_name, path=self.index_path)
                 if index.features and not self.update:
-                    for rec in index.search(region=query_region):
-                        if rec.get("DataLink"):
-                            self._emit(
-                                rec["DataLink"],
-                                rec.get("Name")
-                                or Path(urlsplit(rec["DataLink"]).path).name,
-                            )
+                    self._emit_indexed(index, query_region)
                     return self
 
             discovered = []
@@ -361,13 +367,7 @@ class HTTPIndex(FetchModule):
                 # Publish only after successful crawl/parse; preserve previous on errors.
                 index.features = features
                 index.save()
-                for rec in index.search(region=query_region):
-                    if rec.get("DataLink"):
-                        self._emit(
-                            rec["DataLink"],
-                            rec.get("Name")
-                            or Path(urlsplit(rec["DataLink"]).path).name,
-                        )
+                self._emit_indexed(index, query_region)
             else:
                 for url, name, bounds in discovered:
                     # Only filter where actual spatial coverage is known.
@@ -377,7 +377,16 @@ class HTTPIndex(FetchModule):
                         ):
                             continue
 
-                    self._emit(url, name)
+                    geometry_fields = (
+                        fred.entry_geometry_fields(
+                            bounds.to_geojson_geometry(),
+                            source="http_index_bounds",
+                            kind="bounding_box",
+                        )
+                        if bounds is not None
+                        else {}
+                    )
+                    self._emit(url, name, geometry_fields=geometry_fields)
         except Exception as exc:
             self._discovery_failed = True
             self.status = -1
