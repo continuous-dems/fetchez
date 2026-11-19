@@ -4,6 +4,7 @@ import importlib.util
 import sys
 import types
 import xml.etree.ElementTree as ET
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -21,7 +22,10 @@ CATALOG = f'''<catalog xmlns="{NS}" xmlns:xlink="http://www.w3.org/1999/xlink">
   <dataset name="Container" serviceName="all">
     <geospatialCoverage><northsouth><start>30</start><size>5</size></northsouth>
       <eastwest><start>-120</start><size>5</size></eastwest></geospatialCoverage>
-    <dataset name="Sample_Bathy_navd88_2020.nc" ID="bathy" urlPath="regional/bathy.nc" />
+    <dataset name="Sample_Bathy_navd88_2020.nc" ID="bathy" urlPath="regional/bathy.nc">
+      <geospatialCoverage><northsouth><start>31</start><size>2</size></northsouth>
+        <eastwest><start>-119</start><size>3</size></eastwest></geospatialCoverage>
+    </dataset>
     <dataset name="Sample_Ocean_2021.nc" ID="ocean" urlPath="regional/ocean.nc" />
   </dataset>
   <catalogRef name="next" xlink:href="sub/catalog.xml" />
@@ -97,7 +101,8 @@ def _thredds(monkeypatch):
         ("fetchez.spatial", spatial),
     ]:
         monkeypatch.setitem(sys.modules, name, obj)
-    spec = importlib.util.find_spec("fetchez.modules.thredds")
+    path = Path(__file__).resolve().parents[2] / "src/fetchez/modules/thredds.py"
+    spec = importlib.util.spec_from_file_location("thredds_test_target", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module, Region, calls
@@ -115,6 +120,49 @@ def test_nested_catalog_and_http_services(_thredds):
         == "https://example.org/thredds/fileServer/regional/bathy.nc"
     )
     assert any("/sub/catalog.xml" in u for u in calls)
+
+
+def test_discovery_inventory_uses_only_dataset_bounds(monkeypatch, tmp_path):
+    import json
+
+    from shapely.geometry import shape
+    from fetchez.hooks.inventory import Inventory
+    from fetchez.modules.thredds import THREDDS, core
+    from fetchez.spatial import Region
+
+    calls = []
+
+    def fetch_xml(self):
+        calls.append(self.url)
+        return ET.fromstring(CATALOG)
+
+    monkeypatch.setattr(core.Fetch, "fetch_xml", fetch_xml)
+    url = "https://example.org/thredds/catalog/regional/catalog.xml"
+    kwargs = {
+        "url": url,
+        "recursive": False,
+        "outdir": tmp_path,
+        "src_region": Region(-118, -117, 31.5, 32),
+    }
+    module = THREDDS(**kwargs).run()
+    cached = THREDDS(**kwargs).run()
+
+    assert calls == [url]
+    for entries in (module.results, cached.results):
+        assert len(entries) == 2
+        dataset, inherited = entries
+        assert dataset["geometry"].bounds == (-119, 31, -116, 33)
+        assert dataset["geometry_crs"] == "EPSG:4326"
+        assert dataset["geometry_source"] == "thredds_catalog_geospatial_coverage"
+        assert dataset["geometry_kind"] == "bounding_box"
+        assert inherited["metadata"]["thredds_bounds"] == [-120, -115, 30, 35]
+        assert inherited.get("geometry") is None
+
+    output = tmp_path / "thredds.geojson"
+    Inventory(output=output).run([(cached, entry) for entry in cached.results])
+    features = json.loads(output.read_text(encoding="utf-8"))["features"]
+    assert shape(features[0]["geometry"]).bounds == (-119, 31, -116, 33)
+    assert features[1]["geometry"] is None
 
 
 def test_dataset_and_pattern_filter(_thredds):
@@ -167,6 +215,7 @@ def test_ncss_subset_from_catalog(_thredds):
     q = parse_qs(urlsplit(url).query)
     assert q["var"] == ["z"] and q["west"] == ["-119"]
     assert q["addLatLon"] == ["true"]
+    assert m.results[0].get("geometry") is None
 
 
 def test_d2c_direct_ncss_compatible_query(_thredds):
