@@ -68,6 +68,9 @@ modules:
 
 `index: true` requires a footprint strategy (`static`, `filename`, or `fgdc`). The first run crawls and creates FRED GeoJSON, defaulting to `~/.fetchez/data/<index_name>.geojson` when no `index_path` is supplied. Later runs use FRED for regional queries; without `-R`, they return all indexed assets. Use `update: true` to refresh.
 
+Discovered bounds and cached FRED feature geometry are available to the
+`inventory` hook in WGS 84 during discovery-only builds.
+
 **Important:** `static` bounds are a source-level approximation, not measured coverage for each file. Files with no valid footprint are omitted from a spatial index, although they are included in ordinary non-indexed crawls. All files on a page must be in the same origin as the page; downloads at other hosts require a separate source definition.
 
 The `modules` examples show module configurations; wrap them with your project's usual bundle keys as needed.
