@@ -84,8 +84,12 @@ class RasterWrite(FetchHook):
 
             return Path(path).resolve()
 
-        if template.endswith(os.sep) or Path(template).is_dir():
-            return Path(Path(template) / f"{stem}{self.suffix}.tif").resolve()
+        path = Path(template)
+        has_trailing_separator = template.endswith(os.sep) or (
+            os.altsep is not None and template.endswith(os.altsep)
+        )
+        if has_trailing_separator or path.is_dir():
+            return (path / f"{stem}{self.suffix}.tif").resolve()
 
         if total > 1:
             raise ValueError(
@@ -93,7 +97,7 @@ class RasterWrite(FetchHook):
                 "use a directory or {stem}/{index} template for multiple entries"
             )
 
-        return Path(template).resolve()
+        return path.resolve()
 
     @staticmethod
     def _write_chunk(dst, chunk, selection, band_mapping):

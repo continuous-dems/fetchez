@@ -1,7 +1,10 @@
 # test_parsing.py
 
 from pathlib import Path
-from fetchez.utils import parse_hook_string, parse_source_string
+
+import pytest
+
+from fetchez.utils import parse_hook_string, parse_source_string, parsing
 
 
 def test_parse_hook_string_basic():
@@ -78,3 +81,32 @@ def test_parse_source_local_file_detection(tmp_path):
     res_dir = parse_source_string(str(tmp_path))
     assert res_dir["module"] == "local_fs"
     assert Path(res_dir["args"]["path"]) == tmp_path.absolute()
+
+
+@pytest.mark.parametrize(
+    "source",
+    [r"D:\data\grid.laz", "D:/data/grid.laz", r"\\server\share\grid.laz"],
+)
+def test_parse_source_windows_path_preserves_spelling(source, monkeypatch, tmp_path):
+    local_file = tmp_path / "grid.laz"
+    local_file.touch()
+
+    def path_for(spelling):
+        assert spelling == source
+        return local_file
+
+    monkeypatch.setattr(parsing, "Path", path_for)
+    assert parse_source_string(f"{source}+unzip") == {
+        "module": "file",
+        "args": {"paths": str(local_file.resolve())},
+        "hooks": [{"name": "unzip"}],
+    }
+
+
+def test_parse_source_url_argument_keeps_scheme():
+    url = "https://example.test/data.tif"
+    assert parse_source_string(f"url_fetcher:url={url}") == {
+        "module": "url_fetcher",
+        "args": {"url": url},
+        "hooks": [],
+    }
