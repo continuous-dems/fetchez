@@ -7,6 +7,21 @@ role or media type, and optional signed asset URLs.
 Install the discovery dependency: `pip install pystac-client`. For Planetary Computer
 signing, also install `planetary-computer`. For S3 presigning, install `boto3`.
 
+## Discovery footprints
+
+When a catalog item supplies valid GeoJSON geometry, each selected asset entry
+includes that item footprint in WGS 84. The item footprint may be shared by
+several assets. It is available to the `inventory` hook during discovery, before
+downloading any assets:
+
+```sh
+fetchez build --discover-only --global-hook inventory:output=stac.geojson \
+  stac --collections cop-dem-glo-30 --ids Copernicus_DSM_COG_10_N32_00_W118_00_DEM --assets data
+```
+
+Items with missing or invalid footprints can still yield entries. Use
+`--refresh` to get footprints for results cached before this change.
+
 ## CLI: Earth Search / Copernicus DEM
 
 ```sh
