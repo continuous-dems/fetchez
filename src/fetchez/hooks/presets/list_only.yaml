@@ -1,5 +1,12 @@
 name: list-only
-description: List fetched urls only.
+description: Preview source URLs without downloading files.
+category: pipeline
+tags:
+  - dry-run
+  - download-preview
+  - source-discovery
+use_cases:
+  - previewing resolved source URLs before starting a download
 hooks:
   - name: list
   - name: dryrun

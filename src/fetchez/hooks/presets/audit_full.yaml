@@ -1,5 +1,12 @@
 name: audit-full
-description: Generate SHA256 hashes, enrichment, and a full JSON audit logs.
+description: Hash files, enrich entries, and log to JSON.
+category: metadata
+tags:
+  - checksum
+  - provenance
+  - audit-log
+use_cases:
+  - recording SHA-256 checksums and enriched metadata for an acquisition
 hooks:
   - name: checksum
     args:
