@@ -28,8 +28,11 @@ import re
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 
+from shapely.errors import GEOSException
+
 from fetchez import cli
 from fetchez.modules import FetchModule
+from fetchez.spatial import normalize_geometry
 
 try:
     import pystac_client
@@ -347,7 +350,35 @@ class STACModule(FetchModule):
 
         return href
 
-    def _asset_to_entry(self, item, key, asset):
+    def _item_geometry_fields(self, item) -> dict:
+        """Read the WGS 84 footprint shared by the assets of a STAC Item."""
+        if not item.geometry:
+            return {}
+        try:
+            geometry = normalize_geometry(item.geometry)
+        except (
+            AttributeError,
+            GEOSException,
+            IndexError,
+            KeyError,
+            TypeError,
+            ValueError,
+        ) as exc:
+            logger.debug(
+                "Ignoring invalid footprint for STAC item %s: %s", item.id, exc
+            )
+            return {}
+        if geometry is None:
+            return {}
+        return {
+            "geometry": geometry,
+            "geometry_crs": "EPSG:4326",
+            "geometry_source": "stac_item_geometry",
+            "geometry_kind": "footprint",
+            "geometry_type": geometry.geom_type,
+        }
+
+    def _asset_to_entry(self, item, key, asset, geometry_fields):
         href = self._resolve_asset_url(asset)
         date_str = item.datetime.strftime("%Y%m%d") if item.datetime else "nodate"
         ext = _extension(href, asset.media_type)
@@ -369,6 +400,7 @@ class STACModule(FetchModule):
             dst_fn=dst_fn,
             data_type=self.data_type or _infer_type(ext, asset.media_type),
             metadata=metadata,
+            **geometry_fields,
         )
 
     def run(self):
@@ -389,8 +421,9 @@ class STACModule(FetchModule):
                 if count >= self.limit:
                     break
                 count += 1
+                geometry_fields = self._item_geometry_fields(item)
                 for key, asset in self._select_assets(item):
-                    self._asset_to_entry(item, key, asset)
+                    self._asset_to_entry(item, key, asset, geometry_fields)
         except Exception as exc:
             self._discovery_failed = True
             self.status = -1
