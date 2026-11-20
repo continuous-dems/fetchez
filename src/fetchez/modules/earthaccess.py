@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""NASA CMR discovery through earthaccess, exposed as Fetchez entries.
+"""
+fetchez.modules.earthaccess
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The module intentionally performs *discovery*, not downloads. The ordinary
-Fetchez acquisition pipeline consumes the resulting URL entries. For protected
-assets, that pipeline must already support Earthdata authentication; the
-``access='direct'`` setting only selects cloud-oriented URLs, not an S3 reader.
+NASA CMR discovery and provider-aware acquisition through earthaccess.
+
+Discovery creates serializable entries without downloading. ``fetch_entry``
+uses an earthaccess-authorized HTTPS session for external links. Direct/cloud
+links are discoverable but deliberately not acquired until remote access is
+supported by the Fetchez reader contract.
 
 The original short_name/concept_id/version interface remains supported.
 ``resource='collections'`` provides metadata-only collection discovery through
@@ -21,6 +25,14 @@ import logging
 import os
 import posixpath
 import re
+import tempfile
+from pathlib import Path
+from tqdm.auto import tqdm
+
+import filelock
+import requests
+
+from fetchez.core import FetchCancelled, FetchError
 from urllib.parse import unquote, urlsplit
 
 from fetchez import cli
@@ -174,9 +186,8 @@ class EarthAccess(FetchModule):
     interactive fallback. This makes automated recipes safe from surprise
     credential prompts. CMR searches generally do not require authentication.
 
-    ``access='direct'`` registers cloud links; it does not make the Fetchez
-    downloader or generic readers S3-aware. Only select it when downstream
-    capabilities support those links.
+    ``access='direct'`` discovers cloud links, but ``fetch_entry`` currently
+    supports HTTPS/HTTP only; direct acquisition needs future reader support.
     """
 
     name = "earthaccess"
@@ -373,28 +384,113 @@ class EarthAccess(FetchModule):
         granules = earthaccess.search_data(count=self.count, **query)
         logger.info("earthaccess: found %s granules", len(granules))
         used_names = {
-            entry.get("dst_fn") for entry in self.results if isinstance(entry, dict)
+            Path(str(entry.get("dst_fn"))).name
+            for entry in self.results
+            if isinstance(entry, dict) and entry.get("dst_fn")
         }
         for granule in granules:
             meta, umm = _record_meta(granule)
             granule_id = _record_id(meta, umm)
             for url in self._links_for_granule(granule):
                 name = _unique_filename(_filename(url), granule_id or url, used_names)
-                self.results.append(
-                    {
-                        "url": url,
-                        "dst_fn": name,
-                        "data_type": _data_type(url),
-                        "metadata": {
-                            "earthaccess": {
-                                "granule_id": granule_id,
-                                "collection_id": meta.get("collection-concept-id"),
-                                "native_meta": meta,
-                                "native_umm": umm,
-                                "access": self.access,
-                                "url": url,
-                            },
+                self.add_entry_to_results(
+                    url=url,
+                    dst_fn=name,
+                    data_type=_data_type(url),
+                    metadata={
+                        "earthaccess": {
+                            "granule_id": granule_id,
+                            "collection_id": meta.get("collection-concept-id"),
+                            "provider": meta.get("provider-id") or self.provider,
+                            "native_meta": meta,
+                            "native_umm": umm,
+                            "access": self.access,
+                            "url": url,
                         },
-                    }
+                    },
                 )
         return self
+
+    def fetch_entry(self, entry, check_size=True, retries=5, verbose=True):
+        """Materialize one external CMR asset using Earthdata-aware HTTP access.
+
+        The entry's URL and metadata are sufficient to replay this operation
+        after discovery caching. No granule object or stored credentials needed.
+        """
+        import earthaccess
+
+        url = entry["url"]
+        access = (
+            entry.get("metadata", {}).get("earthaccess", {}).get("access", self.access)
+        )
+        if access != "external" or urlsplit(url).scheme not in {"http", "https"}:
+            raise FetchError(
+                "earthaccess fetch_entry currently supports external HTTP(S) links only; "
+                "use access='external' for local acquisition"
+            )
+
+        output = Path(entry["dst_fn"])
+        output.parent.mkdir(parents=True, exist_ok=True)
+        execution = self.context
+
+        def check_cancelled():
+            if execution is not None and execution.cancelled:
+                raise FetchCancelled("Earthaccess acquisition cancelled")
+
+        check_cancelled()
+        # The earthaccess client handles EDL cookies and authorized redirects.
+        # 'none' retains unauthenticated access for openly hosted assets.
+        # A private temp file prevents incomplete outputs being treated as cached
+        # successes. Per-path locks also protect concurrent Fetchez workers.
+        with filelock.FileLock(f"{output}.lock", timeout=3600):
+            check_cancelled()
+            if output.is_file() and (not check_size or output.stat().st_size > 0):
+                entry["status"] = 0
+                return 0
+
+            if self.auth != "none":
+                self._authenticate(earthaccess)
+                session = earthaccess.get_requests_https_session()
+            else:
+                session = requests.Session()
+
+            tmp_path = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    dir=output.parent,
+                    prefix=f".{output.name}.",
+                    suffix=".part",
+                    delete=False,
+                ) as tmp:
+                    tmp_path = Path(tmp.name)
+                    with session.get(url, stream=True, timeout=(30, 120)) as response:
+                        response.raise_for_status()
+
+                        total = int(response.headers.get("Content-Length", 0))
+
+                        with tqdm(
+                            total=total if total > 0 else None,
+                            desc=Path(entry["dst_fn"]).name,
+                            unit="B",
+                            unit_scale=True,
+                            unit_divisor=1024,
+                            disable=not verbose or self.silent,
+                            leave=False,
+                        ) as progress:
+                            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                                check_cancelled()
+                                if chunk:
+                                    tmp.write(chunk)
+                                    progress.update(len(chunk))
+                check_cancelled()
+                if check_size and tmp_path.stat().st_size == 0:
+                    raise FetchError(f"Empty Earthdata download: {url}")
+                tmp_path.replace(output)
+                tmp_path = None
+            finally:
+                if tmp_path is not None:
+                    tmp_path.unlink(missing_ok=True)
+                session.close()
+
+        entry["status"] = 0
+        return 0
