@@ -8,9 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Validated discovery and acquisition of NASA ORNL DAAC lidar-derived topography products, including spatially filtered 1 m DTM GeoTIFFs, through the generic earthaccess module.
 - Include STAC item footprints in asset entries during discovery for spatial inventories.
 
 ### CHANGED
+- **Earthaccess:** Refactored NASA Earthdata acquisition to use a custom FetchModule.fetch_entry() implementation, enabling provider-aware authenticated downloads through the standard Fetchez lifecycle.
+- Added earthaccess-managed HTTPS sessions for Earthdata Login authentication and redirects, while preserving discovery-only workflows and compatibility with existing CMR search options.
+- Improved acquisition reliability with file locking, temporary downloads, existing-file reuse, cancellation handling, output validation, and download progress reporting.
+- Standardized discovered entries using add_entry_to_results(), preserving CMR metadata and compatibility with Fetchez discovery caching and downstream hooks.
 - **Copernicus Marine:** Refactored the copernicus_marine module to separate dataset discovery from acquisition, enabling --discover-only and full integration with the standard Fetchez pipeline.
 - Moved Copernicus Marine native subsetting into a custom fetch_entry() implementation, preserving acquisition caching, file locking, deferred authentication, and downstream hook processing.
 - Added serializable acquisition specifications to Copernicus Marine entries, improving reproducibility and compatibility with discovery caching.
