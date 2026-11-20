@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ADDED
 - Include STAC item footprints in asset entries during discovery for spatial inventories.
 
+### CHANGED
+- **Copernicus Marine:** Refactored the copernicus_marine module to separate dataset discovery from acquisition, enabling --discover-only and full integration with the standard Fetchez pipeline.
+- Moved Copernicus Marine native subsetting into a custom fetch_entry() implementation, preserving acquisition caching, file locking, deferred authentication, and downstream hook processing.
+- Added serializable acquisition specifications to Copernicus Marine entries, improving reproducibility and compatibility with discovery caching.
+- Improved Copernicus Marine acquisition error handling, cancellation checks, output validation, and module metadata.
+
 ## [0.13.1 - 11-18-26]
 ### ADDED
 - Added a generic pipeline hook for executing embedded Fetchez recipes as isolated child workflows, enabling composable pipelines directly from YAML.
