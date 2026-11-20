@@ -29,15 +29,20 @@ Both kinds behave identically once registered: they appear in `fetchez modules l
 
 ### Generic Modules
 
-These five modules cover most "new dataset" situations without requiring new code:
+These modules cover most "new dataset" situations without requiring new code:
 
 | Generic module | Best for |
 |----------------|----------|
 | **`local_fs`** | Files, file lists, and directories already on your machine |
+| **`fred_local`** | Spatial discovery from a named FRED index or a path to a FRED GeoJSON file |
 | [**`http_index`**](modules/http_index.md) | HTTP directory listings and web pages linking to downloadable assets, with optional FRED spatial indexing |
 | [**`rest_api`**](modules/rest_api.md) | REST/JSON APIs, search responses, pagination, and discovered asset URLs |
 | [**`stac`**](modules/stac.md) | Spatial and temporal asset catalogs, including imagery, elevation, lidar, and other cloud datasets |
 | [**`thredds`**](modules/thredds.md) | Scientific THREDDS catalogs and services including HTTPServer, NCSS, WCS, and OPeNDAP |
+
+`fred_local` includes usable WGS 84 feature geometry from its index in
+discovery entries. The `inventory` hook can export that geometry during a
+discovery-only build.
 
 ### Provider Modules
 

@@ -22,6 +22,8 @@ from fnmatch import fnmatch
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
+from shapely.geometry import box
+
 from fetchez import core
 from fetchez.cli import cli_opts
 from fetchez.modules import FetchModule
@@ -313,7 +315,9 @@ class THREDDS(FetchModule):
         except (ValueError, TypeError):
             return self.spatial == "known"
 
-    def _emit(self, href, name, identity, bounds, service, region):
+    def _emit(
+        self, href, name, identity, bounds, service, region, *, dataset_bounds=None
+    ):
         if len(self.results) >= self.limit:
             return
         download_url = (
@@ -348,8 +352,23 @@ class THREDDS(FetchModule):
         props.update({"thredds_id": identity, "thredds_service": service})
         if bounds is not None:
             props["thredds_bounds"] = bounds
+        geometry_fields = {}
+        if dataset_bounds is not None and service in ("HTTPSERVER", "OPENDAP"):
+            west, east, south, north = dataset_bounds
+            if -180 <= west < east <= 180 and -90 <= south < north <= 90:
+                geometry_fields = {
+                    "geometry": box(west, south, east, north),
+                    "geometry_crs": "EPSG:4326",
+                    "geometry_kind": "bounding_box",
+                    "geometry_source": "thredds_catalog_geospatial_coverage",
+                    "geometry_type": "Polygon",
+                }
         self.add_entry_to_results(
-            url=download_url, dst_fn=base, data_type=dtype, metadata=props
+            url=download_url,
+            dst_fn=base,
+            data_type=dtype,
+            metadata=props,
+            **geometry_fields,
         )
 
     def _scan_catalog(self, catalog_url, region):
@@ -381,7 +400,8 @@ class THREDDS(FetchModule):
                 service_node = _metadata_child(node, "serviceName")
                 if service_node is not None and service_node.text:
                     service_name = service_node.text.strip()
-                bounds = _coverage(node) or inherited_bounds
+                dataset_bounds = _coverage(node)
+                bounds = dataset_bounds or inherited_bounds
                 name = node.attrib.get("name", "")
                 identity = node.attrib.get("ID", "")
                 url_path = node.attrib.get("urlPath")
@@ -423,6 +443,7 @@ class THREDDS(FetchModule):
                                 bounds,
                                 mapped_type,
                                 region,
+                                dataset_bounds=dataset_bounds,
                             )
                 for child in _children(node, "dataset"):
                     scan_dataset(child, services, service_name, bounds)

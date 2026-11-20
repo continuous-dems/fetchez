@@ -21,12 +21,13 @@ import threading
 import netrc
 import io
 import logging
+import re
 import collections
 from pathlib import Path
 from tqdm.auto import tqdm
 import urllib.parse
 from urllib.error import HTTPError
-from urllib.request import Request, build_opener, HTTPCookieProcessor
+from urllib.request import Request, build_opener, HTTPCookieProcessor, url2pathname
 from typing import List, Dict, Optional, Any, Tuple
 from dataclasses import dataclass, field
 import concurrent.futures
@@ -968,7 +969,12 @@ class Fetch:
         # check if input `url` is a file path. Either check if it exists and move on or
         # copy it to the destination directory.
         if self.url and self.url.startswith("file://"):
-            src_path = Path(self.url[7:])  # Strip 'file://'
+            local_path = self.url[7:]
+            # Path.as_uri() adds a slash before a Windows drive and quotes the path.
+            # Keep the legacy file://<native path> spelling, including literal %.
+            if os.name == "nt" and re.match(r"/[A-Za-z]:/", local_path):
+                local_path = url2pathname(local_path)
+            src_path = Path(local_path)
 
             if not src_path.is_absolute():
                 src_path = Path(dst_fn).resolve().parent / src_path

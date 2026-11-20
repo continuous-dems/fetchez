@@ -63,13 +63,14 @@ def setup_module(monkeypatch):
             self.results = []
             self.status = 0
 
-        def add_entry_to_results(self, url, dst_fn, data_type, metadata=None):
+        def add_entry_to_results(self, url, dst_fn, data_type, metadata=None, **fields):
             self.results.append(
                 {
                     "url": url,
                     "dst_fn": dst_fn,
                     "data_type": data_type,
                     "metadata": metadata,
+                    **fields,
                 }
             )
 
@@ -100,7 +101,7 @@ def setup_module(monkeypatch):
         def save(self):
             self.storage[self.name] = list(self.features)
 
-        def search(self, region=None):
+        def search(self, region=None, *, return_features=False):
             for feat in self.features:
                 coords = feat["geometry"]["coordinates"][0]
                 b = Region(
@@ -110,12 +111,15 @@ def setup_module(monkeypatch):
                     max(y for x, y in coords),
                 )
                 if region is None or b.intersects(region):
-                    yield feat["properties"]
+                    yield feat if return_features else feat["properties"]
 
     spatial.Region = Region
     modules.FetchModule = FetchModule
     core.Fetch = Fetch
     fred.FRED = FRED
+    fred.entry_geometry_fields = lambda geometry, **_: (
+        {"geometry": geometry} if geometry is not None else {}
+    )
     pkg.core = core
     pkg.fred = fred
     for key, value in {

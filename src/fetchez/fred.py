@@ -23,6 +23,7 @@ from . import utils
 from . import config
 from . import spatial
 
+from shapely.errors import GEOSException
 from shapely.geometry import shape
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,28 @@ logger = logging.getLogger(__name__)
 # Directory where FRED index files are stored
 THIS_DIR = Path(__file__).resolve().parent
 FETCH_DATA_DIR = Path(THIS_DIR / "data")
+
+
+def entry_geometry_fields(geojson, *, source="fred_index_feature", kind=None):
+    """Return entry fields for usable WGS 84 geometry from a FRED source."""
+    if not isinstance(geojson, dict):
+        return {}
+    try:
+        geometry = spatial.normalize_geometry(geojson)
+    except (AttributeError, GEOSException, IndexError, KeyError, TypeError, ValueError):
+        logger.debug("Ignoring invalid geometry from %s", source)
+        return {}
+    if geometry is None:
+        return {}
+    fields = {
+        "geometry": geometry,
+        "geometry_crs": "EPSG:4326",
+        "geometry_source": source,
+        "geometry_type": geometry.geom_type,
+    }
+    if kind is not None:
+        fields["geometry_kind"] = kind
+    return fields
 
 
 class FRED:
@@ -157,6 +180,8 @@ class FRED:
         region: Optional[Tuple[float, float, float, float]] = None,
         where: Optional[List[str]] = None,
         layer: Optional[str] = None,
+        *,
+        return_features: bool = False,
     ) -> List[Dict]:
         """Search for data in the reference vector file.
 
@@ -165,9 +190,10 @@ class FRED:
             where: List of simple SQL-style filters (e.g. "Agency = 'NOAA'")
                    (Currently supports simple equality checks for simplicity without SQL parser)
             layer: Filter by 'DataSource' field (e.g., 'ncei_thredds')
+            return_features: Return complete GeoJSON features with their geometry.
 
         Returns:
-            List of dictionaries containing the properties of matching features.
+            List of matching feature properties, or full features when requested.
         """
 
         where = where or []
@@ -209,7 +235,7 @@ class FRED:
                 except Exception:
                     continue
 
-            results.append(props)
+            results.append(feat if return_features else props)
 
         logger.debug(f"FRED Search found {len(results)} items.")
         return results
