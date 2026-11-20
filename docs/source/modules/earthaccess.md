@@ -1,13 +1,16 @@
 # NASA Earthdata with `earthaccess`
 
-Fetchez integrates the [earthaccess Python library](https://github.com/nsidc/earthaccess) to discover NASA Earth science collections and granules through the Common Metadata Repository (CMR), and to download selected data files through earthaccess-aware HTTP sessions. This makes NASA products available to ordinary Fetchez recipes, discovery caches, and downstream file and stream hooks without writing a separate module for each NASA dataset.
+Fetchez integrates the [earthaccess Python library](https://github.com/earthaccess-dev/earthaccess) to discover NASA Earth science collections and granules through the Common Metadata Repository (CMR), and to download selected data files through earthaccess-aware HTTP sessions. This makes NASA products available to ordinary Fetchez recipes, discovery caches, and downstream file and stream hooks without writing a separate module for each NASA dataset.
 
 The module is useful for ICESat-2 photon and elevation products, lidar-derived terrain data, and other CMR-indexed resources. **Acquisition uses `earthaccess` rather than Fetchez's generic `Fetch` downloader**, so provider-specific Earthdata Login authentication and authorized redirects remain with the upstream library.
 
-!!! note "What the module supports today"
-    - **Discovery:** CMR collection metadata or granules, spatial/temporal filtering, asset selection, and `--discover-only`.
-    - **Acquisition:** local downloads of selected **external HTTP(S)** assets, with progress reporting, output locking, existing-file reuse, temporary files, and cancellation checks.
-    - **Not yet supported:** materializing `access="direct"` cloud/S3 assets or streaming remote COGs directly into downstream readers. Direct cloud links can be discovered, but not acquired by this module's current `fetch_entry()` implementation.
+```{note}
+"What the module supports today"
+
+- **Discovery:** CMR collection metadata or granules, spatial/temporal filtering, asset selection, and `--discover-only`.
+- **Acquisition:** local downloads of selected **external HTTP(S)** assets, with progress reporting, output locking, existing-file reuse, temporary files, and cancellation checks.
+- **Not yet supported:** materializing `access="direct"` cloud/S3 assets or streaming remote COGs directly into downstream readers. Direct cloud links can be discovered, but not acquired by this module's current `fetch_entry()` implementation.
+```
 
 ## Installation
 
@@ -36,8 +39,11 @@ fetchez build -R loc:"san diego, ca" earthaccess \
 
 This workflow has been exercised with the updated module. It searches CMR for intersecting granules, selects matching GeoTIFF links, and downloads files to the module's output directory (for example, `nasa_lidar/earthaccess/`). To request DSM products instead, adjust the filename pattern to `*DSM*.tif` after inspecting the available asset names.
 
-!!! tip "Why 10 granules may produce fewer than 10 files"
-    `--count 10` limits **CMR granule search results**, not the number of files ultimately downloaded. `--links all` considers all selected data links for each granule, and `--link-pattern` then filters individual assets. A granule may have no matching files, one matching file, or several.
+```{tip}
+"Why 10 granules may produce fewer than 10 files"
+
+`--count 10` limits **CMR granule search results**, not the number of files ultimately downloaded. `--links all` considers all selected data links for each granule, and `--link-pattern` then filters individual assets. A granule may have no matching files, one matching file, or several.
+```
 
 ### Discover without downloading
 
@@ -72,8 +78,11 @@ fetchez build -R loc:"san diego, ca" earthaccess \
 
 This ATL03 acquisition path has also been tested. Substitute `ATL06`, `ATL08`, or another CMR short name for other ICESat-2 products, and use `--temporal` and/or other CMR filters to narrow searches when appropriate. Product availability, version, and granule count depend on the region and query.
 
-!!! info "For existing Earthdata workflows"
-    The `earthaccess` module offers a provider-maintained alternative for **discovery and download** of many products currently accessed through custom Earthdata clients. Migrating an existing workflow still requires validating its collection versions, filtering, authentication, and downstream file expectations. The older Fetchez `earthdata` module remains separate and is not replaced by this integration.
+```{tip}
+"For existing Earthdata workflows"
+
+The `earthaccess` module offers a provider-maintained alternative for **discovery and download** of many products currently accessed through custom Earthdata clients. Migrating an existing workflow still requires validating its collection versions, filtering, authentication, and downstream file expectations. The older Fetchez `earthdata` module remains separate and is not replaced by this integration.
+```
 
 ## How it fits into Fetchez
 
@@ -101,8 +110,11 @@ The `auth` option selects how the **earthaccess library** authenticates. Fetchez
 
 For noninteractive workflows, supply credentials through a supported earthaccess environment configuration or a properly secured `.netrc` file and use `--auth auto`.
 
-!!! warning "Discovery-time login"
-    When `auth` is not `none`, the current module attempts earthaccess login during **`run()`**, before the CMR query, and again as needed when acquiring files. Therefore, `--discover-only --auth auto` can still require existing credentials, even though no data will be downloaded. Use `--auth none` for anonymous discovery where supported.
+```{warning}
+"Discovery-time login"
+
+When `auth` is not `none`, the current module attempts earthaccess login during **`run()`**, before the CMR query, and again as needed when acquiring files. Therefore, `--discover-only --auth auto` can still require existing credentials, even though no data will be downloaded. Use `--auth none` for anonymous discovery where supported.
+```
 
 The module uses earthaccess's authorized HTTPS session for authenticated external links, including Earthdata Login redirects. This does **not** modify Fetchez's legacy `earthdata` module or its authentication helpers.
 
