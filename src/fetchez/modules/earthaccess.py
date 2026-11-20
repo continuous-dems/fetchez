@@ -417,7 +417,11 @@ class EarthAccess(FetchModule):
         The entry's URL and metadata are sufficient to replay this operation
         after discovery caching. No granule object or stored credentials needed.
         """
-        import earthaccess
+        try:
+            import earthaccess
+        except ImportError:
+            logger.error("Module 'earthaccess' requires: pip install earthaccess")
+            raise
 
         url = entry["url"]
         access = (
