@@ -12,19 +12,27 @@ concurrency:
 
 jobs:
   build:
-    name: "pytest (Python ${{ matrix.python-version }}, ${{ matrix.resolution }} dependencies)"
-    runs-on: ubuntu-latest
+    name: "pytest (${{ matrix.os }}, Python ${{ matrix.python-version }}, ${{ matrix.resolution }} dependencies)"
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.14"]
-        resolution: ["highest"]
-        # Also install each dependency at the lowest version pyproject.toml
-        # allows, so the suite fails if fetchez starts using something newer
-        # than a stated minimum.
         include:
-          - python-version: "3.12"
-            resolution: "lowest-direct"
+          - os: ubuntu-latest
+            python-version: "3.12"
+            resolution: highest
+          - os: ubuntu-latest
+            python-version: "3.14"
+            resolution: highest
+          - os: ubuntu-latest
+            python-version: "3.12"
+            resolution: lowest-direct
+          - os: windows-latest
+            python-version: "3.12"
+            resolution: highest
+          - os: macos-latest
+            python-version: "3.12"
+            resolution: highest
 
     steps:
       - name: Checkout
@@ -37,10 +45,9 @@ jobs:
           activate-environment: true
 
       - name: Install dependencies
+        shell: bash
         env:
           RESOLUTION: ${{ matrix.resolution }}
-        # The test tools are constrained to what the first step installed,
-        # so they cannot upgrade a dependency past its minimum.
         run: |
           uv pip install --resolution "$RESOLUTION" -e .
           uv pip freeze --exclude-editable > "$RUNNER_TEMP/installed.txt"
