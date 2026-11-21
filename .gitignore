@@ -26,3 +26,4 @@ env/
 docs/build/
 docs/source/modules/catalog_table.md
 docs/source/api/*.rst
+docs/source/api/generated_modules/
