@@ -15,7 +15,7 @@ import logging
 import shutil
 import re
 import inspect
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Optional, Dict, Any, List
 
 
@@ -241,10 +241,13 @@ def parse_source_string(source_str: str, default_hooks: Optional[List] = None) -
     mod_part = parts[0]
     hook_parts = parts[1:]
 
-    # Parse the hook strng
-    mod_parsed = parse_hook_string(mod_part)
-    mod_name = mod_parsed["name"]
-    args = mod_parsed.get("args", {})
+    # A drive colon belongs to the path, not the module argument separator.
+    if PureWindowsPath(mod_part).is_absolute():
+        mod_name, args = mod_part, {}
+    else:
+        mod_parsed = parse_hook_string(mod_part)
+        mod_name = mod_parsed["name"]
+        args = mod_parsed.get("args", {})
 
     # Auto-detect local files and directories
     mod_path = Path(mod_name)

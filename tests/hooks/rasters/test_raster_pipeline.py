@@ -5,6 +5,9 @@ Place RasterPipeline at fetchez/hooks/rasters/raster_pipeline.py and RasterHook
 at fetchez/hooks/raster.py (adjust the import if the base lives elsewhere).
 """
 
+import os
+from pathlib import Path
+
 import numpy as np
 import pytest
 import rasterio
@@ -73,7 +76,8 @@ def test_stage_multiband_and_chained_hooks(tmp_path, stage):
         np.testing.assert_array_equal(original_ds.read(), original)
 
 
-def test_many_entries_and_skipping_unrelated(tmp_path):
+@pytest.mark.parametrize("separator", sorted({"/", os.sep}))
+def test_many_entries_and_skipping_unrelated(tmp_path, separator):
     entries = []
     for n in (1, 2):
         source = tmp_path / f"input{n}.tif"
@@ -92,12 +96,13 @@ def test_many_entries_and_skipping_unrelated(tmp_path):
     pipeline = RasterPipeline(
         hooks=[AddRaster],
         reader={"chunk_size": "full"},
-        writer={"output_path": str(tmp_path / "processed") + "/"},
+        writer={"output_path": str(tmp_path / "processed") + separator},
     )
     result = pipeline.run(entries)
     assert result == entries
     assert unrelated[1]["dst_fn"].endswith("metadata.csv")
     for _, entry in (entries[0], entries[2]):
+        assert Path(entry["dst_fn"]).parent == tmp_path / "processed"
         with rasterio.open(entry["dst_fn"]) as dst:
             np.testing.assert_array_equal(dst.read(), entry["expected"] + 1)
     assert entries[0][1]["dst_fn"] != entries[2][1]["dst_fn"]
