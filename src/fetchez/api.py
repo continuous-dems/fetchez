@@ -258,6 +258,7 @@ def get(
     dry_run: bool = False,
     verbose: bool = True,
     ignore_failures: bool = False,
+    tries: Optional[int] = None,
     **kwargs,
 ) -> List[str]:
     """Fetch data from a module in one line.
@@ -272,6 +273,8 @@ def get(
         dry_run: Don't download any data.
         verbose: Run in verbose mode.
         ignore_failures: Ignore exceptions and push through.
+        tries: Maximum attempts per file; retries back off exponentially with jitter
+            (default: fetchez.core.DEFAULT_TRIES).
         **kwargs: Arguments passed directly to the module (year=..., datatype=...).
 
     Returns:
@@ -369,7 +372,7 @@ def get(
 
     # Grab the final results from the fetchez pipeline
     final_results = run_fetchez(
-        [mod_instance], threads=threads, ignore_failures=ignore_failures
+        [mod_instance], threads=threads, ignore_failures=ignore_failures, tries=tries
     )
 
     downloaded_files = []

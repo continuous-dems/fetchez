@@ -28,7 +28,7 @@ import pyproj
 from fetchez import spatial
 from fetchez.entry import serialize_entry, deserialize_entry
 from fetchez import utils
-from fetchez.core import Fetch, FetchCancelled
+from fetchez.core import DEFAULT_TRIES, Fetch, FetchCancelled
 
 logger = logging.getLogger(__name__)
 
@@ -542,7 +542,7 @@ class FetchModule:
             **kwargs,
         )
 
-    def fetch_entry(self, entry, check_size=True, retries=5, verbose=True):
+    def fetch_entry(self, entry, check_size=True, retries=DEFAULT_TRIES, verbose=True):
         try:
             parsed_url = urllib.parse.urlparse(entry["url"])
 
