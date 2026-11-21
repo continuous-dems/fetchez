@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Include STAC item footprints in asset entries during discovery for spatial inventories.
 
 ### CHANGED
+- Uodate the Sphinx 'module_table' to auto-generate module API docs and link to them from the Module Catalog table.
 - **Earthaccess:** Refactored NASA Earthdata acquisition to use a custom FetchModule.fetch_entry() implementation, enabling provider-aware authenticated downloads through the standard Fetchez lifecycle.
 - Added earthaccess-managed HTTPS sessions for Earthdata Login authentication and redirects, while preserving discovery-only workflows and compatibility with existing CMR search options.
 - Improved acquisition reliability with file locking, temporary downloads, existing-file reuse, cancellation handling, output validation, and download progress reporting.

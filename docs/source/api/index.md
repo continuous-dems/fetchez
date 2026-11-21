@@ -18,4 +18,5 @@ streams
 readers
 detectors
 fred
+generated_modules/index
 ```
