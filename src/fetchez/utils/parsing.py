@@ -15,7 +15,7 @@ import logging
 import shutil
 import re
 import inspect
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Optional, Dict, Any, List
 
 
@@ -241,10 +241,13 @@ def parse_source_string(source_str: str, default_hooks: Optional[List] = None) -
     mod_part = parts[0]
     hook_parts = parts[1:]
 
-    # Parse the hook strng
-    mod_parsed = parse_hook_string(mod_part)
-    mod_name = mod_parsed["name"]
-    args = mod_parsed.get("args", {})
+    # A drive colon belongs to the path, not the module argument separator.
+    if PureWindowsPath(mod_part).is_absolute():
+        mod_name, args = mod_part, {}
+    else:
+        mod_parsed = parse_hook_string(mod_part)
+        mod_name = mod_parsed["name"]
+        args = mod_parsed.get("args", {})
 
     # Auto-detect local files and directories
     mod_path = Path(mod_name)
@@ -256,17 +259,26 @@ def parse_source_string(source_str: str, default_hooks: Optional[List] = None) -
             args["path"] = str(mod_path.resolve())
             mod_name = "local_fs"
 
-    mod_dict = {"module": mod_name, "hooks": default_hooks or []}
+    hooks: List[Dict[str, Any]] = list(default_hooks or [])
+
+    mod_dict: Dict[str, Any] = {
+        "module": mod_name,
+        "hooks": hooks,
+    }
+
     if args:
         mod_dict["args"] = args
 
     # Parse and append chained hooks
     for h_str in hook_parts:
-        mod_dict["hooks"].append(parse_hook_string(h_str))
+        hooks.append(parse_hook_string(h_str))
 
     logger.debug(
-        f"Parsed source string as: `{mod_name}` using hooks: {[x['name'] for x in mod_dict['hooks']]}"
-    )  # {mod_dict['hooks']}")
+        "Parsed source string as: `%s` using hooks: %s",
+        mod_name,
+        [hook["name"] for hook in hooks],
+    )
+
     return mod_dict
 
 

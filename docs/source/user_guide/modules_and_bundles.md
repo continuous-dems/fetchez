@@ -2,20 +2,20 @@
 
 Modules are Fetchez's data sources. Each one knows how to discover and retrieve a particular dataset — a government API, a cloud catalog, a REST service, or a directory on your own disk.
 
-Fetchez ships with [more than 100 registered modules](modules/index.md) covering bathymetry, topography, imagery, lidar, nautical charts, and more. Alongside those provider-specific modules, Fetchez lets you reach new datasets **through configuration first**, without writing Python.
+Fetchez ships with [more than 100 registered modules](/modules/index.md) covering bathymetry, topography, imagery, lidar, nautical charts, and more. Alongside those provider-specific modules, Fetchez lets you reach new datasets **through configuration first**, without writing Python.
 
 > **Running example:** In [Usage](usage.md) we used the `stac` module to find Copernicus DEM tiles around San Diego. This page explains what that module is, how its arguments work, and how to group modules into reusable bundles.
 
 ## Module Reference
 
-For detailed documentation of individual modules, including configuration, examples, and limitations, see the [Module Reference](modules/index.md).
+For detailed documentation of individual modules, including configuration, examples, and limitations, see the [Module Catalog](/modules/index.md).
 
 Not every registered module has a dedicated documentation page. Use the `fetchez modules` CLI commands or the `ModuleRegistry` to discover additional built-in and extension-provided modules.
 
 ```{toctree}
 :maxdepth: 2
 
-modules/index
+/modules/index
 ```
 
 ## Two Kinds of Module
@@ -35,10 +35,10 @@ These modules cover most "new dataset" situations without requiring new code:
 |----------------|----------|
 | **`local_fs`** | Files, file lists, and directories already on your machine |
 | **`fred_local`** | Spatial discovery from a named FRED index or a path to a FRED GeoJSON file |
-| [**`http_index`**](modules/http_index.md) | HTTP directory listings and web pages linking to downloadable assets, with optional FRED spatial indexing |
-| [**`rest_api`**](modules/rest_api.md) | REST/JSON APIs, search responses, pagination, and discovered asset URLs |
-| [**`stac`**](modules/stac.md) | Spatial and temporal asset catalogs, including imagery, elevation, lidar, and other cloud datasets |
-| [**`thredds`**](modules/thredds.md) | Scientific THREDDS catalogs and services including HTTPServer, NCSS, WCS, and OPeNDAP |
+| [**`http_index`**](/modules/http_index.md) | HTTP directory listings and web pages linking to downloadable assets, with optional FRED spatial indexing |
+| [**`rest_api`**](/modules/rest_api.md) | REST/JSON APIs, search responses, pagination, and discovered asset URLs |
+| [**`stac`**](/modules/stac.md) | Spatial and temporal asset catalogs, including imagery, elevation, lidar, and other cloud datasets |
+| [**`thredds`**](/modules/thredds.md) | Scientific THREDDS catalogs and services including HTTPServer, NCSS, WCS, and OPeNDAP |
 
 `fred_local` includes usable WGS 84 feature geometry from its index in
 discovery entries. The `inventory` hook can export that geometry during a
