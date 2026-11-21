@@ -540,7 +540,7 @@ def test_missing_local_source_raises(fetcher, tmp_path):
 def test_local_file_with_literal_percent_and_spaces(fetcher, tmp_path, native_uri):
     if native_uri and os.name != "nt":
         pytest.skip("exercise the canonical Windows drive URI")
-    source = tmp_path / "100% # café.nc"
+    source = tmp_path / "100% # cafe.nc"
     source.write_bytes(b"local bathymetry")
     fetcher.url = source.as_uri() if native_uri else f"file://{source}"
 

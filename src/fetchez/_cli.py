@@ -260,7 +260,7 @@ def print_hook_info(hook_key):
         logger.error(f"Hook '{hook_key}' not found.")
         return
 
-    print(f"\n🪝 {utils.CYAN}HOOK: {hook_key.upper()}{utils.RESET}")
+    print(f"\n {utils.CYAN}HOOK: {hook_key.upper()}{utils.RESET}")
     print(f"{'-' * 60}")
     print(f"  Description : {meta.get('desc', 'No description provided.')}")
     print(f"  Domain      : {meta.get('domain', 'Universal (Files)')}")
@@ -709,7 +709,7 @@ def fetchez_cli():
 
             tags = ", ".join(info.get("tags", [])[:5])  # limit to 5 tags
             if tags:
-                print(f"    ↳ tags: {tags}")
+                print(f"    > tags: {tags}")
 
         print("-" * 60)
         sys.exit(0)

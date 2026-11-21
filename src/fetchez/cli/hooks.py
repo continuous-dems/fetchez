@@ -145,7 +145,7 @@ def hook_info(name):
         click.secho(f"Error: Hook '{name}' not found.", fg="red")
         sys.exit(1)
 
-    click.secho(f"\n🪝 HOOK: {name}", fg="cyan", bold=True)
+    click.secho(f"\n HOOK: {name}", fg="cyan", bold=True)
     click.echo("=" * 60)
     click.echo(f"  Description : {meta.get('desc', 'N/A')}")
     click.echo(f"  Stage       : {meta.get('stage', 'N/A')}")

@@ -282,3 +282,23 @@ def test_preset_scope_follows_position():
     assert modules[0]["hooks"] == [
         {"preset": "raster-standard"},
     ]
+
+
+def test_hook_info_cp1252():
+    """Hook info should work with legacy Windows console encodings."""
+    import os
+
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "cp1252:strict"
+
+    result = subprocess.run(
+        CMD + ["hooks", "info", "audit"],
+        capture_output=True,
+        text=True,
+        encoding="cp1252",
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "HOOK: audit" in result.stdout
+    assert "Save a run summary of fetch entries to disk" in result.stdout

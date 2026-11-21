@@ -204,7 +204,7 @@ def run_recipe(
             )
         ]
 
-        click.secho(f"✨ Successfully executed {name} recipe!", fg="green", bold=True)
+        click.secho(f"Successfully executed {name} recipe!", fg="green", bold=True)
 
     except Exception as e:
         click.secho(f"Failed to execute {name} recipe!: {str(e)}", fg="red", bold=True)

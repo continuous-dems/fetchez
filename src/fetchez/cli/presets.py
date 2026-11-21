@@ -118,7 +118,7 @@ def info_preset(name):
         click.secho(f"Error: Preset '{name}' not found.", fg="red")
         sys.exit(1)
 
-    click.secho(f"\n📜 PRESET SUMMARY: {name}", fg="cyan", bold=True)
+    click.secho(f"\n PRESET SUMMARY: {name}", fg="cyan", bold=True)
     click.echo("=" * 60)
     click.echo(f"  Description : {meta.get('description', 'N/A').strip()}")
     click.echo(
@@ -134,7 +134,7 @@ def info_preset(name):
             click.echo(f"    - {click.style(hook_name, fg='green')}")
             for arg in hook.get("args", []):
                 click.echo(
-                    f"     ⤷ {click.style(arg, fg='cyan')}: {hook.get('args').get(arg)}"
+                    f"     > {click.style(arg, fg='cyan')}: {hook.get('args').get(arg)}"
                 )
 
     click.echo("=" * 60 + "\n")
@@ -178,12 +178,12 @@ def copy_preset(name):
     out_path = user_dir / f"{name}.yaml"
 
     if out_path.exists():
-        click.secho(f"⚠️  File already exists: {out_path}", fg="yellow")
+        click.secho(f"  File already exists: {out_path}", fg="yellow")
         click.confirm("Do you want to overwrite it?", abort=True)
 
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(yaml.dump(meta, sort_keys=False))
 
-    click.secho(f"\n✅ Copied '{name}' to {out_path}", fg="green", bold=True)
+    click.secho(f"\n Copied '{name}' to {out_path}", fg="green", bold=True)
     click.echo("Fetchez will now prioritize this local file over the built-in version!")
     click.echo("You can open it in any text editor to safely customize the pipeline.\n")

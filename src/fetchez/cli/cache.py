@@ -86,7 +86,7 @@ def cache_clear(dir):
         if cache_path.exists():
             shutil.rmtree(cache_path)
             click.secho(
-                f"✨ Cache cleared successfully from {cache_path}!",
+                f" Cache cleared successfully from {cache_path}!",
                 fg="green",
                 bold=True,
             )

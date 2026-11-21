@@ -111,22 +111,17 @@ def cli(verbose, quiet):
 @click.command("la_vache", hidden=True)
 def la_vache():
     """Fetchez La Vache."""
+    import sys
 
-    click.echo("🐄")
-    # import time
-    # import shutil
+    cow = "🐄"
+    encoding = sys.stdout.encoding or "utf-8"
 
-    # loops = 1
-    # screen_width, _ = shutil.get_terminal_size()
+    try:
+        cow.encode(encoding)
+    except UnicodeEncodeError:
+        cow = "Moo!"
 
-    # for _ in range(loops):
-    #     for spaces in range(screen_width - 1):
-    #         click.echo(f"\r{' ' * spaces}🐄", nl=False)
-    #         time.sleep(0.025)
-
-    #     for spaces in range(screen_width - 1, -1, -1):
-    #         click.echo(f"\r{' ' * spaces"}🐄, nl=False)
-    #         time.sleep(0.025)
+    click.echo(cow)
 
 
 cli.add_command(la_vache, name="lavache")

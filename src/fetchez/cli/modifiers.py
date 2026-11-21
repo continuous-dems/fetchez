@@ -88,7 +88,7 @@ def modifiers_info(name):
         click.secho(f"Error: Modifier '{name}' not found.", fg="red")
         sys.exit(1)
 
-    click.secho(f"\n🪝 MODIFIER: {name}", fg="cyan", bold=True)
+    click.secho(f"\n MODIFIER: {name}", fg="cyan", bold=True)
     click.echo("=" * 60)
     click.echo(f"  Description : {meta.get('desc', 'N/A')}")
     click.echo(f"  Category    : {meta.get('category', 'N/A')}\n")
