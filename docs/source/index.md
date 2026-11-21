@@ -36,7 +36,7 @@ pip install fetchez
 
 ### Command Line Interface
 
-Discover available data from a registered Fetchez component; here, the built-in [`stac` module](user_guide/modules/stac.md):
+Discover available data from a registered Fetchez component; here, the built-in [`stac` module](modules/stac.md):
 
 ```bash
 fetchez build \
