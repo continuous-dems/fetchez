@@ -112,7 +112,7 @@ def info_recipe(name):
         sys.exit(1)
 
     # project = meta.get("project", {})
-    click.secho(f"\n📜 RECIPE SUMMARY: {name}", fg="cyan", bold=True)
+    click.secho(f"\n RECIPE SUMMARY: {name}", fg="cyan", bold=True)
     click.echo("=" * 60)
     click.echo(f"  Description : {meta.get('desc', 'N/A').strip()}")
 
@@ -125,7 +125,7 @@ def info_recipe(name):
             click.echo(f"    + {click.style(mod_name, fg='green')}")
             for arg in mod.get("args"):
                 click.echo(
-                    f"     ⤷ {click.style(arg, fg='cyan')}: {mod.get('args').get(arg)}"
+                    f"     > {click.style(arg, fg='cyan')}: {mod.get('args').get(arg)}"
                 )
 
     # global_hooks = config.get("global_hooks", [])
@@ -137,7 +137,7 @@ def info_recipe(name):
             click.echo(f"    - {click.style(hook_name, fg='yellow')}")
             for arg in hook.get("args", []):
                 click.echo(
-                    f"     ⤷ {click.style(arg, fg='cyan')}: {hook.get('args').get(arg)}"
+                    f"     > {click.style(arg, fg='cyan')}: {hook.get('args').get(arg)}"
                 )
 
     click.echo("=" * 60 + "\n")
@@ -181,13 +181,13 @@ def copy_recipe(name):
     out_path = user_dir / f"{name}.yaml"
 
     if out_path.exists():
-        click.secho(f"⚠️ File already exists: {out_path}", fg="yellow")
+        click.secho(f" File already exists: {out_path}", fg="yellow")
         click.confirm("Do you want to overwrite it?", abort=True)
 
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(yaml.dump(meta, sort_keys=False))
 
-    click.secho(f"\n✅ Copied '{name}' to {out_path}", fg="green", bold=True)
+    click.secho(f"\n Copied '{name}' to {out_path}", fg="green", bold=True)
     click.echo("Fetchez will now prioritize this local file over the built-in version!")
     click.echo("You can open it in any text editor to safely customize the pipeline.\n")
 

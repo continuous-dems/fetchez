@@ -237,13 +237,13 @@ class PluginRegistry:
                         mod_key = f"{prefix}.{raw_mod_key}"
 
                     # logger.debug(
-                    #     f"🧩 Loaded external plugin: '{mod_key}' from {prefix}"
+                    #     f"Loaded external plugin: '{mod_key}' from {prefix}"
                     # )
 
                     if raw_mod_key in registry:
                         mod_key = f"{prefix}.{raw_mod_key}"
                         logger.debug(
-                            f"⚠️ Blocked plugin '{prefix}' from clobbering module '{raw_mod_key}'. "
+                            f"Blocked plugin '{prefix}' from clobbering module '{raw_mod_key}'. "
                             f"It has been safely sandboxed as '{mod_key}'."
                         )
                     # Maybe check `cls.builtin_pkg` here too instead of hard-coding the
@@ -253,7 +253,7 @@ class PluginRegistry:
                     # ).startswith("fetchez."):
                     #     mod_key = f"{prefix}.{raw_mod_key}"
                     #     logger.debug(
-                    #         f"⚠️ Blocked plugin '{prefix}' from hijacking core module '{raw_mod_key}'. "
+                    #         f" Blocked plugin '{prefix}' from hijacking core module '{raw_mod_key}'. "
                     #         f"It has been safely sandboxed as '{mod_key}'."
                     #     )
 

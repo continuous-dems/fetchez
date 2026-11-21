@@ -448,7 +448,7 @@ class EarthData(FetchModule):
                             logger.debug(f"Harmony Job Status: {state}")
                             time.sleep(10)
                         else:
-                            # Unrecognised terminal-or-unknown state — do not loop forever.
+                            # Unrecognised terminal-or-unknown state - do not loop forever.
                             logger.warning(
                                 f"Harmony Job returned unrecognised status '{state}'; "
                                 f"stopping poll."
