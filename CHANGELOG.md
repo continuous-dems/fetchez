@@ -8,10 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Added a sliderule module for optional server-side NASA ICESat-2 and GEDI processing through the SlideRule API, with spatial/temporal subsetting, configurable processing parameters, and GeoParquet output.
+- Added SlideRule acquisition support using serializable requests, deterministic output naming, local caching, and the standard Fetchez discovery/acquisition lifecycle.
+- Added native dictionary argument parsing for dynamically generated CLI commands, supporting JSON/YAML mappings and slash-delimited key=value syntax.
 - Validated discovery and acquisition of NASA ORNL DAAC lidar-derived topography products, including spatially filtered 1 m DTM GeoTIFFs, through the generic earthaccess module.
 - Include STAC item footprints in asset entries during discovery for spatial inventories.
 
 ### CHANGED
+- Improved component argument metadata to preserve resolved Python type annotations for CLI argument handling.
+- Consolidated CLI-specific utilities under fetchez.cli.utils and reusable parsing functions under fetchez.utils.parsing, removing duplicate implementations and simplifying imports.
+- Improved handling of structured module and hook arguments when generating and exporting recipes from CLI pipelines.
 - Uodate the Sphinx 'module_table' to auto-generate module API docs and link to them from the Module Catalog table.
 - **Earthaccess:** Refactored NASA Earthdata acquisition to use a custom FetchModule.fetch_entry() implementation, enabling provider-aware authenticated downloads through the standard Fetchez lifecycle.
 - Added earthaccess-managed HTTPS sessions for Earthdata Login authentication and redirects, while preserving discovery-only workflows and compatibility with existing CMR search options.
