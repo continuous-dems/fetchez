@@ -24,16 +24,11 @@ from .logging import (
     ICE,
     RST,
     colorize,
+    _cli_logo,
     TqdmLoggingHandler,
     configure_logging,
     str_truncate_middle,
     format_dataset_id,
-)
-
-from .cli import (
-    FetchezMainGroup,
-    FetchezMainCommand,
-    _cli_logo,
 )
 
 from .archives import (
@@ -55,7 +50,6 @@ from .parsing import (
     compile_sources,
     parse_arg_to_list,
     parse_arg_to_dict,
-    truncate_string,
     range_pairs,
     get_class_arguments,
     _parse_value_string,
@@ -125,8 +119,6 @@ __all__ = [
     "configure_logging",
     "str_truncate_middle",
     "format_dataset_id",
-    "FetchezMainGroup",
-    "FetchezMainCommand",
     "_cli_logo",
     "UnsafeArchiveError",
     "_extract_lock_path",
@@ -143,7 +135,6 @@ __all__ = [
     "compile_sources",
     "parse_arg_to_list",
     "parse_arg_to_dict",
-    "truncate_string",
     "range_pairs",
     "get_class_arguments",
     "_parse_value_string",

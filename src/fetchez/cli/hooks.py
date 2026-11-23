@@ -15,8 +15,8 @@ import sys
 import click
 
 from fetchez.registry import HookRegistry
+from fetchez.utils.parsing import get_class_arguments
 from fetchez.cli.utils import (
-    get_class_arguments,
     group_registry_by_key,
     print_grouped_registry,
     filter_registry,

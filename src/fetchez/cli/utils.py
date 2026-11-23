@@ -13,14 +13,15 @@ registry metadata dictionaries, with a meta_* fallback for transitional use.
 
 from __future__ import annotations
 
-import inspect
 import shutil
 from collections.abc import Mapping
 from typing import Optional, List
 
 import click
+import yaml
 
-from fetchez.utils import colorize, GREEN, CYAN, BOLD, RED
+from fetchez.utils.parsing import parse_arg_to_dict
+from fetchez.utils import colorize, GREEN, CYAN, BOLD
 
 
 class FetchezMainGroup(click.Group):
@@ -256,60 +257,33 @@ def print_grouped_registry(
             )
 
 
-def get_class_arguments(TargetCls, want_inherited=True):
-    """Inspect a class for arguments and print them out."""
+class DictParam(click.ParamType):
+    name = "dict"
 
-    all_params = {}
-    for cls in TargetCls.__mro__:
-        if cls is object:
-            continue
+    def convert(self, value, param, ctx):
+        if isinstance(value, dict):
+            return value
 
-        if hasattr(cls, "__init__"):
-            try:
-                sig = inspect.signature(cls.__init__)
-                for name, param in sig.parameters.items():
-                    if name == "self" or param.kind in (
-                        inspect.Parameter.VAR_POSITIONAL,
-                        inspect.Parameter.VAR_KEYWORD,
-                    ):
-                        continue
+        try:
+            parsed = yaml.safe_load(value)
+            if isinstance(parsed, dict):
+                return parsed
+        except yaml.YAMLError:
+            pass
 
-                    if name not in all_params:
-                        all_params[name] = {"param": param, "origin": cls}
-            except ValueError:
-                pass
+        try:
+            parsed = parse_arg_to_dict(value)
+        except (ValueError, TypeError, yaml.YAMLError):
+            parsed = None
 
-    args_dict = {}
-    if all_params:
-        arg_help = getattr(TargetCls, "_cli_arg_help", {})
-        for name, data in all_params.items():
-            param = data["param"]
-            origin_cls = data["origin"]
-            origin_help = getattr(origin_cls, "_cli_arg_help", {})
+        if not isinstance(parsed, dict):
+            self.fail(
+                "Expected a YAML/JSON mapping or KEY=VALUE pairs",
+                param,
+                ctx,
+            )
 
-            if param.default is inspect.Parameter.empty:
-                default_str = colorize("(required)", RED)
-            else:
-                # default_str = f"(default: {param.default or 'None'})"
-                default_str = param.default  # or None  # or 'None'}"
+        return parsed
 
-            type_str = ""
-            if param.annotation is not inspect.Parameter.empty:
-                type_name = getattr(param.annotation, "__name__", str(param.annotation))
-                type_str = f"[{type_name}] "
 
-            inherit_str = ""
-            if origin_cls is not TargetCls:
-                inherit_str = colorize(f" [from {origin_cls.__name__}]", CYAN)
-                desc_str = f" - {origin_help[name]}" if name in origin_help else ""
-            else:
-                desc_str = f" - {arg_help[name]}" if name in arg_help else ""
-
-            args_dict[name] = {
-                "type": type_str,
-                "default": default_str,
-                "inherit": inherit_str,
-                "desc": desc_str,
-            }
-
-    return args_dict
+DICT = DictParam()

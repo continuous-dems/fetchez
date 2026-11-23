@@ -3,7 +3,7 @@
 
 """
 fetchez.utils.parsing
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 Utility functions for common Fetchez parsing.
 
@@ -12,11 +12,10 @@ Utility functions for common Fetchez parsing.
 """
 
 import logging
-import shutil
 import re
 import inspect
 from pathlib import Path, PureWindowsPath
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, get_type_hints
 
 
 from .logging import colorize, CYAN, RED
@@ -321,18 +320,6 @@ def compile_sources(sources):
     return compiled_modules
 
 
-def truncate_string(input_string: str, padding: int = 0):
-    width, _ = shutil.get_terminal_size()
-    width -= padding
-
-    # Slice the string to fit exactly one line (minus 3 for the ellipsis)
-    if len(input_string) > width:
-        truncated_string = input_string[: width - 3] + "..."
-    else:
-        truncated_string = input_string
-    return truncated_string
-
-
 def parse_hook_string_(h_str):
     """Helper to parse 'hook:arg=val' strings."""
 
@@ -369,7 +356,6 @@ def range_pairs(lst):
     return [(lst[i], lst[i + 1]) for i in range(len(lst) - 1)]
 
 
-# TODO: Update this function to return a string instead of printing!
 def get_class_arguments(TargetCls, want_inherited=True):
     """Inspect a class for arguments and print them out."""
 
@@ -381,6 +367,11 @@ def get_class_arguments(TargetCls, want_inherited=True):
         if hasattr(cls, "__init__"):
             try:
                 sig = inspect.signature(cls.__init__)
+                try:
+                    hints = get_type_hints(cls.__init__)
+                except (NameError, TypeError, AttributeError):
+                    hints = {}
+
                 for name, param in sig.parameters.items():
                     if name == "self" or param.kind in (
                         inspect.Parameter.VAR_POSITIONAL,
@@ -389,7 +380,14 @@ def get_class_arguments(TargetCls, want_inherited=True):
                         continue
 
                     if name not in all_params:
-                        all_params[name] = {"param": param, "origin": cls}
+                        all_params[name] = {
+                            "param": param,
+                            "origin": cls,
+                            "annotation": hints.get(
+                                name,
+                                param.annotation,
+                            ),
+                        }
             except ValueError:
                 pass
 
@@ -407,11 +405,6 @@ def get_class_arguments(TargetCls, want_inherited=True):
                 # default_str = f"(default: {param.default or 'None'})"
                 default_str = param.default  # or None  # or 'None'}"
 
-            type_str = ""
-            if param.annotation is not inspect.Parameter.empty:
-                type_name = getattr(param.annotation, "__name__", str(param.annotation))
-                type_str = f"[{type_name}] "
-
             inherit_str = ""
             if origin_cls is not TargetCls:
                 inherit_str = colorize(f" [from {origin_cls.__name__}]", CYAN)
@@ -419,8 +412,21 @@ def get_class_arguments(TargetCls, want_inherited=True):
             else:
                 desc_str = f" - {arg_help[name]}" if name in arg_help else ""
 
+            annotation = data["annotation"]
+            if annotation is inspect.Parameter.empty:
+                annotation = None
+                type_str = ""
+            else:
+                type_name = getattr(
+                    annotation,
+                    "__name__",
+                    str(annotation),
+                )
+                type_str = f"[{type_name}] "
+
             args_dict[name] = {
                 "type": type_str,
+                "annotation": annotation,
                 "default": default_str,
                 "inherit": inherit_str,
                 "desc": desc_str,

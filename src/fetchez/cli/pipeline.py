@@ -3,7 +3,7 @@
 
 """
 fetchez.cli.pipeline
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 Build a fetchez pipeline.
 
@@ -13,6 +13,7 @@ Build a fetchez pipeline.
 
 import click
 import yaml
+from typing import get_args, get_origin
 from fetchez.recipe import Recipe
 from fetchez.registry import (
     ModuleRegistry,
@@ -26,13 +27,33 @@ from fetchez.utils import parse_hook_string, parse_arg_to_list
 from fetchez.cli.utils import (
     FetchezMainGroup,
     FetchezMainCommand,
+    DICT,
 )
+
+
+def type_contains_dict(tp) -> bool:
+    if tp is dict or get_origin(tp) is dict:
+        return True
+
+    return any(type_contains_dict(arg) for arg in get_args(tp))
 
 
 def add_options(options):
     def decorator(f):
         for opt in reversed(options or []):
-            f = click.option(opt[0], default=opt[2], help=opt[1])(f)
+            default = opt[2]
+            annotation = opt[3]
+
+            kwargs = {
+                "default": default,
+                "help": opt[1],
+            }
+
+            if isinstance(default, dict) or type_contains_dict(annotation):
+                kwargs["type"] = DICT
+
+            f = click.option(opt[0], **kwargs)(f)
+
         return f
 
     return decorator
@@ -62,6 +83,7 @@ def _component_cli_options(meta, exclude=None):
                 f"--{key.replace('_', '-')}",
                 val["desc"],
                 val["default"],
+                val.get("annotation"),
             ]
         )
 
