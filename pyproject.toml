@@ -46,9 +46,10 @@ bing = ["mercantile"]
 earthdata = ["earthaccess>=0.9.0"]
 stac = ["pystac", "pystac_client", "planetary_computer"]
 marine = ["copernicusmarine"]
+sliderule = ["sliderule", "pyarrow", "geopandas"]
 # jupyter = ["jupyterlab", "ipyleaflet", "ipywidgets"]
 
-full = ["fetchez[aws,bing,earthdata,stac]"]
+full = ["fetchez[aws,bing,earthdata,stac,sliderule]"]
 
 [dependency-groups]
 dev = [
@@ -143,6 +144,7 @@ module = [
     "fsspec",
     "fsspec.*",
     "affine",
+    "sliderule",
 ]
 ignore_missing_imports = true
 # disable_error_code = ["import-not-found"]
