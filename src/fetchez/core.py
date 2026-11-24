@@ -15,6 +15,7 @@ threading, and the base FetchModule class.
 """
 
 import os
+import random
 import time
 import base64
 import threading
@@ -59,6 +60,13 @@ NAMESPACES = {
 }
 
 logger = logging.getLogger(__name__)
+
+# Retry policy for transient failures: exponential backoff with full jitter.
+# The wait before retry n is uniform in [0, min(RETRY_BACKOFF_CAP, 2**n)] seconds,
+# so parallel processes do not retry in lockstep. Ten tries wait about seven minutes
+# on average (at most thirteen and a half), long enough to outlast a short block.
+DEFAULT_TRIES = 10
+RETRY_BACKOFF_CAP = 300
 
 HOOK_LOCK = threading.Lock()
 
@@ -794,7 +802,7 @@ class Fetch:
 
         raise FetchError(f"HTTP {status} requesting {self.url}") from error
 
-    def _with_retries(self, operation, *, tries=5, method="GET"):
+    def _with_retries(self, operation, *, tries=DEFAULT_TRIES, method="GET"):
         if tries < 1:
             raise ValueError("tries must be >= 1")
 
@@ -882,7 +890,7 @@ class Fetch:
                 if retry_after and retry_after.isdigit():
                     return min(int(retry_after), 120)
 
-        return min(2 * attempt, 30)
+        return random.uniform(0, min(RETRY_BACKOFF_CAP, 2**attempt))
 
     def fetch_req(
         self,
@@ -890,7 +898,7 @@ class Fetch:
         params=None,
         data=None,
         json=None,
-        tries=5,
+        tries=DEFAULT_TRIES,
         timeout=30,
         read_timeout=120,
     ) -> requests.Response:
@@ -960,7 +968,7 @@ class Fetch:
         overwrite: bool = False,
         timeout: int = 30,
         read_timeout: int = 120,
-        tries: int = 5,
+        tries: int = DEFAULT_TRIES,
         check_size=True,
         verbose=True,
     ) -> int:
@@ -1435,14 +1443,19 @@ def clear_context(modules, global_hooks, context=None):
         hook.context = None
 
 
-def _fetch_worker(module, entry, verbose=True, context=None):
+def _fetch_worker(module, entry, verbose=True, context=None, tries=None):
     if context is not None and context.cancelled:
         raise FetchCancelled("Fetch Cancelled.")
+
+    # Only pass the retry count when the caller set one, so module
+    # fetch_entry() overrides without a ``retries`` argument keep working.
+    options = {} if tries is None else {"retries": tries}
 
     return module.fetch_entry(
         entry,
         check_size=True,
         verbose=verbose,
+        **options,
     )
 
 
@@ -1811,6 +1824,7 @@ def _run_acquisition(
     ignore_failures=False,
     seen=None,
     prepared_entries=None,
+    tries=None,
 ):
     """Fetch and process manifest entries.
 
@@ -1856,6 +1870,7 @@ def _run_acquisition(
                 entry,
                 verbose=True,
                 context=context,
+                tries=tries,
             ): (mod, entry)
             for mod, entry in entries
         }
@@ -1995,6 +2010,7 @@ def run_fetchez(
     discover_only=False,
     *,
     inputs=None,
+    tries=None,
 ):
     """Run Fetchez in parallel with hooks.
 
@@ -2012,6 +2028,8 @@ def run_fetchez(
         inputs: Perpared entry inputs, accepts (module, entry) pairs representing already-materialized
                 entries and begins processing at the file stage, skipping the manifest stage and
                 discovery.
+        tries: Maximum attempts for each file download, retried with exponential backoff and
+               jitter. Defaults to ``DEFAULT_TRIES``.
     """
 
     context = normalize_context(context)
@@ -2095,6 +2113,7 @@ def run_fetchez(
                 ignore_failures=ignore_failures,
                 seen=seen,
                 prepared_entries=prepared_entries,
+                tries=tries,
             )
 
             # --- Collection Stage ---
