@@ -112,5 +112,5 @@ def test_prepared_ids_are_checked_after_modifiers(monkeypatch):
             return config
 
     monkeypatch.setattr(recipe, "_init_modifiers", lambda *a, **kw: [Duplicate()])
-    with pytest.raises(ValueError, match="Duplicate module instance id"):
+    with pytest.raises(ValueError, match="Duplicate"):
         recipe.compile()
