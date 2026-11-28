@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### ADDED
+- Added optional instance IDs for global and module-local recipe hooks, supporting unique identification of repeated hook types.
+- Added PipelinePlan.global_hooks_by_id for accessing compiled global hooks by their instance IDs.
 - Added a sliderule module for optional server-side NASA ICESat-2 and GEDI processing through the SlideRule API, with spatial/temporal subsetting, configurable processing parameters, and GeoParquet output.
 - Added SlideRule acquisition support using serializable requests, deterministic output naming, local caching, and the standard Fetchez discovery/acquisition lifecycle.
 - Added native dictionary argument parsing for dynamically generated CLI commands, supporting JSON/YAML mappings and slash-delimited key=value syntax.
@@ -15,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Include STAC item footprints in asset entries during discovery for spatial inventories.
 
 ### CHANGED
+- Unified module and hook instance ID generation and validation through shared recipe utilities.
+- Improved collision handling and validation of explicit and automatically generated component IDs.
+- Preserved support for preconfigured Python component instances and their existing identities.
+- Added regression tests for component identity, duplicate IDs, runtime instances, and hook scoping.
 - Improved component argument metadata to preserve resolved Python type annotations for CLI argument handling.
 - Consolidated CLI-specific utilities under fetchez.cli.utils and reusable parsing functions under fetchez.utils.parsing, removing duplicate implementations and simplifying imports.
 - Improved handling of structured module and hook arguments when generating and exporting recipes from CLI pipelines.
