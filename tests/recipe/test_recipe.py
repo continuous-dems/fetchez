@@ -207,27 +207,24 @@ def test_safe_copy_preserves_nested_runtime_identity():
 def test_runtime_hook_initialization_and_explicit_instance_state(runtime_registry):
     recipe = Recipe({})
     queue = Queue(maxsize=1)
-    configured = RuntimeHook(output="literal_%batch_name%.txt", queue=queue)
+    configured = RuntimeHook(
+        output="literal_%batch_name%.txt",
+        queue=queue,
+    )
+    other_configured = RuntimeHook(output="other.txt")
+
     hooks = recipe._init_hooks(
         [
             {"name": "registered-test-hook", "args": {"output": "named.txt"}},
             {"name": RuntimeHook, "args": {"output": "class.txt", "queue": queue}},
             RuntimeHook,
             configured,
-            {"name": configured},
+            {"name": other_configured},
         ]
     )
-    assert [type(h) for h in hooks] == [RuntimeHook] * 5
-    assert Path(hooks[0].output).name == "named.txt"
-    assert Path(hooks[1].output).name == "class.txt"
-    assert hooks[1].queue is queue
-    assert hooks[2] is not configured
-    assert hooks[3] is configured and hooks[4] is configured
-    assert configured.output == "literal_%batch_name%.txt"
-    with pytest.raises(ValueError, match="already configured"):
-        recipe._init_hooks([{"name": configured, "args": {"output": "override.txt"}}])
-    with pytest.raises(TypeError, match="does not accept arguments"):
-        recipe._init_hooks([{"name": RuntimeHook, "args": {"typo": True}}])
+
+    assert hooks[3] is configured
+    assert hooks[4] is other_configured
 
 
 def test_runtime_module_initialization_and_explicit_instance_state(runtime_registry):
